@@ -1,30 +1,53 @@
 import { NextResponse } from 'next/server';
-import { execute10MinJob, execute30MinJob, execute60MinJob } from "../../../../scheduler/cron";
+import { runMatchCrawler } from "../../../../crawlers/matchCrawler";
+import { runStatsCrawler } from "../../../../crawlers/statsCrawler";
+import { runOddsCrawler } from "../../../../crawlers/oddsCrawler";
+import { runWorldState } from "../../../../engine/worldState";
+import { runQuantEngine } from "../../../../engine/quantEngine";
+import { runSignalEngine } from "../../../../engine/signalEngine";
 
 export async function POST(request: Request) {
   try {
-    // Only allow manual trigger by admin or via Vercel Cron
-    // In production, we'd check req.headers.get("Authorization")
+    // 1. Check Authorization header
+    const authHeader = request.headers.get("Authorization");
+    const secret = process.env.CRON_SECRET;
     
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get("type");
-
-    if (type === "10min") {
-      await execute10MinJob();
-    } else if (type === "30min") {
-      await execute30MinJob();
-    } else if (type === "60min") {
-      await execute60MinJob();
-    } else {
-      // Run all if no type is specified (manual trigger)
-      await execute10MinJob();
-      await execute30MinJob();
-      await execute60MinJob();
+    if (!secret || authHeader !== `Bearer ${secret}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    return NextResponse.json({ success: true, message: `Engines triggered for ${type || 'all'}` });
+    // 2. Parse JSON body for the "task" field
+    const body = await request.json().catch(() => ({}));
+    const task = body.task;
+
+    if (!task) {
+      return NextResponse.json({ error: "Missing 'task' in request body" }, { status: 400 });
+    }
+
+    // 3. Execute specific crawler based on task
+    if (task === "matchCrawler") {
+      await runMatchCrawler();
+    } else if (task === "statsCrawler") {
+      await runStatsCrawler();
+    } else if (task === "oddsCrawler") {
+      await runOddsCrawler();
+    } else {
+      return NextResponse.json({ error: `Unknown task: ${task}` }, { status: 400 });
+    }
+
+    // 4. Sequentially run engines after crawler completes
+    console.log(`[Admin Engine] Crawler '${task}' finished. Running engine cascade...`);
+    await runWorldState();
+    await runQuantEngine();
+    await runSignalEngine();
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `Task '${task}' and engine cascade completed successfully.` 
+    }, { status: 200 });
+
   } catch (error: any) {
-    console.error("[Admin Engine Route] Error:", error);
+    console.error(`[Admin Engine Route] Error during execution:`, error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
