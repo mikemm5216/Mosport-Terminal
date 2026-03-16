@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model League {
+  id      String  @id @default(cuid())
+  name    String
+  country String
+  teams   Team[]
+  matches Match[]
+  
+  @@map("leagues")
+}
+
+model Team {
+  id        String       @id @default(cuid())
+  league_id String
+  name      String
+  league    League       @relation(fields: [league_id], references: [id])
+  players   Player[]
+  states    TeamState[]
+  homeMatches Match[]    @relation("HomeMatches")
+  awayMatches Match[]    @relation("AwayMatches")
+
+  @@map("teams")
+}
+
+model Player {
+  id      String @id @default(cuid())
+  team_id String
+  name    String
+  team    Team   @relation(fields: [team_id], references: [id])
+
+  @@map("players")
+}
+
+model Match {
+  id           String        @id @default(cuid())
+  league_id    String
+  home_team_id String
+  away_team_id String
+  match_date   DateTime
+  status       String
+  
+  league       League        @relation(fields: [league_id], references: [id])
+  home_team    Team          @relation("HomeMatches", fields: [home_team_id], references: [id])
+  away_team    Team          @relation("AwayMatches", fields: [away_team_id], references: [id])
+  
+  stats        MatchStats?
+  odds         Odds[]
+  quant        QuantMetrics?
+  signals      Signal[]
+
+  @@map("matches")
+}
+
+model MatchStats {
+  id             String  @id @default(cuid())
+  match_id       String  @unique
+  home_score     Int
+  away_score     Int
+  home_turnovers Int     @default(0)
+  away_turnovers Int     @default(0)
+  raw_stats      Json?
+  
+  match          Match   @relation(fields: [match_id], references: [id])
+
+  @@map("match_stats")
+}
+
+model Odds {
+  id               String @id @default(cuid())
+  match_id         String
+  market_home_prob Float
+  market_away_prob Float
+  source           String
+  
+  match            Match  @relation(fields: [match_id], references: [id])
+
+  @@map("odds")
+}
+
+model TeamState {
+  id            String   @id @default(cuid())
+  team_id       String
+  team_strength Float
+  momentum      Float
+  fatigue       Float
+  updated_at    DateTime @default(now()) @updatedAt
+  
+  team          Team     @relation(fields: [team_id], references: [id])
+
+  @@map("team_state")
+}
+
+model QuantMetrics {
+  id                  String @id @default(cuid())
+  match_id            String @unique
+  expected_home_score Float
+  expected_away_score Float
+  variance            Float
+  
+  match               Match  @relation(fields: [match_id], references: [id])
+
+  @@map("quant_metrics")
+}
+
+model Signal {
+  id                 String  @id @default(cuid())
+  match_id           String
+  model_probability  Float
+  market_probability Float
+  signal_strength    Float
+  snr                Float
+  anc_flag           Boolean
+  
+  match              Match   @relation(fields: [match_id], references: [id])
+
+  @@map("signals")
+}
+
+model DeadLetterQueue {
+  id         String   @id @default(cuid())
+  source     String
+  payload    Json
+  error      String
+  created_at DateTime @default(now())
+
+  @@map("dead_letter_queue")
+}
