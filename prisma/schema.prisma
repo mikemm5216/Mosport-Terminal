@@ -46,6 +46,7 @@ model Matches {
   away_team_id String
   match_date   DateTime
   status       String   // scheduled, live, finished
+  final_signal_snapshot Json? // Snapshot of pre-match analysis at T-10m
   
   league       Leagues  @relation(fields: [league_id], references: [league_id])
   home_team    Teams    @relation("HomeMatches", fields: [home_team_id], references: [team_id])
@@ -116,4 +117,40 @@ model DeadLetterQueue {
   payload    Json
   error      String
   created_at DateTime @default(now())
+}
+
+model MatchesHistory {
+  id                   String   @id @default(cuid())
+  original_match_id    String   @unique
+  league_id            String
+  home_team_id         String
+  away_team_id         String
+  match_date           DateTime
+  final_home_score     Int
+  final_away_score     Int
+  final_signal_snapshot Json?
+  archived_at          DateTime @default(now())
+}
+
+model SignalsHistory {
+  id                      String   @id @default(cuid())
+  original_signal_id      String   @unique
+  match_id                String
+  model_probability_home  Float
+  market_probability_home Float
+  edge                    Float
+  snr                     Float
+  signal_type             String
+  created_at              DateTime
+  archived_at             DateTime @default(now())
+}
+
+model ModelPerformance {
+  report_month           String   @id // Format: YYYY-MM
+  matches_analyzed       Int
+  model_accuracy         Float
+  average_edge           Float
+  signals_generated      Int
+  hypothetical_model_roi Float
+  created_at             DateTime @default(now())
 }

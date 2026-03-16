@@ -11,9 +11,9 @@ export default function Navbar() {
             MOSPORT
           </Link>
           <div className="hidden md:flex gap-6">
-            <Link href="/matches" className="text-sm font-medium hover:text-[#00AEEF] transition-colors">Match Explorer</Link>
-            <Link href="/leagues" className="text-sm font-medium hover:text-[#00AEEF] transition-colors">League Dashboard</Link>
+            <Link href="/matches" className="text-sm font-medium hover:text-[#00AEEF] transition-colors">Explorer</Link>
             <Link href="/teams" className="text-sm font-medium hover:text-[#00AEEF] transition-colors">Team Analytics</Link>
+            <Link href="/reports" className="text-sm font-medium hover:text-[#00AEEF] transition-colors">Research</Link>
             <Link href="/warroom" className="text-sm font-medium hover:text-[#FF2E88] transition-colors">War Room</Link>
           </div>
         </div>
