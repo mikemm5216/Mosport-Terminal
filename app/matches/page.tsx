@@ -1,0 +1,37 @@
+"use client";
+
+import { useEffect, useState } from 'react';
+import MatchCard from '../../components/MatchCard';
+import SkeletonLoader from '../../components/SkeletonLoader';
+
+export default function MatchExplorer() {
+  const [matches, setMatches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/matches')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setMatches(data.upcoming);
+        setLoading(false);
+      });
+  }, []);
+
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-8">Match Explorer</h1>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <SkeletonLoader /><SkeletonLoader /><SkeletonLoader />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {matches.map(m => (
+            <MatchCard key={m.match_id} match={m} />
+          ))}
+          {matches.length === 0 && <p className="text-gray-500">No scheduled matches found.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
