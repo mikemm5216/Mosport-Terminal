@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+mport { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 const FEATURE_ORDER = [
@@ -14,7 +14,7 @@ function buildFeatureVector(featureJson: Record<string, number>): number[] {
 
 // 支援切換 Label 行為
 function getLabel(match: any, type: string): number {
-  switch(type) {
+  switch (type) {
     case "HOME_WIN":
       return match.home_score > match.away_score ? 1 : 0;
     case "OVER_2_5":
@@ -75,9 +75,9 @@ export async function POST(request: Request) {
           results.push({ snapshot_type: snapshot.snapshot_type, status: "created" });
         } catch (e: any) {
           if (e.code === 'P2002') {
-             results.push({ snapshot_type: snapshot.snapshot_type, status: "already_exists_race" });
+            results.push({ snapshot_type: snapshot.snapshot_type, status: "already_exists_race" });
           } else {
-             throw e;
+            throw e;
           }
         }
       } else {
