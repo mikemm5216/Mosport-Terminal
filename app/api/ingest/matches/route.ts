@@ -45,6 +45,14 @@ export async function GET() {
         skipped_count++;
         continue;
       }
+      
+      // 關鍵修復：TheSportsDB 有時會吐出沒有 idEvent 的垃圾資料，這會導致全寫進 id: "undefined" 互相覆蓋
+      if (!event.idEvent || String(event.idEvent).trim() === "" || event.idEvent === "null") {
+        console.warn("[INGEST WARNING] 跳過無效 ID 賽事:", event.strEvent);
+        skipped_count++;
+        continue;
+      }
+      
       const dateTimeString = `${event.dateEvent}T${event.strTime || "00:00:00"}Z`;
       const match_date = new Date(dateTimeString);
       if (isNaN(match_date.getTime())) { skipped_count++; continue; }
