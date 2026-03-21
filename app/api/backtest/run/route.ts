@@ -36,49 +36,67 @@ export async function POST(req: Request) {
       const snapshot = match.snapshots[0];
       if (!snapshot) continue;
 
-      // STEP 1: 使用真實賠率 (從 Snapshot 提取)
-      const odds = (snapshot.feature_json as Record<string, any>)?.market_odds_home;
-      if (!odds || odds <= 1) continue;
+      try {
+        if (!snapshot.feature_json) {
+          console.log("[SKIP] missing feature_json:", snapshot.match_id);
+          continue;
+        }
 
-      // STEP 2: 加入莊家抽水 (Realistic Edge)
-      // 模擬 5% 的莊家邊際，讓模型更難找到 "價值"
-      const rawImplied = 1 / odds;
-      const impliedProb = rawImplied * 1.05; 
+        // STEP 1: 使用真實賠率 (從 Snapshot 提取)
+        const odds = (snapshot.feature_json as Record<string, any>)?.market_odds_home;
+        if (!odds || typeof odds !== "number" || odds <= 1) {
+          console.log("[SKIP] invalid odds:", snapshot.match_id);
+          continue;
+        }
 
-      // 取得模型預測 (讀取靜態推論結果)
-      const modelProb = (snapshot.feature_json as Record<string, any>)?.predicted_prob_home || 0.5;
-      
-      const edge = modelProb - impliedProb;
+        // STEP 2: 加入莊家抽水 (Realistic Edge)
+        // 模擬 5% 的莊家邊際，讓模型更難找到 "價值"
+        const rawImplied = 1 / odds;
+        const impliedProb = rawImplied * 1.05; 
 
-      // STEP 3: 嚴格 Edge 過濾器 (提高閾值以降低雜訊)
-      if (edge <= 0.03) continue;
+        // 取得模型預測 (讀取靜態推論結果)
+        const modelProb = (snapshot.feature_json as Record<string, any>)?.predicted_prob_home || 0.5;
+        
+        if (!modelProb || modelProb <= 0 || modelProb > 1) {
+          console.log("[SKIP] invalid prob:", snapshot.match_id, modelProb);
+          continue;
+        }
 
-      // STEP 4: 凱利準則 (Kelly Criterion) 計算投注量
-      const kelly = QuantEngine.getKellySuggest(modelProb, odds);
-      const betSize = bankroll * kelly;
+        const edge = modelProb - impliedProb;
 
-      if (betSize <= 0) continue;
+        // STEP 3: 嚴格 Edge 過濾器 (提高閾值以降低雜訊)
+        if (edge <= 0.03) continue;
 
-      // 判斷勝負 (僅示範 Home Win 邏輯)
-      const isWin = match.home_score! > match.away_score!;
-      totalBets++;
+        // STEP 4: 凱利準則 (Kelly Criterion) 計算投注量
+        const kelly = QuantEngine.getKellySuggest(modelProb, odds);
+        const betSize = bankroll * kelly;
 
-      // STEP 4 & 5: 更新 Bankroll 與 Equity Curve
-      if (isWin) {
-        wins++;
-        bankroll += betSize * (odds - 1);
-      } else {
-        bankroll -= betSize;
+        if (betSize <= 0) continue;
+
+        // 判斷勝負 (僅示範 Home Win 邏輯)
+        const isWin = match.home_score! > match.away_score!;
+        totalBets++;
+
+        // STEP 4 & 5: 更新 Bankroll 與 Equity Curve
+        if (isWin) {
+          wins++;
+          bankroll += betSize * (odds - 1);
+        } else {
+          bankroll -= betSize;
+        }
+        equityCurve.push(bankroll);
+
+        // STEP 6: 最大回撤 (Max Drawdown) 計算
+        if (bankroll > peak) peak = bankroll;
+        const currentDrawdown = (peak - bankroll) / peak;
+        if (currentDrawdown > maxDrawdown) maxDrawdown = currentDrawdown;
+
+        // 紀錄收益率用於 Sharpe Ratio
+        returns.push((equityCurve[equityCurve.length - 1] - equityCurve[equityCurve.length - 2]) / equityCurve[equityCurve.length - 2]);
+      } catch (err) {
+        console.error("[ERROR MATCH]", snapshot.match_id, err);
+        continue;
       }
-      equityCurve.push(bankroll);
-
-      // STEP 6: 最大回撤 (Max Drawdown) 計算
-      if (bankroll > peak) peak = bankroll;
-      const currentDrawdown = (peak - bankroll) / peak;
-      if (currentDrawdown > maxDrawdown) maxDrawdown = currentDrawdown;
-
-      // 紀錄收益率用於 Sharpe Ratio
-      returns.push((equityCurve[equityCurve.length - 1] - equityCurve[equityCurve.length - 2]) / equityCurve[equityCurve.length - 2]);
     }
 
     // STEP 7: Sharpe Ratio 計算 (量化核心指標)
@@ -104,7 +122,10 @@ export async function POST(req: Request) {
     });
 
   } catch (error: any) {
-    console.error("[BACKTEST ERROR]", error.message);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("BACKTEST FATAL:", error);
+    return NextResponse.json({
+      success: false,
+      error: error.message
+    }, { status: 500 });
   }
 }
