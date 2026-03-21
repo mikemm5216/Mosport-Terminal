@@ -46,6 +46,8 @@ model Matches {
   away_team_id String
   match_date   DateTime
   status       String   // scheduled, live, finished
+  home_score   Int?
+  away_score   Int?
   final_signal_snapshot Json? // Snapshot of pre-match analysis at T-10m
   
   league       Leagues  @relation(fields: [league_id], references: [league_id])
@@ -55,6 +57,8 @@ model Matches {
   stats        MatchStats?
   market       MarketProbabilities[]
   signals      Signals[]
+  snapshots    EventSnapshot[]
+  experiences  Experience[]
 }
 
 model MatchStats {
@@ -153,4 +157,54 @@ model ModelPerformance {
   signals_generated      Int
   hypothetical_model_roi Float
   created_at             DateTime @default(now())
+}
+
+model EventSnapshot {
+  snapshot_id   String   @id @default(uuid()) @db.Uuid
+  match_id      String
+  snapshot_type String   // T-24h / T-6h / T-1h / T-10min
+  snapshot_time DateTime
+  state_json    Json
+  feature_json  Json
+  version       Int      @default(1)
+  created_at    DateTime @default(now())
+
+  match         Matches  @relation(fields: [match_id], references: [match_id], onDelete: Restrict)
+
+  @@index([match_id])
+  @@unique([match_id, snapshot_type])
+  @@map("event_snapshots")
+}
+
+model Experience {
+  experience_id String   @id @default(uuid()) @db.Uuid
+  match_id      String
+  snapshot_type String   // T-24h / T-6h / T-1h / T-10min
+
+  feature_json  Json
+  feature_vector Float[]   // ⭐ 新增: 固定特徵陣列
+
+  label         Int
+  label_type    String     // ⭐ 新增: "HOME_WIN" / "OVER_2_5"
+
+  created_at    DateTime @default(now())
+
+  // 設定與 Matches 之間的關聯，確保外鍵安全
+  match         Matches  @relation(fields: [match_id], references: [match_id], onDelete: Restrict)
+
+  @@index([match_id])
+  @@index([snapshot_type])
+  @@unique([match_id, snapshot_type])
+  @@map("experiences")
+}
+
+model ModelRegistry {
+  model_id     String   @id @default(uuid())
+  model_type   String   // "T-24h" / "T-6h" / "T-1h" / "T-10min"
+  model_json   Json
+  metrics_json Json
+  created_at   DateTime @default(now())
+
+  @@index([model_type])
+  @@map("model_registry")
 }

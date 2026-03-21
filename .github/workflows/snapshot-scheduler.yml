@@ -1,0 +1,16 @@
+name: Snapshot Scheduler
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # 每 15 分鐘
+  workflow_dispatch:         # 支援從 Actions 頁籤手動觸發測試
+
+jobs:
+  run-scheduler:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Call Snapshot Scheduler API
+        # 將 YOUR_DOMAIN 替換為實際網站的網址，例如 https://mosport.vercel.app
+        run: |
+          curl -X POST https://YOUR_DOMAIN/api/scheduler/run
