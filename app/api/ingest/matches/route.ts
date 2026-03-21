@@ -16,7 +16,6 @@ async function fetchDay(dateStr: string): Promise<any[]> {
 
 export async function GET() {
   try {
-    // 產生過去 30 天的日期字串
     const dates: string[] = [];
     for (let i = 1; i <= 30; i++) {
       const d = new Date();
@@ -24,109 +23,102 @@ export async function GET() {
       dates.push(d.toISOString().split("T")[0]);
     }
 
-    // 切分成 3 個批次，每批 10 天，批次間延遲 500ms 避免被封鎖
+    // 分 3 批併發抓取，批次間 500ms
     const BATCH_SIZE = 10;
-    const BATCH_DELAY_MS = 500;
     let allEvents: any[] = [];
-
     for (let i = 0; i < dates.length; i += BATCH_SIZE) {
       const batch = dates.slice(i, i + BATCH_SIZE);
       const results = await Promise.all(batch.map(fetchDay));
       allEvents = allEvents.concat(results.flat());
-
-      // 非最後一批才延遲
-      if (i + BATCH_SIZE < dates.length) {
-        await sleep(BATCH_DELAY_MS);
-      }
+      if (i + BATCH_SIZE < dates.length) await sleep(500);
     }
 
-    const leaguesToUpsert = new Map<string, any>();
-    const teamsToUpsert = new Map<string, any>();
-    const matchesToUpsert: any[] = [];
+    // Transform
+    const leaguesMap = new Map<string, any>();
+    const teamsMap = new Map<string, any>();
+    const matchRows: any[] = [];
     let skipped_count = 0;
 
     for (const event of allEvents) {
-      if (
-        event.intHomeScore === null || event.intAwayScore === null ||
-        event.intHomeScore === undefined || event.intAwayScore === undefined ||
-        event.intHomeScore === "" || event.intAwayScore === ""
-      ) {
+      if (!event.intHomeScore || !event.intAwayScore ||
+        event.intHomeScore === "" || event.intAwayScore === "") {
         skipped_count++;
         continue;
       }
-
       const dateTimeString = `${event.dateEvent}T${event.strTime || "00:00:00"}Z`;
       const match_date = new Date(dateTimeString);
       if (isNaN(match_date.getTime())) { skipped_count++; continue; }
 
-      // 強制全部 ID 為字串，避免 TheSportsDB 不時回傳數字型導致 Prisma @id 對不上
-      const match_id = String(event.idEvent);
-      const league_id = String(event.idLeague || "MissingLeague");
+      // 強制全部 ID 轉字串
+      const match_id    = String(event.idEvent);
+      const league_id   = String(event.idLeague || "MissingLeague");
       const home_team_id = String(event.idHomeTeam || event.strHomeTeam);
       const away_team_id = String(event.idAwayTeam || event.strAwayTeam);
-      const home_score = parseInt(event.intHomeScore);
-      const away_score = parseInt(event.intAwayScore);
+      const home_score  = parseInt(event.intHomeScore);
+      const away_score  = parseInt(event.intAwayScore);
 
-      leaguesToUpsert.set(league_id, {
+      leaguesMap.set(league_id, {
         league_id,
         league_name: event.strLeague || "Unknown League",
         sport: event.strSport || "Soccer",
         country: "Global"
       });
-
-      teamsToUpsert.set(home_team_id, {
-        team_id: home_team_id,
-        league_id,
-        team_name: event.strHomeTeam,
-        home_city: "Unknown"
-      });
-
-      teamsToUpsert.set(away_team_id, {
-        team_id: away_team_id,
-        league_id,
-        team_name: event.strAwayTeam,
-        home_city: "Unknown"
-      });
-
-      matchesToUpsert.push({
-        match_id,
-        league_id,
-        home_team_id,
-        away_team_id,
-        match_date,
-        home_score,
-        away_score,
-        status: "COMPLETED"
-      });
+      teamsMap.set(home_team_id, { team_id: home_team_id, league_id, team_name: event.strHomeTeam, home_city: "Unknown" });
+      teamsMap.set(away_team_id, { team_id: away_team_id, league_id, team_name: event.strAwayTeam, home_city: "Unknown" });
+      matchRows.push({ match_id, league_id, home_team_id, away_team_id, match_date, home_score, away_score, status: "COMPLETED" });
     }
 
+    // League upsert — 不多，可以並發
     await Promise.all(
-      Array.from(leaguesToUpsert.values()).map(league =>
-        prisma.leagues.upsert({ where: { league_id: league.league_id }, update: {}, create: league })
+      Array.from(leaguesMap.values()).map(l =>
+        prisma.leagues.upsert({ where: { league_id: l.league_id }, update: {}, create: l })
       )
     );
 
+    // Team upsert — 不多，可以並發
     await Promise.all(
-      Array.from(teamsToUpsert.values()).map(team =>
-        prisma.teams.upsert({ where: { team_id: team.team_id }, update: {}, create: team })
+      Array.from(teamsMap.values()).map(t =>
+        prisma.teams.upsert({ where: { team_id: t.team_id }, update: {}, create: t })
       )
     );
 
-    await Promise.all(
-      matchesToUpsert.map(match =>
-        prisma.matches.upsert({ where: { match_id: match.match_id }, update: match, create: match })
-      )
-    );
+    // ★ 關鍵修正：改用序列 for...of，單筆 try-catch，確保每筆都入庫
+    let write_success = 0;
+    let write_failed = 0;
 
-    // 寫入後瞬間確認 DB 實際筆數
-    const total_in_db = await prisma.matches.count();
+    for (const match of matchRows) {
+      try {
+        await prisma.matches.upsert({
+          where: { match_id: match.match_id },
+          create: match,
+          update: {   // 完整 update，確保已存在的筆數也被刷新
+            league_id:    match.league_id,
+            home_team_id: match.home_team_id,
+            away_team_id: match.away_team_id,
+            match_date:   match.match_date,
+            home_score:   match.home_score,
+            away_score:   match.away_score,
+            status:       match.status,
+          }
+        });
+        write_success++;
+      } catch (e: any) {
+        console.error(`[INGEST FAIL] match_id=${match.match_id}`, e.message);
+        write_failed++;
+      }
+    }
+
+    // 寫入後確認庫存
+    const total_matches_in_db = await prisma.matches.count();
 
     return NextResponse.json({
       success: true,
-      ingested_count: matchesToUpsert.length,
+      fetched_count: allEvents.length,
+      ingested_count: matchRows.length,
+      write_success,
+      write_failed,
       skipped_count,
-      total_matches_in_db: total_in_db, // 這個數字意外低䏠就是寫入失敗的證據
-      message: `30-day ingestion completed (3 batches × 10 days)`
+      total_matches_in_db,  // 如果這個數字遠低於 write_success，有 constraint 問題
     });
 
   } catch (error: any) {
