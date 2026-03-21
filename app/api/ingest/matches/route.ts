@@ -4,22 +4,26 @@ import { prisma } from "@/lib/prisma";
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 async function fetchDay(dateStr: string): Promise<any[]> {
+  const targetUrl = `https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${dateStr}`;
   try {
-    const res = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${dateStr}`);
-    console.log(`[TheSportsDB] ${dateStr} - Status: ${res.status}`);
+    console.error(`[TheSportsDB FETCH START] URL: ${targetUrl}`);
+    const res = await fetch(targetUrl);
+    console.error(`[TheSportsDB FETCH END] URL: ${targetUrl} | Status: ${res.status}`);
     
     if (!res.ok) {
-      console.error(`[TheSportsDB HTTP ERROR] ${dateStr} - HTTP ${res.status}`);
+      console.error(`[TheSportsDB HTTP ERROR] URL: ${targetUrl} | HTTP ${res.status} | Text: ${await res.text().catch(() => "")}`);
       return [];
     }
     
     const data = await res.json();
-    if (!data.events) {
-      console.warn(`[TheSportsDB NO EVENTS] ${dateStr} - data.events is null/undefined. Raw response keys:`, Object.keys(data));
+    if (!data.events || data.events.length === 0) {
+      console.error(`[TheSportsDB EMPTY DATA] URL: ${targetUrl} | RAW DATA FROM API:`, JSON.stringify(data));
+    } else {
+      console.error(`[TheSportsDB SUCCESS] URL: ${targetUrl} | Events Count: ${data.events.length}`);
     }
     return data.events || [];
   } catch (err: any) {
-    console.error(`[TheSportsDB EXCEPTION] ${dateStr} -`, err.message);
+    console.error(`[TheSportsDB EXCEPTION] URL: ${targetUrl} | Error:`, err.message);
     return [];
   }
 }
