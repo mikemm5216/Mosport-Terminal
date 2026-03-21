@@ -48,6 +48,13 @@ export async function POST(req: Request) {
     const equityCurve: number[] = [bankroll];
     const returns: number[] = [];
 
+    // Bio-Battery 三階層門檣（與 edge/route.ts 同步）
+    const BIO_LOW_EDGE    = 12;
+    const BIO_MEDIUM_EDGE = 18;
+    const BIO_HIGH_EDGE   = 25;
+
+    let bioLowCount = 0, bioMediumCount = 0, bioHighCount = 0;
+
     for (const match of pastMatches) {
       const snapshot = match.snapshots[0];
       if (!snapshot) continue;
@@ -122,6 +129,16 @@ export async function POST(req: Request) {
 
         if (betSize <= 0) continue;
 
+        // Bio-Battery 三階層統計
+        const fJson = snapshot.feature_json as Record<string, any>;
+        const bbHome = typeof fJson?.bio_battery_home === 'number' ? fJson.bio_battery_home : null;
+        const bbAway = typeof fJson?.bio_battery_away === 'number' ? fJson.bio_battery_away : null;
+        if (bbHome !== null && bbAway !== null) {
+          const gap = Math.abs(bbHome - bbAway);
+          if (gap >= BIO_HIGH_EDGE)        bioHighCount++;
+          else if (gap >= BIO_MEDIUM_EDGE) bioMediumCount++;
+          else if (gap >= BIO_LOW_EDGE)    bioLowCount++;
+        }
         // 判斷勝負 (僅示範 Home Win 邏輯)
         const isWin = match.home_score! > match.away_score!;
         totalBets++;
@@ -166,7 +183,11 @@ export async function POST(req: Request) {
         max_drawdown: maxDrawdown,
         sharpe_ratio: sharpe,
       },
-      // 僅回傳最後 50 點以優化前端渲染效能
+      bio_battery_stats: {
+        low_edge_count:    bioLowCount,
+        medium_edge_count: bioMediumCount,
+        high_edge_count:   bioHighCount,
+      },
       equity_curve: equityCurve.slice(-50)
     });
 

@@ -11,7 +11,10 @@ const FEATURE_ORDER = [
   "bio_battery_away",
 ];
 
-const BIO_BATTERY_GAP_THRESHOLD = 25; // Bio-Battery 2.0 生理優勢閾值 (%)
+// Bio-Battery 三階层門檣
+const BIO_LOW_EDGE    = 12;  // ⚡ 輕微優勢
+const BIO_MEDIUM_EDGE = 18;  // ⚡⚡ 顯著優勢
+const BIO_HIGH_EDGE   = 25;  // 🔥 絕對優勢
 const PREDICT_API = process.env.PREDICT_API_URL || "http://localhost:8000/predict";
 
 export async function GET() {
@@ -84,10 +87,15 @@ export async function GET() {
 
       if (bio_battery_home !== null && bio_battery_away !== null) {
         const gap = bio_battery_home - bio_battery_away;
-      if (Math.abs(gap) >= BIO_BATTERY_GAP_THRESHOLD) {
-          const winner = gap > 0 ? "HOME" : "AWAY";
-          const absGap = Math.abs(gap).toFixed(1);
-          bio_advantage_alert = `⚡ ${winner} 生理優勢 (${absGap}%)`;
+        const absGap = Math.abs(gap);
+        const winner = gap > 0 ? "HOME" : "AWAY";
+
+        if (absGap >= BIO_HIGH_EDGE) {
+          bio_advantage_alert = `\uD83D\uDD25 ${winner} 絕對優勢 (High Edge ${absGap.toFixed(1)}%)`;
+        } else if (absGap >= BIO_MEDIUM_EDGE) {
+          bio_advantage_alert = `⚡⚡ ${winner} 顯著優勢 (Medium Edge ${absGap.toFixed(1)}%)`;
+        } else if (absGap >= BIO_LOW_EDGE) {
+          bio_advantage_alert = `⚡ ${winner} 輕微優勢 (Low Edge ${absGap.toFixed(1)}%)`;
         }
       }
 
