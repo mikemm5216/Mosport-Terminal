@@ -1,41 +1,10 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { PhysicsEngine } from "@/lib/physics";
+import { buildFeatureVector } from "@/lib/feature";
 
 const INFERENCE_URL = process.env.INFERENCE_URL;
 const TIMEOUT_MS = 3000;
 const MAX_RETRIES = 2;
-
-// ⚠️ 必須與 Python 完全一致
-const FEATURE_ORDER = [
-  "elo_diff",
-  "goal_avg_diff",
-  "form_strength_home",
-  "form_strength_away",
-  "fatigue_home",
-  "fatigue_away",
-];
-
-// 取得球隊上一場比賽的疲勞資訊
-async function getFatigueForTeam(team_id: string, current_match_date: Date, current_venue: string): Promise<number> {
-  const prevMatch = await prisma.matches.findFirst({
-    where: {
-      OR: [{ home_team_id: team_id }, { away_team_id: team_id }],
-      match_date: { lt: current_match_date },
-      status: "finished"
-    },
-    orderBy: { match_date: 'desc' },
-    include: { home_team: true }
-  });
-
-  if (!prevMatch) return 0.1; // 賽季第一場無前測資料
-
-  const prevVenue = prevMatch.home_team.home_city;
-  const daysRest = (current_match_date.getTime() - prevMatch.match_date.getTime()) / (1000 * 60 * 60 * 24);
-  const travelKm = PhysicsEngine.haversineDistance(prevVenue, current_venue);
-
-  return PhysicsEngine.getFatigueScore(daysRest, travelKm);
-}
 
 // 從 DB 撈取真實特徵向量
 async function getFeatureVectorFromDB(match_id: string, snapshot_type: string): Promise<number[] | null> {
@@ -57,22 +26,17 @@ async function getFeatureVectorFromDB(match_id: string, snapshot_type: string): 
     }
 
     const snapshot = match.snapshots[0];
-    const featureMap = (snapshot.feature_json as Record<string, any>) || {};
-
     const current_venue = match.home_team?.home_city || "Unknown";
     
-    // 計算疲勞參數
-    const fatigue_home = await getFatigueForTeam(match.home_team_id, match.match_date, current_venue);
-    const fatigue_away = await getFatigueForTeam(match.away_team_id, match.match_date, current_venue);
+    // 統一呼叫 global buildFeatureVector
+    return await buildFeatureVector(
+      snapshot.feature_json as Record<string, any> | number[],
+      match.home_team_id,
+      match.away_team_id,
+      match.match_date,
+      current_venue
+    );
 
-    featureMap["fatigue_home"] = fatigue_home;
-    featureMap["fatigue_away"] = fatigue_away;
-
-    // 嚴格對齊 FEATURE_ORDER，缺值或 NaN 補 0.0，避免 JSON.stringify 產生 null 導致 Python 422 崩潰
-    return FEATURE_ORDER.map((key) => {
-      const val = featureMap[key];
-      return typeof val === 'number' && !isNaN(val) ? val : 0.0;
-    });
   } catch (error) {
     console.error("[PREDICT DB ERROR]", error);
     return null;

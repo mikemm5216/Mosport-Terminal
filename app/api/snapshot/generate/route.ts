@@ -10,15 +10,7 @@ const TYPE_TO_MS = {
 
 type SnapshotType = keyof typeof TYPE_TO_MS;
 
-// 抽離 feature 建構邏輯，確保輸出全為數值 (number)
-function buildFeatures(state: any): Record<string, number> {
-  return {
-    elo_diff: 125.5,
-    goal_avg_diff: 0.9,
-    form_strength_home: 75.0,
-    form_strength_away: 60.5,
-  };
-}
+import { buildFeatureVector } from "@/lib/feature";
 
 export async function POST(request: Request) {
   try {
@@ -57,6 +49,7 @@ export async function POST(request: Request) {
     // 驗證 match 是否存在
     const match = await prisma.matches.findUnique({
       where: { match_id },
+      include: { home_team: true }
     });
 
     if (!match) {
@@ -83,16 +76,31 @@ export async function POST(request: Request) {
       avg_goals: { home: 1.8, away: 0.9 },
     };
 
-    const featureJson = buildFeatures(stateJson);
+    // 使用統一萃取器構建特徵
+    const baseFakeFeatures = {
+      elo_diff: 125.5,
+      goal_avg_diff: 0.9,
+      form_strength_home: 75.0,
+      form_strength_away: 60.5,
+    };
+    
+    const current_venue = match.home_team?.home_city || "Unknown";
+    const feature_vector = await buildFeatureVector(
+      baseFakeFeatures,
+      match.home_team_id,
+      match.away_team_id,
+      snapshotTime,
+      current_venue
+    );
 
     // 寫入 event_snapshots
     const newSnapshot = await prisma.eventSnapshot.create({
       data: {
         match_id,
         snapshot_type: typedSnapshotType,
-        snapshot_time: snapshotTime, // 修正：依原 DateTime Object 丟給 Prisma 處理，避免 runtime 解析錯誤
+        snapshot_time: snapshotTime,
         state_json: stateJson,
-        feature_json: featureJson,
+        feature_json: feature_vector, // DB 直接儲存嚴格 6 位 Array
       },
     });
 

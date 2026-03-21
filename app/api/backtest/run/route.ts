@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { QuantEngine } from "@/lib/quant";
-import { PhysicsEngine } from "@/lib/physics";
+import { buildFeatureVector } from "@/lib/feature";
 
 const INFERENCE_URL = process.env.INFERENCE_URL;
 
@@ -15,27 +15,6 @@ async function fetchWithTimeout(url: string, options: any, timeout: number) {
   } finally {
     clearTimeout(id);
   }
-}
-
-// 取得球隊上一場比賽的疲勞資訊
-async function getFatigueForTeam(team_id: string, current_match_date: Date, current_venue: string): Promise<number> {
-  const prevMatch = await prisma.matches.findFirst({
-    where: {
-      OR: [{ home_team_id: team_id }, { away_team_id: team_id }],
-      match_date: { lt: current_match_date },
-      status: "finished"
-    },
-    orderBy: { match_date: 'desc' },
-    include: { home_team: true }
-  });
-
-  if (!prevMatch) return 0.1;
-
-  const prevVenue = prevMatch.home_team.home_city;
-  const daysRest = (current_match_date.getTime() - prevMatch.match_date.getTime()) / (1000 * 60 * 60 * 24);
-  const travelKm = PhysicsEngine.haversineDistance(prevVenue, current_venue);
-
-  return PhysicsEngine.getFatigueScore(daysRest, travelKm);
 }
 
 export async function POST(req: Request) {
@@ -91,23 +70,17 @@ export async function POST(req: Request) {
         const rawImplied = 1 / odds;
         const impliedProb = rawImplied * 1.05; 
 
-        // 動態獲取疲勞特徵
+        // 全域統一使用 buildFeatureVector 重建 6 位特徵包含最新疲勞
         const current_venue = match.home_team?.home_city || "Unknown";
-        const fatigue_home = await getFatigueForTeam(match.home_team_id, match.match_date, current_venue);
-        const fatigue_away = await getFatigueForTeam(match.away_team_id, match.match_date, current_venue);
-        
-        // 重新組裝 6 位物理特徵
-        const fJson = snapshot.feature_json as Record<string, any>;
-        const feature_vector = [
-          typeof fJson.elo_diff === "number" ? fJson.elo_diff : 0.0,
-          typeof fJson.goal_avg_diff === "number" ? fJson.goal_avg_diff : 0.0,
-          typeof fJson.form_strength_home === "number" ? fJson.form_strength_home : 0.0,
-          typeof fJson.form_strength_away === "number" ? fJson.form_strength_away : 0.0,
-          fatigue_home,
-          fatigue_away
-        ];
+        const feature_vector = await buildFeatureVector(
+          snapshot.feature_json as Record<string, any> | number[],
+          match.home_team_id,
+          match.away_team_id,
+          match.match_date,
+          current_venue
+        );
 
-        let modelProb = fJson.predicted_prob_home || 0.5;
+        let modelProb = (snapshot.feature_json as Record<string, any>)?.predicted_prob_home || 0.5;
         
         // 餵給推論 API 取得真實推論 (若環境變數存在)
         if (INFERENCE_URL) {
