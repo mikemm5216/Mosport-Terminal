@@ -6,10 +6,20 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 async function fetchDay(dateStr: string): Promise<any[]> {
   try {
     const res = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${dateStr}`);
-    if (!res.ok) return [];
+    console.log(`[TheSportsDB] ${dateStr} - Status: ${res.status}`);
+    
+    if (!res.ok) {
+      console.error(`[TheSportsDB HTTP ERROR] ${dateStr} - HTTP ${res.status}`);
+      return [];
+    }
+    
     const data = await res.json();
+    if (!data.events) {
+      console.warn(`[TheSportsDB NO EVENTS] ${dateStr} - data.events is null/undefined. Raw response keys:`, Object.keys(data));
+    }
     return data.events || [];
-  } catch {
+  } catch (err: any) {
+    console.error(`[TheSportsDB EXCEPTION] ${dateStr} -`, err.message);
     return [];
   }
 }
