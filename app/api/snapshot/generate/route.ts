@@ -112,9 +112,13 @@ export async function POST(request: Request) {
       select: { payload: true }
     }).then(rows => rows.map((r: any) => r.payload?.match_id).filter(Boolean));
 
+    const startTime = Date.now();
+
+    // 關鍵修正：加上 snapshots:none 確保只抓「尚未有任何快照」的完賽比賽
     const completedMatches = await prisma.matches.findMany({
       where: {
-        home_score: { not: null }, // 只要已完賽，不限制 venue
+        home_score: { not: null },
+        snapshots: { none: {} },
         match_id: { notIn: failedIds.length > 0 ? failedIds : ["__none__"] },
       },
       include: {
@@ -146,6 +150,7 @@ export async function POST(request: Request) {
       skipped_count: skipped,
       no_venue_count: no_venue,
       error_count: errors,
+      time_elapsed_ms: Date.now() - startTime,
     });
 
   } catch (error: any) {
