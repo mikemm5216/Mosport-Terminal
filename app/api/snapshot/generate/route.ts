@@ -10,14 +10,26 @@ const TYPE_TO_MS = {
 } as const;
 
 type SnapshotType = keyof typeof TYPE_TO_MS;
-
 const ALL_SNAPSHOT_TYPES = Object.keys(TYPE_TO_MS) as SnapshotType[];
+
+// 無座標的比賽外部設定 skip_flag，寫入 DeadLetterQueue 讓後續掃描跳過
+async function markFailed(match_id: string, reason: string) {
+  try {
+    await prisma.deadLetterQueue.create({
+      data: {
+        source: "snapshot/generate",
+        payload: { match_id },
+        error: reason,
+      }
+    });
+  } catch { /* 寫入 DLQ 失敗不中斷主流程 */ }
+}
 
 async function generateSnapshotForMatch(
   match: any,
   snapshot_type: SnapshotType,
   allowRetroactive = false
-): Promise<"created" | "exists" | "retroactive_skipped" | "error"> {
+): Promise<"created" | "exists" | "retroactive_skipped" | "no_venue" | "error"> {
   try {
     const existing = await prisma.eventSnapshot.findUnique({
       where: { match_id_snapshot_type: { match_id: match.match_id, snapshot_type } }
@@ -27,9 +39,13 @@ async function generateSnapshotForMatch(
     const offsetMs = TYPE_TO_MS[snapshot_type];
     const snapshotTime = new Date(match.match_date.getTime() - offsetMs);
 
-    // 批量回補時允許 retroactive；單場模式保留時間防呆
-    if (!allowRetroactive && new Date() > snapshotTime) {
-      return "retroactive_skipped";
+    if (!allowRetroactive && new Date() > snapshotTime) return "retroactive_skipped";
+
+    const current_venue = match.home_team?.home_city;
+    // 無座標資料：標記為 DLQ 並跳過此場
+    if (!current_venue || current_venue === "Unknown") {
+      await markFailed(match.match_id, `No valid venue for home_team: ${match.home_team_id}`);
+      return "no_venue";
     }
 
     const baseFakeFeatures = {
@@ -39,14 +55,13 @@ async function generateSnapshotForMatch(
       form_strength_away: 60.5,
     };
 
-    const current_venue = match.home_team?.home_city || "Unknown";
-
-    // 重點：使用「該場比賽的開賽時間 match.match_date」作為計算基準點
+    // buildFeatureVector 內部會呼叫 getBioBattery → calculateBioBattery
+    // 使用 match.match_date 確保歷史疲勞以「比賽當天」為基準
     const feature_vector = await buildFeatureVector(
       baseFakeFeatures,
       match.home_team_id,
       match.away_team_id,
-      match.match_date, // ← 歷史疲勞以比賽當天為基準，非現在時間
+      match.match_date,
       current_venue
     );
 
@@ -71,7 +86,7 @@ async function generateSnapshotForMatch(
 export async function POST(request: Request) {
   try {
     let body: { match_id?: string; snapshot_type?: string } = {};
-    try { body = await request.json(); } catch { /* 空 body 正常，進入批量模式 */ }
+    try { body = await request.json(); } catch { /* 空 body 進入批量模式 */ }
 
     const { match_id, snapshot_type } = body;
 
@@ -93,32 +108,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, result }, { status: result === "created" ? 201 : 200 });
     }
 
-    // 批量自動掃描模式：
-    // 找所有已完賽比賽，掃描全部 4 種 snapshot type，缺哪個補哪個
+    // 批量自動掃描：
+    // 1. 只抓已完賽比賽
+    // 2. 排除已進入 DLQ（無座標）的 match_id
+    // 3. 只抓 home_team.home_city 不是 null 且不是 "Unknown" 的比賽
+    const failedIds = await prisma.deadLetterQueue.findMany({
+      where: { source: "snapshot/generate" },
+      select: { payload: true }
+    }).then(rows => rows.map((r: any) => r.payload?.match_id).filter(Boolean));
+
     const completedMatches = await prisma.matches.findMany({
       where: {
-        home_score: { not: null }, // 已完賽，無時間限制
+        home_score: { not: null },
+        match_id: { notIn: failedIds.length > 0 ? failedIds : ["__none__"] },
+        home_team: {
+          home_city: { not: "Unknown" }
+        }
       },
       include: {
         home_team: true,
-        snapshots: { select: { snapshot_type: true } } // 只拉回 type 欄位，輕量查詢
+        snapshots: { select: { snapshot_type: true } }
       },
-      take: 100,
+      take: 200, // 擴大至 200 場
     });
 
-    let created = 0;
-    let skipped = 0;
+    let created = 0, skipped = 0, no_venue = 0, errors = 0;
 
     for (const match of completedMatches) {
       const existingTypes = new Set(match.snapshots.map((s: any) => s.snapshot_type));
 
       for (const sType of ALL_SNAPSHOT_TYPES) {
-        if (existingTypes.has(sType)) {
-          skipped++;
-          continue;
-        }
-        const result = await generateSnapshotForMatch(match, sType, true); // allowRetroactive=true
+        if (existingTypes.has(sType)) { skipped++; continue; }
+
+        const result = await generateSnapshotForMatch(match, sType, true);
         if (result === "created") created++;
+        else if (result === "no_venue") { no_venue++; break; } // 此場中止，進 DLQ
+        else if (result === "error") errors++;
         else skipped++;
       }
     }
@@ -128,6 +153,8 @@ export async function POST(request: Request) {
       scanned_count: completedMatches.length,
       processed_count: created,
       skipped_count: skipped,
+      no_venue_count: no_venue,
+      error_count: errors,
     });
 
   } catch (error: any) {
