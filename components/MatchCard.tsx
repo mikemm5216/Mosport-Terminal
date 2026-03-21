@@ -18,7 +18,7 @@ export default function MatchCard({ match }: MatchCardProps) {
   const latestSignal = match.signals && match.signals.length > 0 ? match.signals[0] : null;
 
   return (
-    <div className="group bg-[#181A20] rounded-lg p-5 border border-gray-800 hover:border-[#00AEEF] transition-colors flex flex-col justify-between h-48 relative overflow-hidden cursor-pointer">
+    <div className="group bg-[#0B0C10] rounded-lg p-5 border border-gray-800 hover:border-[#00AEEF] transition-colors flex flex-col justify-between h-48 relative overflow-hidden cursor-pointer">
        <div className="flex justify-between items-start mb-4 z-10 relative">
           <div className="flex flex-col">
              <span className="text-lg font-bold truncate">{match.home_team.team_name}</span>
