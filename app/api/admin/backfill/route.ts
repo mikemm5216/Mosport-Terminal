@@ -4,7 +4,13 @@ import { buildFeatureVector } from "@/lib/feature";
 
 export async function POST(req: Request) {
   try {
-    // 1. 查詢已完賽 (home_score 不為 null) 且無 T-10min 快照的前 100 場比賽
+    // 1. 統計資料庫內 Matches 總數與已完賽數，確認是否有資料
+    const total_matches_in_db = await prisma.matches.count();
+    const completed_matches_in_db = await prisma.matches.count({
+      where: { home_score: { not: null } }
+    });
+
+    // 2. 暴力寬鬆條件：只要 `home_score` 非空且沒綁定 `T-10min` 快照即撈出
     const matchesWithoutSnapshot = await prisma.matches.findMany({
       where: {
         home_score: { not: null },
@@ -21,7 +27,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ 
         success: true, 
         generated_count: 0, 
-        message: "No matches need backfilling." 
+        total_matches_in_db,
+        completed_matches_in_db,
+        message: "No matches need backfilling or database is empty." 
       });
     }
 
@@ -79,8 +87,13 @@ export async function POST(req: Request) {
       generated_count++;
     }
 
-    // 5. 回傳執行結果
-    return NextResponse.json({ success: true, generated_count });
+    // 5. 回傳執行結果與資料庫狀態追蹤
+    return NextResponse.json({ 
+      success: true, 
+      generated_count,
+      total_matches_in_db,
+      completed_matches_in_db
+    });
 
   } catch (error: any) {
     console.error("[BACKFILL ERROR]", error);
