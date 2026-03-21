@@ -1,4 +1,4 @@
-mport { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 const FEATURE_ORDER = [
