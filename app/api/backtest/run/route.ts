@@ -2,100 +2,109 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { QuantEngine } from "@/lib/quant";
 
-const PREDICT_API = process.env.PREDICT_API_URL || "http://localhost:8000/predict";
-
-export async function GET() {
+export async function POST(req: Request) {
   try {
-    const experiences = await prisma.experience.findMany({
+    const body = await req.json().catch(() => ({}));
+    const limit = body.limit || 500;
+
+    // 1. 撈取近期完賽紀錄與對應快照 (修正 relation 名稱為 schema 定義的 'snapshots')
+    const pastMatches = await prisma.matches.findMany({
       where: {
-        snapshot_type: "T-10min"
+        home_score: { not: null },
+        away_score: { not: null },
       },
-      orderBy: {
-        created_at: "asc"
+      include: {
+        snapshots: {
+          where: { snapshot_type: "T-10min" },
+          take: 1,
+        },
       },
-      take: 500
+      orderBy: { match_date: 'desc' },
+      take: limit,
     });
 
-    let bankroll = 1000;
+    // 💰 初始資金與風險追蹤
+    let bankroll = 10000;
     let peak = bankroll;
     let maxDrawdown = 0;
-
+    let totalBets = 0;
     let wins = 0;
-    let bets = 0;
+    const equityCurve: number[] = [bankroll];
+    const returns: number[] = [];
 
-    for (const exp of experiences) {
-      const features = exp.feature_vector;
+    for (const match of pastMatches) {
+      const snapshot = match.snapshots[0];
+      if (!snapshot) continue;
 
-      let prob = 0;
+      // STEP 1: 使用真實賠率 (從 Snapshot 提取)
+      const odds = (snapshot.feature_json as Record<string, any>)?.market_odds_home;
+      if (!odds || odds <= 1) continue;
 
-      try {
-        const res = await fetch(PREDICT_API, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model_id: "latest", // 自動尋找最新版模型
-            feature_vector: features,
-            model_type: "T-10min"
-          })
-        });
+      // STEP 2: 加入莊家抽水 (Realistic Edge)
+      // 模擬 5% 的莊家邊際，讓模型更難找到 "價值"
+      const rawImplied = 1 / odds;
+      const impliedProb = rawImplied * 1.05; 
 
-        const data = await res.json();
-        prob = data.probability;
-      } catch (err) {
-        console.error("Backtest predict fetch error:", err);
-        continue;
-      }
+      // 取得模型預測 (讀取靜態推論結果)
+      const modelProb = (snapshot.feature_json as Record<string, any>)?.predicted_prob_home || 0.5;
+      
+      const edge = modelProb - impliedProb;
 
-      // 如果接收到 XGBoost 的 Error fail-safe (-1.0)，則放棄下注
-      if (prob <= 0) continue;
+      // STEP 3: 嚴格 Edge 過濾器 (提高閾值以降低雜訊)
+      if (edge <= 0.03) continue;
 
-      const odds = 2.0; // 本次回測暫且模擬固定市場為 2.0 賠率，後續可替換歷史 Odds
-
-      const implied = QuantEngine.getImpliedProbability(odds);
-      const edge = QuantEngine.getEdge(prob, implied);
-
-      if (edge <= 0.02) continue; // 策略條件：只打高邊緣 (Edge > 2%) 的場次
-
-      const kelly = QuantEngine.getKellySuggest(prob, odds);
+      // STEP 4: 凱利準則 (Kelly Criterion) 計算投注量
+      const kelly = QuantEngine.getKellySuggest(modelProb, odds);
       const betSize = bankroll * kelly;
 
       if (betSize <= 0) continue;
 
-      bets++;
+      // 判斷勝負 (僅示範 Home Win 邏輯)
+      const isWin = match.home_score! > match.away_score!;
+      totalBets++;
 
-      // label: 1 = home win (由於前述的預設 label_type)
-      const isWin = exp.label === 1;
-
+      // STEP 4 & 5: 更新 Bankroll 與 Equity Curve
       if (isWin) {
-        bankroll += betSize * (odds - 1); // 淨利 = 下注額 * (賠率 - 1)
         wins++;
+        bankroll += betSize * (odds - 1);
       } else {
-        bankroll -= betSize; // 輸掉本金
+        bankroll -= betSize;
       }
+      equityCurve.push(bankroll);
 
-      // 結算 Max Drawdown 計算
+      // STEP 6: 最大回撤 (Max Drawdown) 計算
       if (bankroll > peak) peak = bankroll;
-      const dd = (peak - bankroll) / peak;
-      if (dd > maxDrawdown) maxDrawdown = dd;
+      const currentDrawdown = (peak - bankroll) / peak;
+      if (currentDrawdown > maxDrawdown) maxDrawdown = currentDrawdown;
+
+      // 紀錄收益率用於 Sharpe Ratio
+      returns.push((equityCurve[equityCurve.length - 1] - equityCurve[equityCurve.length - 2]) / equityCurve[equityCurve.length - 2]);
     }
 
-    const roi = (bankroll - 1000) / 1000;
-    const winRate = bets > 0 ? wins / bets : 0;
+    // STEP 7: Sharpe Ratio 計算 (量化核心指標)
+    // Formula: S = (Avg Return) / (Std Dev of Return)
+    const avgReturn = returns.reduce((a, b) => a + b, 0) / (returns.length || 1);
+    const stdReturn = Math.sqrt(
+      returns.reduce((a, b) => a + Math.pow(b - avgReturn, 2), 0) / (returns.length || 1)
+    );
+    const sharpe = stdReturn === 0 ? 0 : avgReturn / stdReturn;
 
     return NextResponse.json({
       success: true,
-      result: {
-        initial_bankroll: 1000,
+      metrics: {
+        total_bets: totalBets,
+        win_rate: totalBets > 0 ? wins / totalBets : 0,
+        roi: (bankroll - 10000) / 10000,
         final_bankroll: bankroll,
-        roi,
-        win_rate: winRate,
-        bets,
-        max_drawdown: maxDrawdown
-      }
+        max_drawdown: maxDrawdown,
+        sharpe_ratio: sharpe,
+      },
+      // 僅回傳最後 50 點以優化前端渲染效能
+      equity_curve: equityCurve.slice(-50)
     });
 
-  } catch (error) {
-    console.error("Backtest Engine Error:", error);
-    return NextResponse.json({ success: false }, { status: 500 });
+  } catch (error: any) {
+    console.error("[BACKTEST ERROR]", error.message);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
