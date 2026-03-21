@@ -54,7 +54,11 @@ async function fetchTheSportsDB(dates: string[]): Promise<UnifiedMatchData[]> {
     const events = data.events || [];
 
     for (const event of events) {
-      if (!event.idEvent || String(event.idEvent).trim() === "" || event.idEvent === "null") continue;
+      const rawId = event.idEvent;
+      if (!rawId || String(rawId).trim() === "" || String(rawId) === "null" || String(rawId) === "undefined") {
+        console.warn("[INGEST WARNING] 跳過無效 ID 賽事:", event.strEvent);
+        continue;
+      }
       if (!event.intHomeScore || !event.intAwayScore || event.intHomeScore === "" || event.intAwayScore === "") continue;
 
       const dateObj = new Date(`${event.dateEvent}T${event.strTime || "00:00:00"}Z`);
@@ -203,6 +207,11 @@ export async function GET() {
 
     for (const match of matchRows) {
       try {
+        // 🚨 終極防呆：嚴格檢查 match_id，絕不允許 "undefined" 或 null 污染 DB 導致無限覆蓋
+        if (!match.match_id || match.match_id === "undefined" || match.match_id === "null") {
+           throw new Error(`ID Mapping Failed! Found invalid match_id: '${match.match_id}'`);
+        }
+
         await prisma.matches.upsert({
           where: { match_id: match.match_id },
           create: match,
