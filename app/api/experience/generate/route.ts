@@ -5,14 +5,18 @@ const FEATURE_ORDER = [
   "elo_diff",
   "goal_avg_diff",
   "form_strength_home",
-  "form_strength_away"
+  "form_strength_away",
+  "fatigue_home",
+  "fatigue_away",
 ];
 
 function buildFeatureVector(featureJson: Record<string, number>): number[] {
-  return FEATURE_ORDER.map(key => featureJson[key] ?? 0);
+  return FEATURE_ORDER.map(key => {
+    const val = featureJson[key];
+    return typeof val === 'number' && !isNaN(val) ? val : 0;
+  });
 }
 
-// 支援切換 Label 行為
 function getLabel(match: any, type: string): number {
   switch (type) {
     case "HOME_WIN":
@@ -24,85 +28,99 @@ function getLabel(match: any, type: string): number {
   }
 }
 
-export async function POST(request: Request) {
-  try {
-    // 防彈防呆：body 解析失敗時回傳 400
-    let body: { match_id?: string };
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    }
-    const { match_id } = body;
+async function processMatch(match: any): Promise<{ processed: number; results: any[] }> {
+  if (match.home_score === null || match.away_score === null) return { processed: 0, results: [] };
 
-    if (!match_id) return NextResponse.json({ error: "Missing match_id" }, { status: 400 });
+  const label_type = "HOME_WIN";
+  const label = getLabel(match, label_type);
+  const results = [];
 
-    const match = await prisma.matches.findUnique({
-      where: { match_id },
-      include: { snapshots: true }
+  for (const snapshot of match.snapshots) {
+    const existing = await prisma.experience.findUnique({
+      where: { match_id_snapshot_type: { match_id: match.match_id, snapshot_type: snapshot.snapshot_type } }
     });
 
-    if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
-    if (match.match_date > new Date()) return NextResponse.json({ error: "Match is not finished yet" }, { status: 400 });
-    if (match.home_score === null || match.away_score === null) {
-      return NextResponse.json({ error: "Match scores missing (cannot compute label)" }, { status: 400 });
+    if (existing) {
+      results.push({ snapshot_type: snapshot.snapshot_type, status: "skipped_existing" });
+      continue;
     }
 
-    const label_type = "HOME_WIN";
-    const label = getLabel(match, label_type);
-    const results = [];
+    try {
+      const rawFeatureJson = snapshot.feature_json;
+      const safeFeatureJson: Record<string, number> =
+        rawFeatureJson && typeof rawFeatureJson === 'object' && !Array.isArray(rawFeatureJson)
+          ? (rawFeatureJson as Record<string, number>)
+          : {};
+      const feature_vector = buildFeatureVector(safeFeatureJson);
 
-    for (const snapshot of match.snapshots) {
-      // Idempotency: 寫入前防重檢查
-      const existing = await prisma.experience.findUnique({
-        where: {
-          match_id_snapshot_type: {
-            match_id: match.match_id,
-            snapshot_type: snapshot.snapshot_type,
-          }
+      await prisma.experience.create({
+        data: {
+          match_id: match.match_id,
+          snapshot_type: snapshot.snapshot_type,
+          feature_json: snapshot.feature_json ?? {},
+          feature_vector,
+          label,
+          label_type,
         }
       });
-
-      if (!existing) {
-        try {
-          // 防呆：feature_json 空值或格式不對時，回退為空物件避免 SyntaxError
-          const rawFeatureJson = snapshot.feature_json;
-          const safeFeatureJson: Record<string, number> =
-            rawFeatureJson && typeof rawFeatureJson === 'object' && !Array.isArray(rawFeatureJson)
-              ? (rawFeatureJson as Record<string, number>)
-              : {};
-          const feature_vector = buildFeatureVector(safeFeatureJson);
-
-          await prisma.experience.create({
-            data: {
-              match_id: match.match_id,
-              snapshot_type: snapshot.snapshot_type,
-              feature_json: snapshot.feature_json,
-              feature_vector: feature_vector,
-              label: label,
-              label_type: label_type,
-            }
-          });
-          results.push({ snapshot_type: snapshot.snapshot_type, status: "created" });
-        } catch (e: any) {
-          if (e.code === 'P2002') {
-            results.push({ snapshot_type: snapshot.snapshot_type, status: "already_exists_race" });
-          } else {
-            throw e;
-          }
-        }
+      results.push({ snapshot_type: snapshot.snapshot_type, status: "created" });
+    } catch (e: any) {
+      if (e.code === 'P2002') {
+        results.push({ snapshot_type: snapshot.snapshot_type, status: "already_exists_race" });
       } else {
-        results.push({ snapshot_type: snapshot.snapshot_type, status: "skipped_existing" });
+        results.push({ snapshot_type: snapshot.snapshot_type, status: "error", detail: e.message });
       }
     }
+  }
 
-    return NextResponse.json({ success: true, processed: match.snapshots.length, results }, { status: 201 });
+  return { processed: results.filter(r => r.status === "created").length, results };
+}
+
+export async function POST(request: Request) {
+  try {
+    let body: { match_id?: string } = {};
+    try { body = await request.json(); } catch { /* 空 body 正常，進入批量模式 */ }
+
+    const { match_id } = body;
+
+    // 單場模式
+    if (match_id) {
+      const match = await prisma.matches.findUnique({
+        where: { match_id },
+        include: { snapshots: true }
+      });
+      if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+      if (match.home_score === null || match.away_score === null) {
+        return NextResponse.json({ error: "Match scores missing" }, { status: 400 });
+      }
+      const { processed, results } = await processMatch(match);
+      return NextResponse.json({ success: true, processed_count: processed, results }, { status: 201 });
+    }
+
+    // 批量自動掃描模式：找所有已完賽但尚未生成 experience 的比賽
+    const completedMatches = await prisma.matches.findMany({
+      where: {
+        home_score: { not: null },
+        experiences: { none: {} }
+      },
+      include: { snapshots: true },
+      take: 100,
+    });
+
+    let total_processed = 0;
+    for (const match of completedMatches) {
+      const { processed } = await processMatch(match);
+      total_processed += processed;
+    }
+
+    return NextResponse.json({
+      success: true,
+      scanned_count: completedMatches.length,
+      processed_count: total_processed,
+    });
 
   } catch (error: any) {
     console.error("Experience Generation Error:", error);
-    return NextResponse.json({
-      error: "Internal Server Error",
-      detail: error?.message || String(error)
-    }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error", detail: error?.message || String(error) }, { status: 500 });
   }
 }
