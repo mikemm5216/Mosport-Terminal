@@ -26,7 +26,13 @@ function getLabel(match: any, type: string): number {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    // 防彈防呆：body 解析失敗時回傳 400
+    let body: { match_id?: string };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const { match_id } = body;
 
     if (!match_id) return NextResponse.json({ error: "Missing match_id" }, { status: 400 });
@@ -59,8 +65,13 @@ export async function POST(request: Request) {
 
       if (!existing) {
         try {
-          // 固定特徵向量化
-          const feature_vector = buildFeatureVector(snapshot.feature_json as Record<string, number>);
+          // 防呆：feature_json 空值或格式不對時，回退為空物件避免 SyntaxError
+          const rawFeatureJson = snapshot.feature_json;
+          const safeFeatureJson: Record<string, number> =
+            rawFeatureJson && typeof rawFeatureJson === 'object' && !Array.isArray(rawFeatureJson)
+              ? (rawFeatureJson as Record<string, number>)
+              : {};
+          const feature_vector = buildFeatureVector(safeFeatureJson);
 
           await prisma.experience.create({
             data: {
@@ -89,6 +100,9 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Experience Generation Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({
+      error: "Internal Server Error",
+      detail: error?.message || String(error)
+    }, { status: 500 });
   }
 }

@@ -14,8 +14,14 @@ import { buildFeatureVector } from "@/lib/feature";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { match_id, snapshot_type } = body as { match_id: string; snapshot_type: string };
+    // 防彈防呆：確保 body 解析失敗時回傳 400 而不是 500
+    let body: { match_id?: string; snapshot_type?: string };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+    const { match_id, snapshot_type } = body;
 
     if (!match_id || !snapshot_type) {
       return NextResponse.json({ error: "Missing match_id or snapshot_type" }, { status: 400 });
@@ -111,28 +117,32 @@ export async function POST(request: Request) {
     }, { status: 201 });
 
   } catch (error: any) {
+    // P2002 Race Condition：安全從 request.clone 讀 body，失敗時兜底空物件
     if (error.code === 'P2002') {
-      // 強化 Idempotency：發生併發衝突(Race condition)時，攔截 P2002 並再次取得由別條 thread 寫入的結果
-      const body = await request.clone().json().catch(() => ({})); 
-      
+      let cloneBody: { match_id?: string; snapshot_type?: string } = {};
+      try { cloneBody = await request.clone().json(); } catch { /* body 無效則忽略 */ }
+
       const existing = await prisma.eventSnapshot.findUnique({
         where: {
           match_id_snapshot_type: {
-            match_id: body.match_id || "",
-            snapshot_type: body.snapshot_type as SnapshotType,
+            match_id: cloneBody.match_id || "",
+            snapshot_type: (cloneBody.snapshot_type as SnapshotType) || "T-10min",
           },
         },
       });
 
       return NextResponse.json({
         success: true,
-        meta: { snapshot_type: body.snapshot_type },
+        meta: { snapshot_type: cloneBody.snapshot_type },
         data: existing,
         message: "Snapshot already exists (race condition handled).",
       }, { status: 200 });
     }
 
     console.error("Snapshot Generation Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({
+      error: "Internal Server Error",
+      detail: error?.message || String(error)
+    }, { status: 500 });
   }
 }
