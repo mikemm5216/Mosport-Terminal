@@ -6,34 +6,9 @@ export const FEATURE_ORDER = [
   "goal_avg_diff",
   "form_strength_home",
   "form_strength_away",
-  "fatigue_home",
-  "fatigue_away",
+  "bio_battery_home",  // 升級：從 fatigue 改為 Bio-Battery
+  "bio_battery_away",
 ];
-
-async function getFatigueForTeam(team_id: string, current_match_date: Date, current_venue: string): Promise<number> {
-  try {
-    const prevMatch = await prisma.matches.findFirst({
-      where: {
-        OR: [{ home_team_id: team_id }, { away_team_id: team_id }],
-        match_date: { lt: current_match_date },
-        status: "finished"
-      },
-      orderBy: { match_date: 'desc' },
-      include: { home_team: true }
-    });
-
-    if (!prevMatch?.home_team) return 0.0; // 賽季第一場或資料不全退回 0.0
-
-    const prevVenue = prevMatch.home_team?.home_city || "Unknown";
-    const daysRest = (current_match_date.getTime() - prevMatch.match_date.getTime()) / (1000 * 60 * 60 * 24);
-    const travelKm = PhysicsEngine.haversineDistance(prevVenue, current_venue);
-
-    return PhysicsEngine.getFatigueScore(daysRest, travelKm) || 0.0;
-  } catch (err) {
-    console.error("[FATIGUE ERROR]", err);
-    return 0.0;
-  }
-}
 
 export async function buildFeatureVector(
   baseFeatures: Record<string, any> | number[],
@@ -42,25 +17,35 @@ export async function buildFeatureVector(
   current_match_date: Date,
   current_venue: string
 ): Promise<number[]> {
-  const fatigue_home = await getFatigueForTeam(home_team_id, current_match_date, current_venue);
-  const fatigue_away = await getFatigueForTeam(away_team_id, current_match_date, current_venue);
+  // 取主隊的 home_city 用於 Road Trip 判斷
+  const homeTeam = await prisma.teams.findUnique({ where: { team_id: home_team_id } }).catch(() => null);
+  const awayTeam = await prisma.teams.findUnique({ where: { team_id: away_team_id } }).catch(() => null);
+
+  const homeCity = homeTeam?.home_city || "Unknown";
+  const awayCity = awayTeam?.home_city || "Unknown";
+
+  // Bio-Battery 計算：包含賽程密度 + 客場壓力 + 旅途疲勞
+  const [homeBio, awayBio] = await Promise.all([
+    PhysicsEngine.getBioBattery(home_team_id, current_match_date, current_venue, homeCity),
+    PhysicsEngine.getBioBattery(away_team_id, current_match_date, current_venue, awayCity),
+  ]);
 
   let elo = 0.0, goal = 0.0, formH = 0.0, formA = 0.0;
 
   if (Array.isArray(baseFeatures)) {
-    elo = typeof baseFeatures[0] === 'number' ? baseFeatures[0] : 0.0;
-    goal = typeof baseFeatures[1] === 'number' ? baseFeatures[1] : 0.0;
+    elo   = typeof baseFeatures[0] === 'number' ? baseFeatures[0] : 0.0;
+    goal  = typeof baseFeatures[1] === 'number' ? baseFeatures[1] : 0.0;
     formH = typeof baseFeatures[2] === 'number' ? baseFeatures[2] : 0.0;
     formA = typeof baseFeatures[3] === 'number' ? baseFeatures[3] : 0.0;
   } else if (baseFeatures && typeof baseFeatures === 'object') {
-    elo = typeof baseFeatures.elo_diff === 'number' ? baseFeatures.elo_diff : 0.0;
-    goal = typeof baseFeatures.goal_avg_diff === 'number' ? baseFeatures.goal_avg_diff : 0.0;
-    formH = typeof baseFeatures.form_strength_home === 'number' ? baseFeatures.form_strength_home : 0.0;
-    formA = typeof baseFeatures.form_strength_away === 'number' ? baseFeatures.form_strength_away : 0.0;
+    elo   = typeof baseFeatures.elo_diff            === 'number' ? baseFeatures.elo_diff            : 0.0;
+    goal  = typeof baseFeatures.goal_avg_diff       === 'number' ? baseFeatures.goal_avg_diff       : 0.0;
+    formH = typeof baseFeatures.form_strength_home  === 'number' ? baseFeatures.form_strength_home  : 0.0;
+    formA = typeof baseFeatures.form_strength_away  === 'number' ? baseFeatures.form_strength_away  : 0.0;
   }
 
-  const v = [elo, goal, formH, formA, fatigue_home, fatigue_away];
-  
-  // 極度重要防呆：確保最終送出給推論引擎長度固定，不能有 NaN 等特例。
-  return v.map(n => (!n || isNaN(n)) ? 0.0 : n);
+  const v = [elo, goal, formH, formA, homeBio.bio_battery, awayBio.bio_battery];
+
+  // 極度重要防呆：確保送出的 6 維向量無 NaN / null / undefined
+  return v.map(n => (typeof n === 'number' && !isNaN(n)) ? n : 0.0);
 }

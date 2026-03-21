@@ -6,9 +6,12 @@ const FEATURE_ORDER = [
   "elo_diff",
   "goal_avg_diff",
   "form_strength_home",
-  "form_strength_away"
+  "form_strength_away",
+  "bio_battery_home",
+  "bio_battery_away",
 ];
 
+const BIO_BATTERY_GAP_THRESHOLD = 20; // 生理優勢警告閾值 (%)
 const PREDICT_API = process.env.PREDICT_API_URL || "http://localhost:8000/predict";
 
 export async function GET() {
@@ -18,19 +21,14 @@ export async function GET() {
 
     const matches = await prisma.matches.findMany({
       where: {
-        match_date: {
-          gt: now,
-          lt: next24h
-        }
+        match_date: { gt: now, lt: next24h }
       },
       include: {
-        home_team: true, // 額外關聯出隊伍資料，以免 match_name 字串模板出錯
+        home_team: true,
         away_team: true,
       },
       take: 50,
-      orderBy: {
-        match_date: "asc"
-      }
+      orderBy: { match_date: "asc" }
     });
 
     const signals = [];
@@ -48,7 +46,10 @@ export async function GET() {
       if (!snapshot) continue;
 
       const featureJson = snapshot.feature_json as Record<string, any>;
-      const featureVector = FEATURE_ORDER.map(f => featureJson?.[f] ?? 0);
+      const featureVector = FEATURE_ORDER.map(f => {
+        const v = featureJson?.[f];
+        return typeof v === 'number' && !isNaN(v) ? v : 0;
+      });
 
       let probability = 0;
 
@@ -62,24 +63,34 @@ export async function GET() {
             model_type: "T-10min"
           })
         });
-
         const data = await res.json();
         probability = data.probability;
       } catch (err) {
         console.error("Inference fetch error:", err);
         continue;
       }
-      
-      // 如果拿到 fail-safe -1，跳過不處理
+
       if (probability <= 0) continue;
 
-      const odds = 2.0; // TODO: 未來接市場即時賠率
-
+      const odds = 2.0; // TODO: 接市場即時賠率
       const implied = QuantEngine.getImpliedProbability(odds);
       const edge = QuantEngine.getEdge(probability, implied);
       const kelly = QuantEngine.getKellySuggest(probability, odds);
 
-      // 解出關聯字串，防呆
+      // Bio-Battery 警告判斷
+      const bio_battery_home = featureJson?.bio_battery_home ?? null;
+      const bio_battery_away = featureJson?.bio_battery_away ?? null;
+      let bio_advantage_alert: string | null = null;
+
+      if (bio_battery_home !== null && bio_battery_away !== null) {
+        const gap = bio_battery_home - bio_battery_away;
+        if (Math.abs(gap) >= BIO_BATTERY_GAP_THRESHOLD) {
+          bio_advantage_alert = gap > 0
+            ? `⚡ HOME 生理優勢 (+${gap.toFixed(1)}%)`
+            : `⚡ AWAY 生理優勢 (${gap.toFixed(1)}%)`;
+        }
+      }
+
       const homeName = match.home_team?.team_name || match.home_team_id;
       const awayName = match.away_team?.team_name || match.away_team_id;
 
@@ -90,11 +101,12 @@ export async function GET() {
         odds,
         implied,
         edge,
-        kelly
+        kelly,
+        bio_battery: { home: bio_battery_home, away: bio_battery_away },
+        bio_advantage_alert,
       });
     }
 
-    // 依據數學優勢排序 (取 Edge 最高的前 20 筆)
     signals.sort((a, b) => b.edge - a.edge);
 
     return NextResponse.json({
