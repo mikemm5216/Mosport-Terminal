@@ -11,7 +11,13 @@ const TYPE_TO_MS = {
 
 type SnapshotType = keyof typeof TYPE_TO_MS;
 
-async function generateSnapshotForMatch(match: any, snapshot_type: SnapshotType, allowRetroactive = false): Promise<"created" | "exists" | "retroactive_skipped" | "error"> {
+const ALL_SNAPSHOT_TYPES = Object.keys(TYPE_TO_MS) as SnapshotType[];
+
+async function generateSnapshotForMatch(
+  match: any,
+  snapshot_type: SnapshotType,
+  allowRetroactive = false
+): Promise<"created" | "exists" | "retroactive_skipped" | "error"> {
   try {
     const existing = await prisma.eventSnapshot.findUnique({
       where: { match_id_snapshot_type: { match_id: match.match_id, snapshot_type } }
@@ -34,11 +40,13 @@ async function generateSnapshotForMatch(match: any, snapshot_type: SnapshotType,
     };
 
     const current_venue = match.home_team?.home_city || "Unknown";
+
+    // 重點：使用「該場比賽的開賽時間 match.match_date」作為計算基準點
     const feature_vector = await buildFeatureVector(
       baseFakeFeatures,
       match.home_team_id,
       match.away_team_id,
-      snapshotTime,
+      match.match_date, // ← 歷史疲勞以比賽當天為基準，非現在時間
       current_venue
     );
 
@@ -55,6 +63,7 @@ async function generateSnapshotForMatch(match: any, snapshot_type: SnapshotType,
     return "created";
   } catch (e: any) {
     if (e.code === 'P2002') return "exists";
+    console.error(`[SNAPSHOT ERROR] match=${match.match_id} type=${snapshot_type}`, e.message);
     return "error";
   }
 }
@@ -84,21 +93,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, result }, { status: result === "created" ? 201 : 200 });
     }
 
-    // 批量自動掃描模式：找所有已完賽但缺少 T-10min 快照的比賽
+    // 批量自動掃描模式：
+    // 找所有已完賽比賽，掃描全部 4 種 snapshot type，缺哪個補哪個
     const completedMatches = await prisma.matches.findMany({
       where: {
-        home_score: { not: null },
-        snapshots: { none: { snapshot_type: "T-10min" } }
+        home_score: { not: null }, // 已完賽，無時間限制
       },
-      include: { home_team: true },
+      include: {
+        home_team: true,
+        snapshots: { select: { snapshot_type: true } } // 只拉回 type 欄位，輕量查詢
+      },
       take: 100,
     });
 
-    let created = 0, skipped = 0;
+    let created = 0;
+    let skipped = 0;
+
     for (const match of completedMatches) {
-      const result = await generateSnapshotForMatch(match, "T-10min", true);
-      if (result === "created") created++;
-      else skipped++;
+      const existingTypes = new Set(match.snapshots.map((s: any) => s.snapshot_type));
+
+      for (const sType of ALL_SNAPSHOT_TYPES) {
+        if (existingTypes.has(sType)) {
+          skipped++;
+          continue;
+        }
+        const result = await generateSnapshotForMatch(match, sType, true); // allowRetroactive=true
+        if (result === "created") created++;
+        else skipped++;
+      }
     }
 
     return NextResponse.json({
@@ -110,6 +132,9 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("Snapshot Generation Error:", error);
-    return NextResponse.json({ error: "Internal Server Error", detail: error?.message || String(error) }, { status: 500 });
+    return NextResponse.json({
+      error: "Internal Server Error",
+      detail: error?.message || String(error)
+    }, { status: 500 });
   }
 }
