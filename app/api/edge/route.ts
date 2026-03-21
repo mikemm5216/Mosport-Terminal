@@ -11,7 +11,7 @@ const FEATURE_ORDER = [
   "bio_battery_away",
 ];
 
-const BIO_BATTERY_GAP_THRESHOLD = 20; // 生理優勢警告閾值 (%)
+const BIO_BATTERY_GAP_THRESHOLD = 25; // Bio-Battery 2.0 生理優勢閾值 (%)
 const PREDICT_API = process.env.PREDICT_API_URL || "http://localhost:8000/predict";
 
 export async function GET() {
@@ -84,10 +84,10 @@ export async function GET() {
 
       if (bio_battery_home !== null && bio_battery_away !== null) {
         const gap = bio_battery_home - bio_battery_away;
-        if (Math.abs(gap) >= BIO_BATTERY_GAP_THRESHOLD) {
-          bio_advantage_alert = gap > 0
-            ? `⚡ HOME 生理優勢 (+${gap.toFixed(1)}%)`
-            : `⚡ AWAY 生理優勢 (${gap.toFixed(1)}%)`;
+      if (Math.abs(gap) >= BIO_BATTERY_GAP_THRESHOLD) {
+          const winner = gap > 0 ? "HOME" : "AWAY";
+          const absGap = Math.abs(gap).toFixed(1);
+          bio_advantage_alert = `⚡ ${winner} 生理優勢 (${absGap}%)`;
         }
       }
 
@@ -104,6 +104,8 @@ export async function GET() {
         kelly,
         bio_battery: { home: bio_battery_home, away: bio_battery_away },
         bio_advantage_alert,
+        // 電量差 > 25% 時觸發極高信心加權
+        confidence_boost: bio_advantage_alert !== null ? Math.min(1.0, Math.abs((bio_battery_home ?? 0) - (bio_battery_away ?? 0)) / 100) : 0,
       });
     }
 

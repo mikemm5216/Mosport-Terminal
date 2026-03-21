@@ -23,22 +23,50 @@ export const PhysicsEngine = {
   },
 
   /**
-   * Bio-Battery 算法：計算球隊的動態生理電量 (0-100，100 = 滿電)
-   * 扣分項目：
-   *   - 基礎旅途疲勞 (Haversine + 休息天數)
-   *   - Game Density：過去 7 天每多一場扣 15%
-   *   - Road Trip Stress：連續 3+ 場客場再扣 10%
+   * Bio-Battery 2.0
+   * 輸入：球隊過去 10 天的賽程紀錄
+   * 輸出：0-100 的動態生理電量
+   *
+   * 扣分邏輯：
+   *   - 賽程懲罰：過去 7 天每多一場 -15%
+   *   - 流浪懲罰：連續客場每連一天 -5%；超過 3 場再 -10%
+   * 加分邏輯：
+   *   - 休息加成：距上場 > 48h 則 +10%（上限 100）
+   */
+  calculateBioBattery: (params: {
+    matches_last_7d: number;       // 過去 7 天出賽場次
+    consecutive_away: number;      // 現在連續客場場次
+    hours_since_last_match: number; // 距上一場的小時數（無上場紀錄傳 999）
+  }): number => {
+    const { matches_last_7d, consecutive_away, hours_since_last_match } = params;
+
+    let battery = 100;
+
+    // 賽程懲罰
+    battery -= matches_last_7d * 15;
+
+    // 流浪懲罰：每連續一場客場扣 5%
+    battery -= consecutive_away * 5;
+    if (consecutive_away > 3) battery -= 10; // 超過 3 場額外扣
+
+    // 休息加成
+    if (hours_since_last_match > 48) battery += 10;
+
+    return Math.max(0, Math.min(100, battery));
+  },
+
+  /**
+   * getBioBattery：DB 版本，自動從資料庫撈取賽程計算
    */
   getBioBattery: async (
     team_id: string,
     current_match_date: Date,
     current_venue: string,
-    home_city: string // 該隊主場城市，用來判斷客場
+    home_city: string
   ): Promise<{ bio_battery: number; game_density: number; road_trip_stress: boolean }> => {
     try {
       const sevenDaysAgo = new Date(current_match_date.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-      // 撈過去 7 天該隊所有比賽（含主客）
       const recentMatches = await prisma.matches.findMany({
         where: {
           OR: [{ home_team_id: team_id }, { away_team_id: team_id }],
@@ -51,37 +79,30 @@ export const PhysicsEngine = {
 
       const game_density = recentMatches.length;
 
-      // Road Trip Stress：連續 3+ 場客場
+      // 連續客場計算
       let consecutive_away = 0;
       for (const m of recentMatches) {
-        const is_away = m.away_team_id === team_id;
-        if (is_away) consecutive_away++;
+        if (m.away_team_id === team_id) consecutive_away++;
         else break;
       }
       const road_trip_stress = consecutive_away >= 3;
 
-      // 基礎旅途疲勞 (0~1)
+      // 距上場小時數
       const prevMatch = recentMatches[0] ?? null;
-      let base_fatigue = 0;
-      if (prevMatch) {
-        const prevVenue = prevMatch.home_team?.home_city || "Unknown";
-        const daysRest = (current_match_date.getTime() - prevMatch.match_date.getTime()) / (1000 * 60 * 60 * 24);
-        const travelKm = PhysicsEngine.haversineDistance(prevVenue, current_venue);
-        base_fatigue = PhysicsEngine.getFatigueScore(daysRest, travelKm);
-      }
+      const hours_since_last_match = prevMatch
+        ? (current_match_date.getTime() - prevMatch.match_date.getTime()) / (1000 * 60 * 60)
+        : 999;
 
-      // Bio-Battery 計算：從 100% 開始扣分
-      let battery = 100;
-      battery -= base_fatigue * 100;                         // 基礎疲勞轉換為扣分
-      battery -= game_density * 15;                          // 賽程密度：每場扣 15%
-      if (road_trip_stress) battery -= 10;                   // Road Trip 額外扣 10%
-
-      const bio_battery = Math.max(0, Math.min(100, battery));
+      const bio_battery = PhysicsEngine.calculateBioBattery({
+        matches_last_7d: game_density,
+        consecutive_away,
+        hours_since_last_match,
+      });
 
       return { bio_battery, game_density, road_trip_stress };
     } catch (err) {
       console.error("[BIO-BATTERY ERROR]", err);
-      return { bio_battery: 75, game_density: 0, road_trip_stress: false }; // 安全兜底
+      return { bio_battery: 75, game_density: 0, road_trip_stress: false };
     }
   }
 };
