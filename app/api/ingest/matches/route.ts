@@ -59,10 +59,11 @@ export async function GET() {
       const match_date = new Date(dateTimeString);
       if (isNaN(match_date.getTime())) { skipped_count++; continue; }
 
-      const match_id = event.idEvent;
-      const league_id = event.idLeague || "MissingLeague";
-      const home_team_id = event.idHomeTeam || event.strHomeTeam;
-      const away_team_id = event.idAwayTeam || event.strAwayTeam;
+      // 強制全部 ID 為字串，避免 TheSportsDB 不時回傳數字型導致 Prisma @id 對不上
+      const match_id = String(event.idEvent);
+      const league_id = String(event.idLeague || "MissingLeague");
+      const home_team_id = String(event.idHomeTeam || event.strHomeTeam);
+      const away_team_id = String(event.idAwayTeam || event.strAwayTeam);
       const home_score = parseInt(event.intHomeScore);
       const away_score = parseInt(event.intAwayScore);
 
@@ -117,10 +118,14 @@ export async function GET() {
       )
     );
 
+    // 寫入後瞬間確認 DB 實際筆數
+    const total_in_db = await prisma.matches.count();
+
     return NextResponse.json({
       success: true,
       ingested_count: matchesToUpsert.length,
       skipped_count,
+      total_matches_in_db: total_in_db, // 這個數字意外低䏠就是寫入失敗的證據
       message: `30-day ingestion completed (3 batches × 10 days)`
     });
 
