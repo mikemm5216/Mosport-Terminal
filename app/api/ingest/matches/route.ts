@@ -233,6 +233,32 @@ export async function GET() {
 
     const total_matches_in_db = await prisma.matches.count();
 
+    // ==========================================
+    // 📖 Story Engine Hook
+    // 預留給 Story Engine v1 的自動化生成掛鉤
+    // 當 Matches 寫入完畢後，可以並發觸發 narrative 生成
+    // ==========================================
+    /*
+    setTimeout(async () => {
+      for (const match of matchRows) {
+        if (match.status !== "COMPLETED") continue;
+        
+        try {
+          // 這裡可以撈出 fatigue_diff, news_tags，呼叫 /api/generate/narrative
+          // const res = await fetch('http://localhost:3000/api/generate/narrative', { ... });
+          // const { narrative, type } = await res.json();
+          //
+          // await prisma.matches.update({
+          //   where: { match_id: match.match_id },
+          //   data: { narrative, narrative_type: type }
+          // });
+        } catch (e) {
+          console.error(`[STORY HOOK ERROR] match_id=${match.match_id}`, e);
+        }
+      }
+    }, 1000);
+    */
+
     return NextResponse.json({
       success: true,
       active_engine,

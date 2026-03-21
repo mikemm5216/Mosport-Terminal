@@ -50,6 +50,13 @@ model Matches {
   away_score   Int?
   final_signal_snapshot Json? // Snapshot of pre-match analysis at T-10m
   
+  // Story Engine Data Layer
+  narrative      String?
+  narrative_type String?  // e.g. fatigue, scandal, comeback
+  signal_pick    String?  // HOME or AWAY
+  signal_conf    Float?
+  signal_edge    Float?
+  
   league       Leagues  @relation(fields: [league_id], references: [league_id])
   home_team    Teams    @relation("HomeMatches", fields: [home_team_id], references: [team_id])
   away_team    Teams    @relation("AwayMatches", fields: [away_team_id], references: [team_id])
