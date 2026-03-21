@@ -12,16 +12,11 @@ const TYPE_TO_MS = {
 type SnapshotType = keyof typeof TYPE_TO_MS;
 const ALL_SNAPSHOT_TYPES = Object.keys(TYPE_TO_MS) as SnapshotType[];
 
-async function generateSnapshotForMatch(
+async function upsertSnapshotForMatch(
   match: any,
   snapshot_type: SnapshotType,
-): Promise<"created" | "exists" | "error"> {
+): Promise<"created" | "updated" | "error"> {
   try {
-    const existing = await prisma.eventSnapshot.findUnique({
-      where: { match_id_snapshot_type: { match_id: match.match_id, snapshot_type } }
-    });
-    if (existing) return "exists";
-
     const offsetMs = TYPE_TO_MS[snapshot_type];
     const snapshotTime = new Date(match.match_date.getTime() - offsetMs);
 
@@ -32,29 +27,44 @@ async function generateSnapshotForMatch(
       form_strength_away: 60.5,
     };
 
-    // 座標缺失時 haversineDistance 回傳 0，Bio-Battery 仍強行計算賽程密度
+    // 使用 match.match_date 作為疲勞基準；venue 缺失時 travelKm=0，賽程密度仍正常計算
     const current_venue = match.home_team?.home_city || "Unknown";
     const feature_vector = await buildFeatureVector(
       baseFakeFeatures,
       match.home_team_id,
       match.away_team_id,
-      match.match_date,
+      match.match_date,  // 歷史基準點
       current_venue
     );
 
-    await prisma.eventSnapshot.create({
-      data: {
-        match_id: match.match_id,
-        snapshot_type,
-        snapshot_time: snapshotTime,
-        state_json: { _v: 1 },
-        feature_json: feature_vector,
-      }
+    const existing = await prisma.eventSnapshot.findUnique({
+      where: { match_id_snapshot_type: { match_id: match.match_id, snapshot_type } }
     });
 
-    return "created";
+    if (existing) {
+      // rebuild 模式：強制覆蓋舊快照
+      await prisma.eventSnapshot.update({
+        where: { match_id_snapshot_type: { match_id: match.match_id, snapshot_type } },
+        data: {
+          snapshot_time: snapshotTime,
+          state_json: { _v: 2, note: "rebuilt_bio_battery_v2" },
+          feature_json: feature_vector,
+        }
+      });
+      return "updated";
+    } else {
+      await prisma.eventSnapshot.create({
+        data: {
+          match_id: match.match_id,
+          snapshot_type,
+          snapshot_time: snapshotTime,
+          state_json: { _v: 2, note: "rebuilt_bio_battery_v2" },
+          feature_json: feature_vector,
+        }
+      });
+      return "created";
+    }
   } catch (e: any) {
-    if (e.code === 'P2002') return "exists";
     console.error(`[SNAPSHOT ERROR] match=${match.match_id} type=${snapshot_type}:`, e.message);
     return "error";
   }
@@ -62,10 +72,10 @@ async function generateSnapshotForMatch(
 
 export async function POST(request: Request) {
   try {
-    let body: { match_id?: string; snapshot_type?: string } = {};
-    try { body = await request.json(); } catch { /* 空 body 進入批量模式 */ }
+    let body: { match_id?: string; snapshot_type?: string; rebuild?: boolean } = {};
+    try { body = await request.json(); } catch { /* 空 body = 批量模式 */ }
 
-    const { match_id, snapshot_type } = body;
+    const { match_id, snapshot_type, rebuild = false } = body;
 
     // 單場模式
     if (match_id) {
@@ -77,39 +87,49 @@ export async function POST(request: Request) {
         include: { home_team: true }
       });
       if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
-      const result = await generateSnapshotForMatch(match, snapshot_type as SnapshotType);
-      return NextResponse.json({ success: true, result }, { status: result === "created" ? 201 : 200 });
+      const result = await upsertSnapshotForMatch(match, snapshot_type as SnapshotType);
+      return NextResponse.json({ success: true, result });
     }
 
-    // ⚡ 核平模式：只保留一個條件，通通抓出來
+    // ===== 批量模式 =====
     const startTime = Date.now();
 
+    // 診斷層
+    const [total_matches, matches_without_any_snapshot] = await Promise.all([
+      prisma.matches.count(),
+      prisma.matches.count({ where: { snapshots: { none: {} } } }),
+    ]);
+
+    // rebuild=true：掃全部 matches（強制覆蓋舊快照）
+    // rebuild=false：只掃還沒有快照的 matches
+    const whereClause = rebuild
+      ? {}
+      : { snapshots: { none: {} } };
+
     const matches = await prisma.matches.findMany({
-      where: {
-        snapshots: { none: {} } // 唯一條件：還沒有任何快照
-      },
-      include: {
-        home_team: true,
-      },
+      where: whereClause,
+      include: { home_team: true },
       take: 200,
     });
 
-    let created = 0, skipped = 0, errors = 0;
+    let created = 0, updated = 0, errors = 0;
 
     for (const match of matches) {
       for (const sType of ALL_SNAPSHOT_TYPES) {
-        const result = await generateSnapshotForMatch(match, sType);
+        const result = await upsertSnapshotForMatch(match, sType);
         if (result === "created") created++;
-        else if (result === "error") errors++;
-        else skipped++;
+        else if (result === "updated") updated++;
+        else errors++;
       }
     }
 
     return NextResponse.json({
       success: true,
+      rebuild_mode: rebuild,
+      diagnostic: { total_matches, matches_without_any_snapshot },
       scanned_count: matches.length,
-      processed_count: created,
-      skipped_count: skipped,
+      created_count: created,
+      updated_count: updated,   // rebuild 模式下這個數字應該爆衝
       error_count: errors,
       time_elapsed_ms: Date.now() - startTime,
     });
