@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { PhysicsEngine } from "@/lib/physics";
 
 export const FEATURE_ORDER = [
@@ -22,16 +22,16 @@ async function getFatigueForTeam(team_id: string, current_match_date: Date, curr
       include: { home_team: true }
     });
 
-    if (!prevMatch) return 0.1; // 賽季第一場無前測資料兜底
+    if (!prevMatch?.home_team) return 0.0; // 賽季第一場或資料不全退回 0.0
 
     const prevVenue = prevMatch.home_team?.home_city || "Unknown";
     const daysRest = (current_match_date.getTime() - prevMatch.match_date.getTime()) / (1000 * 60 * 60 * 24);
     const travelKm = PhysicsEngine.haversineDistance(prevVenue, current_venue);
 
-    return PhysicsEngine.getFatigueScore(daysRest, travelKm);
+    return PhysicsEngine.getFatigueScore(daysRest, travelKm) || 0.0;
   } catch (err) {
     console.error("[FATIGUE ERROR]", err);
-    return 0.1;
+    return 0.0;
   }
 }
 

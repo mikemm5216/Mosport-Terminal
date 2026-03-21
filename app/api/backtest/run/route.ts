@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { QuantEngine } from "@/lib/quant";
 import { buildFeatureVector } from "@/lib/feature";
 

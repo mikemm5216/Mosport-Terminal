@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { buildFeatureVector } from "@/lib/feature";
 
 const INFERENCE_URL = process.env.INFERENCE_URL;
