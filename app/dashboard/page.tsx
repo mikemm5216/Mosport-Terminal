@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import LiveTicker from '../components/LiveTicker';
-import MatchCard from '../components/MatchCard';
-import SignalPanel from '../components/SignalPanel';
-import SkeletonLoader from '../components/SkeletonLoader';
+import LiveTicker from '@/components/LiveTicker';
+import MatchCard from '@/components/MatchCard';
+import SignalPanel from '@/components/SignalPanel';
+import SkeletonLoader from '@/components/SkeletonLoader';
 
 export default function Dashboard() {
   const [matches, setMatches] = useState<any[]>([]);
