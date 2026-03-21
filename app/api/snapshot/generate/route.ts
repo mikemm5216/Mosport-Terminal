@@ -41,13 +41,8 @@ async function generateSnapshotForMatch(
 
     if (!allowRetroactive && new Date() > snapshotTime) return "retroactive_skipped";
 
-    const current_venue = match.home_team?.home_city;
-    // 無座標資料：標記為 DLQ 並跳過此場
-    if (!current_venue || current_venue === "Unknown") {
-      await markFailed(match.match_id, `No valid venue for home_team: ${match.home_team_id}`);
-      return "no_venue";
-    }
-
+    const current_venue = match.home_team?.home_city || "Unknown";
+    // venue 缺失時 haversineDistance 回傳 0，仍可計算賽程密度與 Bio-Battery
     const baseFakeFeatures = {
       elo_diff: 125.5,
       goal_avg_diff: 0.9,
@@ -119,17 +114,14 @@ export async function POST(request: Request) {
 
     const completedMatches = await prisma.matches.findMany({
       where: {
-        home_score: { not: null },
+        home_score: { not: null }, // 只要已完賽，不限制 venue
         match_id: { notIn: failedIds.length > 0 ? failedIds : ["__none__"] },
-        home_team: {
-          home_city: { not: "Unknown" }
-        }
       },
       include: {
         home_team: true,
         snapshots: { select: { snapshot_type: true } }
       },
-      take: 200, // 擴大至 200 場
+      take: 200,
     });
 
     let created = 0, skipped = 0, no_venue = 0, errors = 0;
@@ -142,7 +134,6 @@ export async function POST(request: Request) {
 
         const result = await generateSnapshotForMatch(match, sType, true);
         if (result === "created") created++;
-        else if (result === "no_venue") { no_venue++; break; } // 此場中止，進 DLQ
         else if (result === "error") errors++;
         else skipped++;
       }
