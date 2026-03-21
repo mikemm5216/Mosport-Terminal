@@ -1,31 +1,132 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-async function fetchDay(dateStr: string): Promise<any[]> {
-  const targetUrl = `https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${dateStr}`;
-  try {
+const ODDS_API_KEY = process.env.ODDS_API_KEY || "demo_key"; // 將被真實環境變數取代
+
+// 第一步：定義統一 Adapter 介面，讓所有來源的資料都長成這樣
+interface UnifiedMatchData {
+  match_id: string;
+  league_id: string;
+  league_name: string;
+  sport: string;
+  home_team_id: string;
+  home_team_name: string;
+  away_team_id: string;
+  away_team_name: string;
+  match_date: Date;
+  home_score: number;
+  away_score: number;
+}
+
+// ==============
+// 引擎 1：TheSportsDB
+// ==============
+async function fetchTheSportsDB(dates: string[]): Promise<UnifiedMatchData[]> {
+  const unifiedData: UnifiedMatchData[] = [];
+  
+  for (const dateStr of dates) {
+    const targetUrl = `https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${dateStr}`;
     console.error(`[TheSportsDB FETCH START] URL: ${targetUrl}`);
-    const res = await fetch(targetUrl);
-    console.error(`[TheSportsDB FETCH END] URL: ${targetUrl} | Status: ${res.status}`);
+    
+    let res;
+    try {
+      res = await fetch(targetUrl);
+    } catch (e: any) {
+      throw new Error(`TheSportsDB Network Error: ${e.message}`);
+    }
+
+    console.error(`[TheSportsDB FETCH END] Status: ${res.status}`);
+    
+    // 煞車引擎：被 429 鎖住立刻拋出，交由 Fallback 處理
+    if (res.status === 429) {
+      throw new Error('TheSportsDB Rate Limited (429)');
+    }
     
     if (!res.ok) {
-      console.error(`[TheSportsDB HTTP ERROR] URL: ${targetUrl} | HTTP ${res.status} | Text: ${await res.text().catch(() => "")}`);
-      return [];
+      throw new Error(`TheSportsDB HTTP Error: ${res.status}`);
     }
-    
+
     const data = await res.json();
-    if (!data.events || data.events.length === 0) {
-      console.error(`[TheSportsDB EMPTY DATA] URL: ${targetUrl} | RAW DATA FROM API:`, JSON.stringify(data));
-    } else {
-      console.error(`[TheSportsDB SUCCESS] URL: ${targetUrl} | Events Count: ${data.events.length}`);
+    const events = data.events || [];
+
+    for (const event of events) {
+      if (!event.idEvent || String(event.idEvent).trim() === "" || event.idEvent === "null") continue;
+      if (!event.intHomeScore || !event.intAwayScore || event.intHomeScore === "" || event.intAwayScore === "") continue;
+
+      const dateObj = new Date(`${event.dateEvent}T${event.strTime || "00:00:00"}Z`);
+      if (isNaN(dateObj.getTime())) continue;
+
+      unifiedData.push({
+        match_id: String(event.idEvent),
+        league_id: String(event.idLeague || "MissingLeague"),
+        league_name: event.strLeague || "Unknown League",
+        sport: event.strSport || "Soccer",
+        home_team_id: String(event.idHomeTeam || event.strHomeTeam),
+        home_team_name: event.strHomeTeam,
+        away_team_id: String(event.idAwayTeam || event.strAwayTeam),
+        away_team_name: event.strAwayTeam,
+        match_date: dateObj,
+        home_score: parseInt(event.intHomeScore),
+        away_score: parseInt(event.intAwayScore),
+      });
     }
-    return data.events || [];
-  } catch (err: any) {
-    console.error(`[TheSportsDB EXCEPTION] URL: ${targetUrl} | Error:`, err.message);
-    return [];
+
+    // 絕對禁止 Promise.all，乖乖等 500ms
+    await sleep(500); 
   }
+  
+  return unifiedData;
+}
+
+// ==============
+// 引擎 2：Odds API Fallback (The Odds API - Scores)
+// ==============
+async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
+  const unifiedData: UnifiedMatchData[] = [];
+  
+  // 過去 3 天完賽的 Soccer 賽程 (以 EPL 範例)
+  // 實務上可根據需求迭代多個 sport_key
+  const targetUrl = `https://api.the-odds-api.com/v4/sports/soccer_epl/scores/?daysFrom=3&apiKey=${ODDS_API_KEY}`;
+  console.error(`[OddsAPI FETCH START] URL: ${targetUrl}`);
+  
+  const res = await fetch(targetUrl);
+  if (!res.ok) {
+    throw new Error(`Odds API HTTP Error: ${res.status}`);
+  }
+  
+  const events = await res.json(); // Array
+  
+  for (const event of events) {
+    if (!event.completed) continue;
+    if (!event.scores || event.scores.length !== 2) continue; // 沒有分數跳過
+
+    let homeScore = 0;
+    let awayScore = 0;
+    for (const scoreObj of event.scores) {
+      if (scoreObj.name === event.home_team) homeScore = parseInt(scoreObj.score);
+      if (scoreObj.name === event.away_team) awayScore = parseInt(scoreObj.score);
+    }
+
+    unifiedData.push({
+      match_id: String(event.id),                           // Odds API 的 UUID
+      league_id: String(event.sport_key),                   // "soccer_epl" 等
+      league_name: event.sport_title || "Unknown League",
+      sport: "Soccer",
+      home_team_id: String(event.home_team).replace(/\s/g, "_"), // 將隊名化作 ID (因為 Odds API 沒給 ID)
+      home_team_name: String(event.home_team),
+      away_team_id: String(event.away_team).replace(/\s/g, "_"),
+      away_team_name: String(event.away_team),
+      match_date: new Date(event.commence_time),
+      home_score: homeScore,
+      away_score: awayScore,
+    });
+  }
+  
+  return unifiedData;
 }
 
 export async function GET() {
@@ -37,74 +138,66 @@ export async function GET() {
       dates.push(d.toISOString().split("T")[0]);
     }
 
-    // 分 3 批併發抓取，批次間 500ms
-    const BATCH_SIZE = 10;
-    let allEvents: any[] = [];
-    for (let i = 0; i < dates.length; i += BATCH_SIZE) {
-      const batch = dates.slice(i, i + BATCH_SIZE);
-      const results = await Promise.all(batch.map(fetchDay));
-      allEvents = allEvents.concat(results.flat());
-      if (i + BATCH_SIZE < dates.length) await sleep(500);
+    let unifiedMatches: UnifiedMatchData[] = [];
+    let active_engine = "TheSportsDB";
+
+    // == 雙引擎容錯切換 ==
+    try {
+      console.error("[ENGINE 1] Starting TheSportsDB Ingestion...");
+      unifiedMatches = await fetchTheSportsDB(dates);
+      
+      if (unifiedMatches.length === 0) {
+        throw new Error("TheSportsDB returned 0 usable matches. Triggering API Fallback.");
+      }
+    } catch (e: any) {
+      console.error(`[ENGINE 1 FAILED] ${e.message}. Switching to Odds API Fallback.`);
+      active_engine = "OddsAPI";
+      unifiedMatches = await fetchOddsApiFallback();
     }
 
-    // Transform
+    if (unifiedMatches.length === 0) {
+      return NextResponse.json({ success: false, message: "Both engines failed or returned 0 matches." }, { status: 500 });
+    }
+
+    // == 關聯映射器 ==
     const leaguesMap = new Map<string, any>();
     const teamsMap = new Map<string, any>();
     const matchRows: any[] = [];
-    let skipped_count = 0;
 
-    for (const event of allEvents) {
-      if (!event.intHomeScore || !event.intAwayScore ||
-        event.intHomeScore === "" || event.intAwayScore === "") {
-        skipped_count++;
-        continue;
-      }
-      
-      // 關鍵修復：TheSportsDB 有時會吐出沒有 idEvent 的垃圾資料，這會導致全寫進 id: "undefined" 互相覆蓋
-      if (!event.idEvent || String(event.idEvent).trim() === "" || event.idEvent === "null") {
-        console.warn("[INGEST WARNING] 跳過無效 ID 賽事:", event.strEvent);
-        skipped_count++;
-        continue;
-      }
-      
-      const dateTimeString = `${event.dateEvent}T${event.strTime || "00:00:00"}Z`;
-      const match_date = new Date(dateTimeString);
-      if (isNaN(match_date.getTime())) { skipped_count++; continue; }
-
-      // 強制全部 ID 轉字串
-      const match_id    = String(event.idEvent);
-      const league_id   = String(event.idLeague || "MissingLeague");
-      const home_team_id = String(event.idHomeTeam || event.strHomeTeam);
-      const away_team_id = String(event.idAwayTeam || event.strAwayTeam);
-      const home_score  = parseInt(event.intHomeScore);
-      const away_score  = parseInt(event.intAwayScore);
-
-      leaguesMap.set(league_id, {
-        league_id,
-        league_name: event.strLeague || "Unknown League",
-        sport: event.strSport || "Soccer",
+    for (const data of unifiedMatches) {
+      leaguesMap.set(data.league_id, {
+        league_id: data.league_id,
+        league_name: data.league_name,
+        sport: data.sport,
         country: "Global"
       });
-      teamsMap.set(home_team_id, { team_id: home_team_id, league_id, team_name: event.strHomeTeam, home_city: "Unknown" });
-      teamsMap.set(away_team_id, { team_id: away_team_id, league_id, team_name: event.strAwayTeam, home_city: "Unknown" });
-      matchRows.push({ match_id, league_id, home_team_id, away_team_id, match_date, home_score, away_score, status: "COMPLETED" });
+      teamsMap.set(data.home_team_id, { team_id: data.home_team_id, league_id: data.league_id, team_name: data.home_team_name, home_city: "Unknown" });
+      teamsMap.set(data.away_team_id, { team_id: data.away_team_id, league_id: data.league_id, team_name: data.away_team_name, home_city: "Unknown" });
+      matchRows.push({
+        match_id: data.match_id,
+        league_id: data.league_id,
+        home_team_id: data.home_team_id,
+        away_team_id: data.away_team_id,
+        match_date: data.match_date,
+        home_score: data.home_score,
+        away_score: data.away_score,
+        status: "COMPLETED"
+      });
     }
 
-    // League upsert — 不多，可以並發
+    // League / Team 可並發寫入
     await Promise.all(
       Array.from(leaguesMap.values()).map(l =>
         prisma.leagues.upsert({ where: { league_id: l.league_id }, update: {}, create: l })
       )
     );
-
-    // Team upsert — 不多，可以並發
     await Promise.all(
       Array.from(teamsMap.values()).map(t =>
         prisma.teams.upsert({ where: { team_id: t.team_id }, update: {}, create: t })
       )
     );
 
-    // ★ 關鍵修正：改用序列 for...of，單筆 try-catch，確保每筆都入庫
+    // Matches 必須序列寫入
     let write_success = 0;
     let write_failed = 0;
 
@@ -113,7 +206,7 @@ export async function GET() {
         await prisma.matches.upsert({
           where: { match_id: match.match_id },
           create: match,
-          update: {   // 完整 update，確保已存在的筆數也被刷新
+          update: {
             league_id:    match.league_id,
             home_team_id: match.home_team_id,
             away_team_id: match.away_team_id,
@@ -125,26 +218,24 @@ export async function GET() {
         });
         write_success++;
       } catch (e: any) {
-        console.error(`[INGEST FAIL] match_id=${match.match_id}`, e.message);
+        console.error(`[DB UPSERT FAIL] match_id=${match.match_id}`, e.message);
         write_failed++;
       }
     }
 
-    // 寫入後確認庫存
     const total_matches_in_db = await prisma.matches.count();
 
     return NextResponse.json({
       success: true,
-      fetched_count: allEvents.length,
+      active_engine,
       ingested_count: matchRows.length,
       write_success,
       write_failed,
-      skipped_count,
-      total_matches_in_db,  // 如果這個數字遠低於 write_success，有 constraint 問題
+      total_matches_in_db,
     });
 
   } catch (error: any) {
-    console.error("[INGEST ERROR]", error);
+    console.error("[FATAL INGEST ERROR]", error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
