@@ -36,7 +36,7 @@ class PredictRequest(BaseModel):
     feature_vector: List[float]
     model_type: str = "T-10min"  # 前端可選傳，預設抓取 T-10min
 
-EXPECTED_FEATURE_LENGTH = 4
+EXPECTED_FEATURE_LENGTH = 6
 
 # 新增自動撈取該型別最新模型方法
 def fetch_latest_model(model_type: str):

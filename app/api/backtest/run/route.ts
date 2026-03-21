@@ -1,19 +1,56 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { QuantEngine } from "@/lib/quant";
+import { PhysicsEngine } from "@/lib/physics";
+
+const INFERENCE_URL = process.env.INFERENCE_URL;
+
+async function fetchWithTimeout(url: string, options: any, timeout: number) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+// 取得球隊上一場比賽的疲勞資訊
+async function getFatigueForTeam(team_id: string, current_match_date: Date, current_venue: string): Promise<number> {
+  const prevMatch = await prisma.matches.findFirst({
+    where: {
+      OR: [{ home_team_id: team_id }, { away_team_id: team_id }],
+      match_date: { lt: current_match_date },
+      status: "finished"
+    },
+    orderBy: { match_date: 'desc' },
+    include: { home_team: true }
+  });
+
+  if (!prevMatch) return 0.1;
+
+  const prevVenue = prevMatch.home_team.home_city;
+  const daysRest = (current_match_date.getTime() - prevMatch.match_date.getTime()) / (1000 * 60 * 60 * 24);
+  const travelKm = PhysicsEngine.haversineDistance(prevVenue, current_venue);
+
+  return PhysicsEngine.getFatigueScore(daysRest, travelKm);
+}
 
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const limit = body.limit || 500;
 
-    // 1. 撈取近期完賽紀錄與對應快照 (修正 relation 名稱為 schema 定義的 'snapshots')
+    // 1. 撈取近期完賽紀錄與對應快照 (包含 home_team 資訊以取得場館)
     const pastMatches = await prisma.matches.findMany({
       where: {
         home_score: { not: null },
         away_score: { not: null },
       },
       include: {
+        home_team: true,
         snapshots: {
           where: { snapshot_type: "T-10min" },
           take: 1,
@@ -54,8 +91,47 @@ export async function POST(req: Request) {
         const rawImplied = 1 / odds;
         const impliedProb = rawImplied * 1.05; 
 
-        // 取得模型預測 (讀取靜態推論結果)
-        const modelProb = (snapshot.feature_json as Record<string, any>)?.predicted_prob_home || 0.5;
+        // 動態獲取疲勞特徵
+        const current_venue = match.home_team?.home_city || "Unknown";
+        const fatigue_home = await getFatigueForTeam(match.home_team_id, match.match_date, current_venue);
+        const fatigue_away = await getFatigueForTeam(match.away_team_id, match.match_date, current_venue);
+        
+        // 重新組裝 6 位物理特徵
+        const fJson = snapshot.feature_json as Record<string, any>;
+        const feature_vector = [
+          typeof fJson.elo_diff === "number" ? fJson.elo_diff : 0.0,
+          typeof fJson.goal_avg_diff === "number" ? fJson.goal_avg_diff : 0.0,
+          typeof fJson.form_strength_home === "number" ? fJson.form_strength_home : 0.0,
+          typeof fJson.form_strength_away === "number" ? fJson.form_strength_away : 0.0,
+          fatigue_home,
+          fatigue_away
+        ];
+
+        let modelProb = fJson.predicted_prob_home || 0.5;
+        
+        // 餵給推論 API 取得真實推論 (若環境變數存在)
+        if (INFERENCE_URL) {
+          try {
+            const res = await fetchWithTimeout(`${INFERENCE_URL}/predict`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model_id: "latest",
+                model_type: "T-10min",
+                feature_vector
+              })
+            }, 3000);
+            
+            if (res.ok) {
+              const data = await res.json();
+              if (data && typeof data.probability === "number" && data.probability !== -1) {
+                modelProb = data.probability;
+              }
+            }
+          } catch(e) {
+            console.error(`[BACKTEST FETCH ERROR] match=${match.match_id}`, e);
+          }
+        }
         
         if (!modelProb || modelProb <= 0 || modelProb > 1) {
           console.log("[SKIP] invalid prob:", snapshot.match_id, modelProb);
