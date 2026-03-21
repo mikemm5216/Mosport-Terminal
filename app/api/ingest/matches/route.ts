@@ -18,8 +18,8 @@ interface UnifiedMatchData {
   away_team_id: string;
   away_team_name: string;
   match_date: Date;
-  home_score: number;
-  away_score: number;
+  home_score: number | null;
+  away_score: number | null;
 }
 
 // ==============
@@ -59,7 +59,6 @@ async function fetchTheSportsDB(dates: string[]): Promise<UnifiedMatchData[]> {
         console.warn("[INGEST WARNING] 跳過無效 ID 賽事:", event.strEvent);
         continue;
       }
-      if (!event.intHomeScore || !event.intAwayScore || event.intHomeScore === "" || event.intAwayScore === "") continue;
 
       const dateObj = new Date(`${event.dateEvent}T${event.strTime || "00:00:00"}Z`);
       if (isNaN(dateObj.getTime())) continue;
@@ -74,8 +73,8 @@ async function fetchTheSportsDB(dates: string[]): Promise<UnifiedMatchData[]> {
         away_team_id: String(event.idAwayTeam || event.strAwayTeam),
         away_team_name: event.strAwayTeam,
         match_date: dateObj,
-        home_score: parseInt(event.intHomeScore),
-        away_score: parseInt(event.intAwayScore),
+        home_score: event.intHomeScore ? parseInt(event.intHomeScore) : null,
+        away_score: event.intAwayScore ? parseInt(event.intAwayScore) : null,
       });
     }
 
@@ -105,14 +104,14 @@ async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
   const events = await res.json(); // Array
   
   for (const event of events) {
-    if (!event.completed) continue;
-    if (!event.scores || event.scores.length !== 2) continue; // 沒有分數跳過
-
-    let homeScore = 0;
-    let awayScore = 0;
-    for (const scoreObj of event.scores) {
-      if (scoreObj.name === event.home_team) homeScore = parseInt(scoreObj.score);
-      if (scoreObj.name === event.away_team) awayScore = parseInt(scoreObj.score);
+    let homeScore: number | null = null;
+    let awayScore: number | null = null;
+    
+    if (event.scores && event.scores.length === 2) {
+      for (const scoreObj of event.scores) {
+        if (scoreObj.name === event.home_team) homeScore = parseInt(scoreObj.score);
+        if (scoreObj.name === event.away_team) awayScore = parseInt(scoreObj.score);
+      }
     }
 
     unifiedData.push({
@@ -185,7 +184,7 @@ export async function GET() {
         match_date: data.match_date,
         home_score: data.home_score,
         away_score: data.away_score,
-        status: "COMPLETED"
+        status: (data.home_score !== null && data.away_score !== null) ? "COMPLETED" : "SCHEDULED"
       });
     }
 
