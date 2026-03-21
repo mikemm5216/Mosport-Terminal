@@ -12,24 +12,10 @@ const TYPE_TO_MS = {
 type SnapshotType = keyof typeof TYPE_TO_MS;
 const ALL_SNAPSHOT_TYPES = Object.keys(TYPE_TO_MS) as SnapshotType[];
 
-// 無座標的比賽外部設定 skip_flag，寫入 DeadLetterQueue 讓後續掃描跳過
-async function markFailed(match_id: string, reason: string) {
-  try {
-    await prisma.deadLetterQueue.create({
-      data: {
-        source: "snapshot/generate",
-        payload: { match_id },
-        error: reason,
-      }
-    });
-  } catch { /* 寫入 DLQ 失敗不中斷主流程 */ }
-}
-
 async function generateSnapshotForMatch(
   match: any,
   snapshot_type: SnapshotType,
-  allowRetroactive = false
-): Promise<"created" | "exists" | "retroactive_skipped" | "no_venue" | "error"> {
+): Promise<"created" | "exists" | "error"> {
   try {
     const existing = await prisma.eventSnapshot.findUnique({
       where: { match_id_snapshot_type: { match_id: match.match_id, snapshot_type } }
@@ -39,10 +25,6 @@ async function generateSnapshotForMatch(
     const offsetMs = TYPE_TO_MS[snapshot_type];
     const snapshotTime = new Date(match.match_date.getTime() - offsetMs);
 
-    if (!allowRetroactive && new Date() > snapshotTime) return "retroactive_skipped";
-
-    const current_venue = match.home_team?.home_city || "Unknown";
-    // venue 缺失時 haversineDistance 回傳 0，仍可計算賽程密度與 Bio-Battery
     const baseFakeFeatures = {
       elo_diff: 125.5,
       goal_avg_diff: 0.9,
@@ -50,8 +32,8 @@ async function generateSnapshotForMatch(
       form_strength_away: 60.5,
     };
 
-    // buildFeatureVector 內部會呼叫 getBioBattery → calculateBioBattery
-    // 使用 match.match_date 確保歷史疲勞以「比賽當天」為基準
+    // 座標缺失時 haversineDistance 回傳 0，Bio-Battery 仍強行計算賽程密度
+    const current_venue = match.home_team?.home_city || "Unknown";
     const feature_vector = await buildFeatureVector(
       baseFakeFeatures,
       match.home_team_id,
@@ -65,7 +47,7 @@ async function generateSnapshotForMatch(
         match_id: match.match_id,
         snapshot_type,
         snapshot_time: snapshotTime,
-        state_json: { _v: 1, form: { home: "W-D-W", away: "L-L-D" }, avg_goals: { home: 1.8, away: 0.9 } },
+        state_json: { _v: 1 },
         feature_json: feature_vector,
       }
     });
@@ -73,7 +55,7 @@ async function generateSnapshotForMatch(
     return "created";
   } catch (e: any) {
     if (e.code === 'P2002') return "exists";
-    console.error(`[SNAPSHOT ERROR] match=${match.match_id} type=${snapshot_type}`, e.message);
+    console.error(`[SNAPSHOT ERROR] match=${match.match_id} type=${snapshot_type}:`, e.message);
     return "error";
   }
 }
@@ -95,48 +77,28 @@ export async function POST(request: Request) {
         include: { home_team: true }
       });
       if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
-
-      const result = await generateSnapshotForMatch(match, snapshot_type as SnapshotType, false);
-      if (result === "retroactive_skipped") {
-        return NextResponse.json({ error: "Cannot generate retroactive snapshot" }, { status: 403 });
-      }
+      const result = await generateSnapshotForMatch(match, snapshot_type as SnapshotType);
       return NextResponse.json({ success: true, result }, { status: result === "created" ? 201 : 200 });
     }
 
-    // 批量自動掃描：
-    // 1. 只抓已完賽比賽
-    // 2. 排除已進入 DLQ（無座標）的 match_id
-    // 3. 只抓 home_team.home_city 不是 null 且不是 "Unknown" 的比賽
-    const failedIds = await prisma.deadLetterQueue.findMany({
-      where: { source: "snapshot/generate" },
-      select: { payload: true }
-    }).then(rows => rows.map((r: any) => r.payload?.match_id).filter(Boolean));
-
+    // ⚡ 核平模式：只保留一個條件，通通抓出來
     const startTime = Date.now();
 
-    // 關鍵修正：加上 snapshots:none 確保只抓「尚未有任何快照」的完賽比賽
-    const completedMatches = await prisma.matches.findMany({
+    const matches = await prisma.matches.findMany({
       where: {
-        home_score: { not: null },
-        snapshots: { none: {} },
-        match_id: { notIn: failedIds.length > 0 ? failedIds : ["__none__"] },
+        snapshots: { none: {} } // 唯一條件：還沒有任何快照
       },
       include: {
         home_team: true,
-        snapshots: { select: { snapshot_type: true } }
       },
       take: 200,
     });
 
-    let created = 0, skipped = 0, no_venue = 0, errors = 0;
+    let created = 0, skipped = 0, errors = 0;
 
-    for (const match of completedMatches) {
-      const existingTypes = new Set(match.snapshots.map((s: any) => s.snapshot_type));
-
+    for (const match of matches) {
       for (const sType of ALL_SNAPSHOT_TYPES) {
-        if (existingTypes.has(sType)) { skipped++; continue; }
-
-        const result = await generateSnapshotForMatch(match, sType, true);
+        const result = await generateSnapshotForMatch(match, sType);
         if (result === "created") created++;
         else if (result === "error") errors++;
         else skipped++;
@@ -145,10 +107,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      scanned_count: completedMatches.length,
+      scanned_count: matches.length,
       processed_count: created,
       skipped_count: skipped,
-      no_venue_count: no_venue,
       error_count: errors,
       time_elapsed_ms: Date.now() - startTime,
     });
