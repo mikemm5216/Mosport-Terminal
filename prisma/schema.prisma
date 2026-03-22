@@ -49,6 +49,8 @@ model Matches {
   away_team_id String
   match_date   DateTime
   status       String   // scheduled, live, finished
+  home_team_name String?  // Denormalized for TLA logic
+  away_team_name String?  // Denormalized for TLA logic
   home_score   Int?
   away_score   Int?
   final_signal_snapshot Json? // Snapshot of pre-match analysis at T-10m

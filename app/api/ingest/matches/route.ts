@@ -260,10 +260,15 @@ async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
 
 export async function GET() {
   try {
-    // FORENSIC PURGE - Wipe dirty data first
+    // FORENSIC PURGE - Wipe dirty data first (Cascading dependencies)
+    await prisma.matchStats.deleteMany({});
+    await prisma.marketProbabilities.deleteMany({});
+    await prisma.signals.deleteMany({});
+    await prisma.eventSnapshot.deleteMany({});
+    await prisma.experience.deleteMany({});
     await prisma.players.deleteMany({});
     await prisma.matches.deleteMany({});
-    console.error("[INGEST] Forensic Purge Executed.");
+    console.error("[INGEST] Forensic Purge Executed (Cascading).");
 
     const dates: string[] = [];
     // 日常排程 (Daily Sync)：只抓昨天 (-1)、今天 (0) 及未來三天 (1~3)
@@ -331,6 +336,9 @@ export async function GET() {
         league_id: data.league_id,
         home_team_id: data.home_team_id,
         away_team_id: data.away_team_id,
+        home_team_name: data.home_team_name,
+        away_team_name: data.away_team_name,
+        sport: data.sport,
         match_date: data.match_date,
         home_score: data.home_score,
         away_score: data.away_score,
@@ -365,12 +373,16 @@ export async function GET() {
             home_score: match.home_score,
             away_score: match.away_score,
             status: match.status,
+            home_team_name: match.home_team_name,
+            away_team_name: match.away_team_name,
           },
           create: {
             match_id: match.match_id,
             league_id: match.league_id,
             home_team_id: match.home_team_id,
             away_team_id: match.away_team_id,
+            home_team_name: match.home_team_name,
+            away_team_name: match.away_team_name,
             match_date: match.match_date,
             status: match.status,
           }
