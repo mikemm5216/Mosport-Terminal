@@ -46,9 +46,13 @@ export async function GET() {
 
         if (data.teams && data.teams.length > 0) {
           const teamDetails = data.teams[0];
-          logoUrl = teamDetails.strTeamBadge || null;
+          // TheSportsDB searchteams returns 'strBadge' (NOT strTeamBadge)
+          logoUrl = teamDetails.strBadge || teamDetails.strTeamBadge || null;
           if (teamDetails.strTeamShort) {
             shortName = teamDetails.strTeamShort;
+          } else if (teamDetails.strAlternate) {
+            // fallback: use first 3 chars of alternate name
+            shortName = (teamDetails.strAlternate as string).substring(0, 3).toUpperCase();
           }
           league = teamDetails.strLeague || league;
         }

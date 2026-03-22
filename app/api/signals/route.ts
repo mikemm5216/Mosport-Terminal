@@ -29,6 +29,15 @@ export async function GET() {
       where: { team_name: { in: Array.from(teamNames) } }
     });
 
+    // DEBUG: verify cold DB has data
+    console.error(`[SIGNALS DEBUG] Matches: ${matches.length}, Teams in cold DB: ${teamsDb.length}`);
+    const sampleTeam = teamsDb[0];
+    if (sampleTeam) {
+      console.error(`[SIGNALS DEBUG] Sample team: ${sampleTeam.team_name} | logo: ${sampleTeam.logo_url} | short: ${sampleTeam.short_name}`);
+    } else {
+      console.error(`[SIGNALS DEBUG] ⚠️ Cold DB is EMPTY! Run /api/ingest/teams first.`);
+    }
+
     const teamMap = new Map(teamsDb.map(t => [t.team_name, t]));
 
     const mappedMatches = matches.map(m => {
@@ -39,8 +48,8 @@ export async function GET() {
         ...m,
         home_logo: homeDbTeam?.logo_url || null,
         away_logo: awayDbTeam?.logo_url || null,
-        home_short_name: homeDbTeam?.short_name || null,
-        away_short_name: awayDbTeam?.short_name || null,
+        home_short_name: homeDbTeam?.short_name || (m.home_team?.team_name?.substring(0,3).toUpperCase() ?? null),
+        away_short_name: awayDbTeam?.short_name || (m.away_team?.team_name?.substring(0,3).toUpperCase() ?? null),
       };
     });
 
