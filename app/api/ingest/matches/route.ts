@@ -95,44 +95,62 @@ async function fetchTheSportsDB(dates: string[]): Promise<UnifiedMatchData[]> {
 async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
   const unifiedData: UnifiedMatchData[] = [];
   
-  // 過去 3 天完賽的 Soccer 賽程 (以 EPL 範例)
-  // 實務上可根據需求迭代多個 sport_key
-  const targetUrl = `https://api.the-odds-api.com/v4/sports/soccer_epl/scores/?daysFrom=3&apiKey=${ODDS_API_KEY}`;
-  console.error(`[OddsAPI FETCH START] URL: ${targetUrl}`);
-  
-  const res = await fetch(targetUrl);
-  if (!res.ok) {
-    throw new Error(`Odds API HTTP Error: ${res.status}`);
-  }
-  
-  const events = await res.json(); // Array
-  
-  for (const event of events) {
-    let homeScore: number | null = null;
-    let awayScore: number | null = null;
-    
-    if (event.scores && event.scores.length === 2) {
-      for (const scoreObj of event.scores) {
-        if (scoreObj.name === event.home_team) homeScore = parseInt(scoreObj.score);
-        if (scoreObj.name === event.away_team) awayScore = parseInt(scoreObj.score);
-      }
-    }
+  // 擴展多運動：EPL, NBA, MLB, UCL
+  const sportKeys = [
+    "soccer_epl",
+    "basketball_nba",
+    "baseball_mlb",
+    "soccer_uefa_champs_league"
+  ];
 
-    unifiedData.push({
-      match_id: String(event.id),                           // Odds API 的 UUID
-      league_id: String(event.sport_key),                   // "soccer_epl" 等
-      league_name: event.sport_title || "Unknown League",
-      sport: "Soccer",
-      home_team_id: String(event.home_team).replace(/\s/g, "_"), // 將隊名化作 ID (因為 Odds API 沒給 ID)
-      home_team_name: String(event.home_team),
-      away_team_id: String(event.away_team).replace(/\s/g, "_"),
-      away_team_name: String(event.away_team),
-      match_date: new Date(event.commence_time),
-      home_score: homeScore,
-      away_score: awayScore,
-      home_logo: null,
-      away_logo: null,
-    });
+  for (const key of sportKeys) {
+    const targetUrl = `https://api.the-odds-api.com/v4/sports/${key}/scores/?daysFrom=3&apiKey=${ODDS_API_KEY}`;
+    console.error(`[OddsAPI FETCH START] League: ${key} | URL: ${targetUrl}`);
+    
+    try {
+      const res = await fetch(targetUrl);
+      if (!res.ok) {
+        console.error(`[OddsAPI ERROR] League: ${key} | Status: ${res.status}`);
+        continue; // 跳過報錯的聯賽
+      }
+      
+      const events = await res.json(); // Array
+      
+      for (const event of events) {
+        let homeScore: number | null = null;
+        let awayScore: number | null = null;
+        
+        if (event.scores && event.scores.length === 2) {
+          for (const scoreObj of event.scores) {
+            if (scoreObj.name === event.home_team) homeScore = parseInt(scoreObj.score);
+            if (scoreObj.name === event.away_team) awayScore = parseInt(scoreObj.score);
+          }
+        }
+
+        unifiedData.push({
+          match_id: String(event.id),                           
+          league_id: String(event.sport_key),                   
+          league_name: event.sport_title || "Unknown League",
+          sport: event.sport_key.startsWith("basketball") ? "Basketball" : 
+                 event.sport_key.startsWith("baseball") ? "Baseball" : "Soccer",
+          home_team_id: String(event.home_team).replace(/\s/g, "_"), 
+          home_team_name: String(event.home_team),
+          away_team_id: String(event.away_team).replace(/\s/g, "_"),
+          away_team_name: String(event.away_team),
+          match_date: new Date(event.commence_time),
+          home_score: homeScore,
+          away_score: awayScore,
+          home_logo: null,
+          away_logo: null,
+        });
+      }
+      
+      // 尊重 Odds API 的 Rate Limit
+      await sleep(1000);
+
+    } catch (e: any) {
+      console.error(`[OddsAPI FATAL] League: ${key} | Error: ${e.message}`);
+    }
   }
   
   return unifiedData;
