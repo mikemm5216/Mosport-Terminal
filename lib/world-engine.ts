@@ -46,13 +46,13 @@ export const WorldEngine = {
     return { type, count };
   },
 
-  runMatchSimulation(home: TeamStats, away: TeamStats) {
+  runMatchSimulation(home: TeamStats, away: TeamStats, forcedWinner?: 'home' | 'away') {
     // PHASE 1: THE SECRET PREDICTION (Silently calculate math winner)
     // Strength (50%), Momentum (30%), Fatigue (-20%)
     const homeScore = (home.strength * 0.5) + (home.momentum * 0.3) - (home.fatigue * 0.2);
     const awayScore = (away.strength * 0.5) + (away.momentum * 0.3) - (away.fatigue * 0.2);
 
-    const predictedWinner = homeScore >= awayScore ? 'home' : 'away';
+    const predictedWinner = forcedWinner || (homeScore >= awayScore ? 'home' : 'away');
     const isUpset = (predictedWinner === 'home' && home.strength < away.strength) || 
                     (predictedWinner === 'away' && away.strength < home.strength);
 
