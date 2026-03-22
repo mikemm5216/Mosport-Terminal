@@ -35,7 +35,7 @@ model Players {
   player_id   String @id @default(cuid())
   team_id     String
   player_name String
-  position    String
+  positions   String[] // Array for multi-role support (e.g. ["P", "DH"])
   number      String? // Jersey Number
   stats       Json?   // Multi-role stats (e.g. stats.P, stats.DH)
   

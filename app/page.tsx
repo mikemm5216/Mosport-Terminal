@@ -87,8 +87,8 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
       >
         {/* LEAGUE / TIME / TOGGLER HEADER */}
         <div className="flex justify-between items-center px-4 md:px-6 mb-4">
-           <div className="flex items-center gap-4">
-             <span className="text-[10px] md:text-sm text-slate-400 font-black tracking-[0.2em] uppercase flex items-center gap-2">
+           <div className="flex items-center gap-4 overflow-hidden">
+             <span className="text-[10px] md:text-sm text-slate-400 font-black tracking-[0.2em] uppercase flex items-center gap-2 whitespace-nowrap">
                {getLeagueDisplay(match.league?.league_name)}
                {isUCL && (
                  <span className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(16,185,129,0.3)] animate-pulse">
@@ -97,13 +97,13 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
                )}
              </span>
              {match.primaryTag && (
-               <div className="flex items-center gap-2 bg-cyan-500/5 border border-cyan-500/10 px-3 py-1 rounded-full group-hover:border-cyan-500/30 transition-colors">
+               <div className="flex items-center gap-2 bg-cyan-500/5 border border-cyan-500/10 px-3 py-1 rounded-full group-hover:border-cyan-500/30 transition-colors max-w-[120px] md:max-w-[250px] overflow-hidden">
                  <span className="text-[9px] md:text-xs font-black text-cyan-500 tracking-tighter uppercase whitespace-nowrap">THE SIGN ➔</span>
-                 <span className="text-[9px] md:text-xs font-black text-white tracking-[0.1em] uppercase truncate max-w-[150px] md:max-w-none">{match.primaryTag}</span>
+                 <span className="text-[9px] md:text-xs font-black text-white tracking-[0.1em] uppercase truncate">{match.primaryTag}</span>
                </div>
              )}
            </div>
-           <div className="flex items-center gap-3">
+           <div className="flex items-center gap-3 shrink-0">
              <span className="text-[10px] md:text-sm text-slate-500 font-mono tracking-widest font-bold">
                 {formatLocalTime(match.match_date)}
              </span>
