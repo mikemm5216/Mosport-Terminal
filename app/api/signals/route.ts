@@ -12,6 +12,7 @@ export async function GET() {
       include: {
         home_team: true,
         away_team: true,
+        league: true,
         snapshots: {
           take: 1,
           orderBy: { snapshot_time: 'desc' }

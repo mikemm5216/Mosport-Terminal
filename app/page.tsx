@@ -1,8 +1,7 @@
-"use client"
-
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp, AlertCircle, ArrowRight } from 'lucide-react';
+import MatchTicker from '@/components/match-ticker';
 
 export default function Home() {
   const [matches, setMatches] = useState<any[]>([]);
@@ -27,17 +26,20 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 flex flex-col items-center">
+    <main className="min-h-screen bg-slate-950 flex flex-col items-center overflow-x-hidden">
+      {/* 🟢 LIVE MATCH TICKER (MARQUEE) */}
+      <MatchTicker />
+
       {/* HEADER */}
-      <div className="w-full max-w-4xl p-4 sm:p-6 border-b border-slate-800/80 sticky top-0 bg-slate-950/90 backdrop-blur-md z-50">
-        <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-widest uppercase">
+      <div className="w-full max-w-4xl p-6 sm:p-8 border-b border-slate-800/80 sticky top-0 bg-slate-950/90 backdrop-blur-md z-40">
+        <h1 className="text-2xl sm:text-4xl font-black text-white tracking-widest uppercase">
           Mosport <span className="text-cyan-400">Terminal</span>
         </h1>
-        <div className="flex justify-between items-center mt-1">
-          <p className="text-slate-500 text-xs font-mono uppercase tracking-widest">Live Intelligence Dashboard</p>
-          <div className="flex gap-2">
-             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mt-0.5"></span>
-             <span className="text-[10px] text-slate-400 font-mono tracking-widest">LIVE SYNC</span>
+        <div className="flex justify-between items-center mt-2">
+          <p className="text-slate-500 text-[10px] md:text-xs font-mono uppercase tracking-[0.3em]">Proprietary Intelligence Grid v2.5</p>
+          <div className="flex gap-2 items-center">
+             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+             <span className="text-[10px] text-slate-400 font-mono tracking-widest uppercase">Live Link Active</span>
           </div>
         </div>
       </div>
@@ -47,11 +49,11 @@ export default function Home() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
         </div>
       ) : matches.length === 0 ? (
-        <div className="w-full max-w-4xl p-10 text-center text-slate-500 font-mono text-sm tracking-widest uppercase">
-          No Active Signals
+        <div className="w-full max-w-4xl p-20 text-center text-slate-500 font-mono text-sm tracking-widest uppercase border border-dashed border-slate-900 mt-8 rounded-2xl mx-4">
+          No Active Intelligence Signals
         </div>
       ) : (
-        <div className="w-full max-w-4xl pb-20">
+        <div className="w-full max-w-4xl pb-20 px-4">
           {matches.map((match) => (
             <RowItem key={match.match_id} match={match} isExpanded={expandedId === match.match_id} onToggle={() => toggleExpand(match.match_id)} />
           ))}
@@ -66,10 +68,8 @@ const getLeagueDisplay = (leagueName?: string): string => {
   if (upper.includes('NBA') || upper.includes('BASKETBALL')) return '🏀 NBA';
   if (upper.includes('MLB') || upper.includes('BASEBALL')) return '⚾ MLB';
   if (upper.includes('NFL') || upper.includes('FOOTBALL')) return '🏈 NFL';
+  if (upper.includes('CHAMPIONS LEAGUE') || upper.includes('UEFA')) return '🏆 UEFA CHAMPIONS LEAGUE';
   if (upper.includes('PREMIER')) return `⚽ PREMIER LEAGUE`;
-  if (upper.includes('LA LIGA') || upper.includes('LALIGA')) return `⚽ LA LIGA`;
-  if (upper.includes('BUNDESLIGA')) return `⚽ BUNDESLIGA`;
-  if (upper.includes('SERIE A')) return `⚽ SERIE A`;
   return upper ? `⚽ ${upper}` : '⚽ PRO LEAGUE';
 };
 
@@ -77,152 +77,116 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
   const matchDate = new Date(match.match_date);
   const timeStr = matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-  // Parsing bio-battery
-  const { homeBattery, awayBattery } = useMemo(() => {
-    let hb = 50, ab = 50;
-    if (match.snapshots?.length > 0) {
-      const fd = match.snapshots[0].feature_json;
-      const rawHb = fd?.bio_battery_home ?? fd?.h_bio ?? fd?.home_energy;
-      const rawAb = fd?.bio_battery_away ?? fd?.a_bio ?? fd?.away_energy;
-      if (typeof rawHb === 'number') hb = rawHb;
-      if (typeof rawAb === 'number') ab = rawAb;
-    }
-    const total = hb + ab;
-    if (total > 0) return { homeBattery: Math.round((hb/total)*100), awayBattery: Math.round((ab/total)*100) };
-    return { homeBattery: 50, awayBattery: 50 };
-  }, [match]);
-
-  const homeTeamFull = match.home_team?.team_name || "UNKNOWN";
-  const awayTeamFull = match.away_team?.team_name || "UNKNOWN";
-
-  const hasNarrative = !!match.narrative;
-  const themeBorder = match.narrative_type === "fatigue" ? "border-cyan-400" :
-                      match.narrative_type === "scandal" ? "border-orange-500" :
-                      match.narrative_type === "news_driven" ? "border-purple-400" : "border-slate-600";
-  const themeText = match.narrative_type === "fatigue" ? "text-cyan-400" :
-                    match.narrative_type === "scandal" ? "text-orange-500" :
-                    match.narrative_type === "news_driven" ? "text-purple-400" : "text-slate-400";
-  const themeLabel = match.narrative_type?.toUpperCase() || "STANDARD ANALYSIS";
+  const isUCL = (match.league?.league_name || '').toUpperCase().includes('CHAMPIONS LEAGUE');
 
   return (
-    <div className="group">
+    <div className="group border-b border-slate-900/50">
       {/* 🔴 Level 1: Extreme Radar List (Row UI) */}
       <div 
         onClick={onToggle}
-        className={`w-full mx-auto py-4 md:py-6 border-b border-slate-800/80 cursor-pointer transition-all duration-200 ${isExpanded ? 'bg-slate-800/80' : 'hover:bg-slate-800/40'}`}
+        className={`w-full py-6 md:py-8 cursor-pointer transition-all duration-300 relative overflow-hidden ${isExpanded ? 'bg-slate-900/40' : 'hover:bg-slate-900/20'}`}
       >
         {/* LEAGUE / TIME / TOGGLER HEADER */}
-        <div className="flex justify-between items-center px-4 md:px-8 mb-2">
-           <div className="flex items-center gap-3">
-             <span className="text-[9px] md:text-xs text-slate-500 font-mono tracking-widest uppercase flex items-center gap-1.5">
+        <div className="flex justify-between items-center px-4 md:px-6 mb-4">
+           <div className="flex items-center gap-4">
+             <span className="text-[10px] md:text-sm text-slate-400 font-black tracking-[0.2em] uppercase flex items-center gap-2">
                {getLeagueDisplay(match.league?.league_name)}
+               {isUCL && (
+                 <span className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded shadow-[0_0_10px_rgba(52,211,153,0.2)] animate-pulse">
+                   [FREE TO VIEW]
+                 </span>
+               )}
              </span>
              {match.primaryTag && (
-               <div className="flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.15)]">
-                 <span className="text-[8px] md:text-[9px] font-black text-cyan-400 tracking-tighter uppercase whitespace-nowrap">THE SIGN ➔</span>
-                 <span className="text-[8px] md:text-[9px] font-bold text-white tracking-widest uppercase truncate max-w-[120px] md:max-w-none">{match.primaryTag}</span>
+               <div className="flex items-center gap-2 bg-cyan-500/5 border border-cyan-500/10 px-3 py-1 rounded-full group-hover:border-cyan-500/30 transition-colors">
+                 <span className="text-[9px] md:text-xs font-black text-cyan-500 tracking-tighter uppercase whitespace-nowrap">THE SIGN ➔</span>
+                 <span className="text-[9px] md:text-xs font-black text-white tracking-[0.1em] uppercase truncate max-w-[150px] md:max-w-none">{match.primaryTag}</span>
                </div>
              )}
            </div>
-           <div className="flex items-center gap-2">
-             {hasNarrative && <AlertCircle size={10} className={`${themeText} animate-pulse`} />}
-             <span className="text-[9px] md:text-xs text-slate-400 font-mono tracking-widest">{timeStr}</span>
+           <div className="flex items-center gap-3">
+             <span className="text-[10px] md:text-sm text-slate-500 font-mono tracking-widest font-bold">{timeStr} UTC</span>
              {match.status === "COMPLETED" && (
-               <span className="text-[8px] md:text-[10px] bg-slate-800 text-slate-400 px-1 md:px-2 py-0.5 rounded border border-slate-700 uppercase tracking-widest">FIN</span>
+               <span className="text-[9px] md:text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 font-black uppercase tracking-widest">FINAL</span>
              )}
-             {isExpanded ? <ChevronUp size={14} className="text-slate-500" /> : <ChevronDown size={14} className="text-slate-500" />}
+             {isExpanded ? <ChevronUp size={16} className="text-slate-600" /> : <ChevronDown size={16} className="text-slate-600" />}
            </div>
         </div>
 
-        {/* STRICT SYMMETRICAL GRID — scales up on desktop */}
-        <div className="grid grid-cols-[1fr_40px_1fr] md:grid-cols-[1fr_60px_1fr] items-center gap-2 md:gap-6 w-full px-4 md:px-8">
+        {/* STRICT SYMMETRICAL GRID */}
+        <div className="grid grid-cols-[1fr_60px_1fr] md:grid-cols-[1fr_100px_1fr] items-center gap-4 md:gap-10 w-full px-4 md:px-6">
           
-          {/* HOME TEAM (Right Aligned) */}
-          <div className="flex items-center justify-end gap-3 md:gap-5">
-            <div className="flex flex-col items-end">
-              <span className="text-white font-black text-xl md:text-3xl tracking-widest uppercase transition-all">
-                {match.home_short_name || homeTeamFull.substring(0, 3).toUpperCase()}
-              </span>
-              {match.home_streak && (
-                <span className={`text-[8px] md:text-[10px] font-bold tracking-widest uppercase mt-0.5 ${
-                  match.home_streak.includes('WIN') ? 'text-emerald-500' : 
-                  match.home_streak.includes('LOST') ? 'text-rose-500' : 'text-slate-500'
-                }`}>{match.home_streak}</span>
-              )}
-            </div>
+          {/* HOME TEAM */}
+          <div className="flex items-center justify-end gap-4 md:gap-8">
+            <span className="text-white font-black text-2xl md:text-5xl tracking-tighter uppercase transition-transform group-hover:scale-105 duration-500">
+              {match.home_short_name}
+            </span>
             {match.home_logo ? (
-              <img src={match.home_logo} alt="Home" className="w-8 h-8 md:w-12 md:h-12 object-contain flex-shrink-0 drop-shadow-lg transition-all" />
+              <img src={match.home_logo} alt="Home" className="w-10 h-10 md:w-16 md:h-16 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-transform group-hover:rotate-6" />
             ) : (
-              <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] md:text-sm font-black text-slate-500 flex-shrink-0 transition-all">
-                {homeTeamFull.substring(0, 3).toUpperCase()}
+              <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-xs font-black text-slate-600">
+                {match.home_short_name}
               </div>
             )}
           </div>
 
-          {/* VS (Strictly Centered) */}
-          <div className="text-slate-600 font-black text-[10px] md:text-sm text-center tracking-widest transition-all">VS</div>
+          {/* VS */}
+          <div className="text-slate-800 font-black text-xl md:text-3xl text-center italic tracking-widest opacity-40">VS</div>
 
-          {/* AWAY TEAM (Left Aligned) */}
-          <div className="flex items-center justify-start gap-3 md:gap-5">
+          {/* AWAY TEAM */}
+          <div className="flex items-center justify-start gap-4 md:gap-8">
             {match.away_logo ? (
-              <img src={match.away_logo} alt="Away" className="w-8 h-8 md:w-12 md:h-12 object-contain flex-shrink-0 drop-shadow-lg transition-all" />
+              <img src={match.away_logo} alt="Away" className="w-10 h-10 md:w-16 md:h-16 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-transform group-hover:-rotate-6" />
             ) : (
-              <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] md:text-sm font-black text-slate-500 flex-shrink-0 transition-all">
-                {awayTeamFull.substring(0, 3).toUpperCase()}
+              <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-xs font-black text-slate-600">
+                {match.away_short_name}
               </div>
             )}
-            <div className="flex flex-col items-start">
-              <span className="text-white font-black text-xl md:text-3xl tracking-widest uppercase transition-all">
-                {match.away_short_name || awayTeamFull.substring(0, 3).toUpperCase()}
-              </span>
-              {match.away_streak && (
-                <span className={`text-[8px] md:text-[10px] font-bold tracking-widest uppercase mt-0.5 ${
-                  match.away_streak.includes('WIN') ? 'text-emerald-500' : 
-                  match.away_streak.includes('LOST') ? 'text-rose-500' : 'text-slate-500'
-                }`}>{match.away_streak}</span>
-              )}
-            </div>
+            <span className="text-white font-black text-2xl md:text-5xl tracking-tighter uppercase transition-transform group-hover:scale-105 duration-500">
+              {match.away_short_name}
+            </span>
           </div>
-
         </div>
       </div>
 
       {/* 🔴 Level 2: Expanded Intelligence Panel */}
       {isExpanded && (
-        <div className="bg-slate-900 px-4 py-5 sm:px-6 border-b border-slate-800 shadow-inner">
-          
-          {/* Market Sentiment Bubble */}
-          <div className="bg-slate-950/50 p-3 sm:p-4 rounded-r flex flex-col border-l-4 border-purple-400 relative overflow-hidden group/narrative mb-4">
-             <div className="absolute -right-4 -top-4 w-24 h-24 bg-purple-400 opacity-[0.02] rounded-full blur-2xl" />
-             <div className="flex justify-between items-center mb-1">
-               <span className="text-[9px] font-bold tracking-widest uppercase text-purple-400">
-                 🗞️ MARKET SENTIMENT
-               </span>
-               <span className="text-[8px] font-mono text-slate-500 uppercase">Expert Consensus Aggregator</span>
-             </div>
-             <p className="text-xs text-slate-300 leading-relaxed font-medium italic">
-               "{match.marketSentiment || "Aggregating market intelligence and expert keywords..."}"
-             </p>
-          </div>
+        <div className="bg-slate-900/60 px-6 py-8 md:px-12 border-t border-slate-800/50 shadow-inner">
+          <div className="max-w-3xl mx-auto">
+            {/* Market Sentiment Bubble */}
+            <div className="bg-slate-950/80 p-6 md:p-8 rounded-xl border border-slate-800 relative overflow-hidden group/narrative mb-8">
+               <div className="absolute top-0 right-0 w-1 h-full bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)]" />
+               <div className="flex justify-between items-center mb-4">
+                 <div className="flex items-center gap-2">
+                   <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                   <span className="text-[10px] font-black tracking-[0.2em] uppercase text-purple-400">
+                     Market Sentiment Intelligence
+                   </span>
+                 </div>
+                 <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">Ref: Global Consensus Grid</span>
+               </div>
+               <p className="text-base md:text-lg text-slate-200 leading-relaxed font-medium italic">
+                 "{match.marketSentiment || "Aggregating market intelligence and expert keywords..."}"
+               </p>
+            </div>
 
-          {/* Bottom Action Area */}
-          <div className="flex justify-between items-end border-t border-slate-800/50 pt-3">
-             <div className="flex gap-2">
-               {match.signal_pick && (
-                  <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 uppercase tracking-widest">
-                    PICK: {match.signal_pick}
-                  </span>
-               )}
-             </div>
-             <Link
-               href={`/matches/${match.match_id || match.id}`}
-               onClick={e => e.stopPropagation()}
-               className="flex items-center gap-1.5 text-[10px] sm:text-xs text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer group/btn font-mono uppercase tracking-widest font-bold"
-             >
-               ENTER WAR ROOM ➔
-             </Link>
+            {/* Bottom Action Area */}
+            <div className="flex justify-between items-center border-t border-slate-800/50 pt-6">
+               <div className="flex gap-4">
+                 <div className="flex flex-col">
+                   <span className="text-[8px] font-mono text-slate-600 uppercase mb-1">Confidence</span>
+                   <span className="text-xs font-black text-cyan-400">HIGH_RELIABILITY</span>
+                 </div>
+               </div>
+               <Link
+                 href={`/matches/${match.match_id}`}
+                 onClick={e => e.stopPropagation()}
+                 className="flex items-center gap-3 bg-white text-black px-6 py-2 rounded font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-cyan-400 transition-colors"
+               >
+                 ENTER WAR ROOM <ArrowRight size={14} />
+               </Link>
+            </div>
           </div>
-
         </div>
       )}
     </div>
