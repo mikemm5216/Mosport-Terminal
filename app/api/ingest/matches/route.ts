@@ -78,8 +78,8 @@ async function fetchTheSportsDB(dates: string[]): Promise<UnifiedMatchData[]> {
       });
     }
 
-    // 絕對禁止 Promise.all，乖乖等 500ms
-    await sleep(500); 
+    // 延長呼吸時間 (尊重的延遲)：每次排程只會打 5 次 API，耗時約 12 秒，既不會被封鎖，也不會 Timeout
+    await sleep(2500); 
   }
   
   return unifiedData;
@@ -135,9 +135,10 @@ async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
 export async function GET() {
   try {
     const dates: string[] = [];
-    for (let i = 1; i <= 30; i++) {
+    // 日常排程 (Daily Sync)：只抓昨天 (-1)、今天 (0) 及未來三天 (1~3)
+    for (let i = -1; i <= 3; i++) {
       const d = new Date();
-      d.setDate(d.getDate() - i);
+      d.setDate(d.getDate() + i);
       dates.push(d.toISOString().split("T")[0]);
     }
 
