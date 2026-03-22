@@ -222,8 +222,18 @@ model ModelRegistry {
 model Team {
   id         String   @id @default(cuid())
   team_name  String   @unique
-  short_name String?
+  short_name String?  // e.g., "LAL", "GSW"
   logo_url   String?
   league     String?
   updatedAt  DateTime @updatedAt
+}
+
+model MatchHistory {
+  id            String   @id @default(cuid())
+  team_id       String
+  opponent      String
+  result        String   // "W", "L", "D"
+  score_for     Int
+  score_against Int
+  date          DateTime
 }
