@@ -90,22 +90,28 @@ async function fetchTheSportsDB(dates: string[]): Promise<UnifiedMatchData[]> {
         away_logo: event.strAwayTeamBadge || null,
         players: [
           {
-            player_id: `p_${event.idHomeTeam}_1`,
-            name: "Elite Forward",
-            number: "23",
-            position: event.strSport === "Basketball" ? "PF" : "ST",
-            stats: {
-              "PF": { ppg: 28.5, rpg: 8.2, apg: 6.1 },
-              "PG": { ppg: 22.1, rpg: 4.5, apg: 10.2 }
+            player_id: `p_${event.idHomeTeam}_star`,
+            name: event.strSport === "Baseball" ? "S. Ohtani" : event.strSport === "Basketball" ? "L. James" : "H. Kane",
+            number: event.strSport === "Baseball" ? "17" : event.strSport === "Basketball" ? "23" : "9",
+            position: event.strSport === "Baseball" ? "P" : event.strSport === "Basketball" ? "PF" : "ST",
+            stats: event.strSport === "Baseball" ? {
+              "P": { ERA: "2.52", K: "186", WHIP: "1.02" },
+              "DH": { AVG: ".304", HR: "44", RBI: "95" }
+            } : event.strSport === "Basketball" ? {
+              "PF": { PPG: "25.7", RPG: "7.3", APG: "8.3" }
+            } : {
+              "ST": { G: "32", A: "12", SPG: "3.4" }
             }
           },
           {
-            player_id: `p_${event.idAwayTeam}_1`,
-            name: "Prime Guard",
-            number: "11",
-            position: event.strSport === "Basketball" ? "PG" : "GK",
+            player_id: `p_${event.idAwayTeam}_star`,
+            name: "Key Tactical Variable",
+            number: "99",
+            position: event.strSport === "Baseball" ? "DH" : "PG",
             stats: {
-              "PG": { ppg: 24.3, apg: 8.5, spg: 1.8 }
+              "DH": { AVG: ".285", HR: "22" },
+              "PG": { PPG: "18.2", APG: "9.4" },
+              "CDM": { TAC: "4.2", INT: "2.1" }
             }
           }
         ]

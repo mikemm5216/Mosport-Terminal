@@ -114,17 +114,33 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
            </div>
         </div>
 
-        {/* STRICT SYMMETRICAL GRID */}
+        {/* STRICT SYMMETRICAL GRID - RESTORED LOGOS */}
         <div className="grid grid-cols-[1fr_60px_1fr] md:grid-cols-[1fr_100px_1fr] items-center gap-4 md:gap-10 w-full px-4 md:px-6">
-          <div className="flex items-center justify-end gap-4 md:gap-8 text-right">
-            <span className="text-white font-black text-xl md:text-4xl tracking-tighter uppercase leading-tight">
-              {match.home_team?.team_name || match.home_team_id}
+          <div className="flex items-center justify-end gap-3 md:gap-5 text-right">
+            <span className="text-white font-black text-xl md:text-4xl tracking-tighter uppercase leading-tight truncate">
+              {match.home_team?.team_name || match.home_short_name}
             </span>
+            <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden">
+              {match.home_logo ? (
+                <img src={match.home_logo} alt="" className="w-full h-full object-contain p-1" />
+              ) : (
+                <span className="text-[8px] font-black text-slate-600">{match.home_short_name}</span>
+              )}
+            </div>
           </div>
+
           <div className="text-slate-800 font-black text-sm md:text-xl text-center italic tracking-widest opacity-40">VS</div>
-          <div className="flex items-center justify-start gap-4 md:gap-8 text-left">
-            <span className="text-white font-black text-xl md:text-4xl tracking-tighter uppercase leading-tight">
-              {match.away_team?.team_name || match.away_team_id}
+
+          <div className="flex items-center justify-start gap-3 md:gap-5 text-left">
+            <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden">
+              {match.away_logo ? (
+                <img src={match.away_logo} alt="" className="w-full h-full object-contain p-1" />
+              ) : (
+                <span className="text-[8px] font-black text-slate-600">{match.away_short_name}</span>
+              )}
+            </div>
+            <span className="text-white font-black text-xl md:text-4xl tracking-tighter uppercase leading-tight truncate">
+              {match.away_team?.team_name || match.away_short_name}
             </span>
           </div>
         </div>
