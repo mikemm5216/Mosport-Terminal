@@ -88,6 +88,19 @@ function getProfessionalStats(sport: string, positions: string[]): Record<string
   return stats;
 }
 
+// League Normalization for the Vault Filter
+const normalizeLeagueTag = (leagueName: string, sport: string): string => {
+  const l = (leagueName || "").toLowerCase();
+  const s = (sport || "").toLowerCase();
+  
+  if (l.includes("nba") || s.includes("nba")) return "NBA";
+  if (l.includes("mlb") || s.includes("mlb")) return "MLB";
+  if (l.includes("premier league") || l.includes("epl") || s.includes("epl")) return "EPL";
+  if (l.includes("champions league") || l.includes("ucl") || l.includes("uefa")) return "UCL";
+  
+  return "EPL"; // Default fallback to active soccer
+};
+
 // ==============
 // 引擎 1：TheSportsDB
 // ==============
@@ -131,7 +144,7 @@ async function fetchTheSportsDB(dates: string[]): Promise<UnifiedMatchData[]> {
 
       unifiedData.push({
         match_id: String(event.idEvent),
-        league_id: String(event.idLeague || "MissingLeague"),
+        league_id: normalizeLeagueTag(event.strLeague || "", event.strSport || ""),
         league_name: event.strLeague || "Unknown League",
         sport: event.strSport || "Soccer",
         home_team_id: String(event.idHomeTeam || event.strHomeTeam),
@@ -209,7 +222,7 @@ async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
 
         unifiedData.push({
           match_id: String(event.id),                           
-          league_id: String(event.sport_key),                   
+          league_id: normalizeLeagueTag(event.sport_title || "", event.sport_key || ""),
           league_name: event.sport_title || "Unknown League",
           sport: event.sport_key.startsWith("basketball") ? "Basketball" : 
                  event.sport_key.startsWith("baseball") ? "Baseball" : "Soccer",
@@ -247,6 +260,11 @@ async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
 
 export async function GET() {
   try {
+    // FORENSIC PURGE - Wipe dirty data first
+    await prisma.players.deleteMany({});
+    await prisma.matches.deleteMany({});
+    console.error("[INGEST] Forensic Purge Executed.");
+
     const dates: string[] = [];
     // 日常排程 (Daily Sync)：只抓昨天 (-1)、今天 (0) 及未來三天 (1~3)
     for (let i = -1; i <= 3; i++) {

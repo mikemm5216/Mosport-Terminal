@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronUp, ArrowRight, User } from 'lucide-react';
+import { ChevronDown, ChevronUp, ArrowRight, User, Zap, Activity } from 'lucide-react';
 import MatchTicker from '@/components/match-ticker';
 import { formatLocalTime } from '@/lib/timezone';
 
@@ -76,6 +76,8 @@ const getLeagueDisplay = (leagueName?: string): string => {
   return upper ? `⚽ ${upper}` : '⚽ PRO LEAGUE';
 };
 
+const toTLA = (name: string) => (name || '').substring(0, 3).toUpperCase();
+
 function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: boolean, onToggle: () => void }) {
   const isUCL = (match.league?.league_name || '').toUpperCase().includes('CHAMPIONS LEAGUE');
 
@@ -97,8 +99,8 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
                )}
              </span>
              {match.primaryTag && (
-               <div className="flex items-center gap-2 bg-cyan-500/5 border border-cyan-500/10 px-3 py-1 rounded-full group-hover:border-cyan-500/30 transition-colors max-w-[120px] md:max-w-[250px] overflow-hidden">
-                 <span className="text-[9px] md:text-xs font-black text-cyan-500 tracking-tighter uppercase whitespace-nowrap">THE SIGN ➔</span>
+               <div className="flex items-center gap-2 bg-cyan-500/5 border border-cyan-500/10 px-3 py-1 rounded-full group-hover:border-cyan-500/30 transition-colors max-w-[120px] md:max-w-[200px] truncate">
+                 <span className="text-[9px] md:text-xs font-black text-cyan-500 tracking-tighter uppercase whitespace-nowrap shrink-0">THE SIGN ➔</span>
                  <span className="text-[9px] md:text-xs font-black text-white tracking-[0.1em] uppercase truncate">{match.primaryTag}</span>
                </div>
              )}
@@ -114,33 +116,25 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
            </div>
         </div>
 
-        {/* STRICT SYMMETRICAL GRID - RESTORED LOGOS */}
+        {/* STRICT SYMMETRICAL GRID - TLA NORMALIZATION */}
         <div className="grid grid-cols-[1fr_60px_1fr] md:grid-cols-[1fr_100px_1fr] items-center gap-4 md:gap-10 w-full px-4 md:px-6">
-          <div className="flex items-center justify-end gap-3 md:gap-5 text-right">
-            <span className="text-white font-black text-xl md:text-4xl tracking-tighter uppercase leading-tight truncate">
-              {match.home_team?.team_name || match.home_short_name}
+          <div className="flex items-center justify-end gap-3 md:gap-8 text-right">
+            <span className="text-white font-black text-3xl md:text-5xl tracking-tighter uppercase leading-none">
+              {toTLA(match.home_team_name)}
             </span>
-            <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden">
-              {match.home_logo ? (
-                <img src={match.home_logo} alt="" className="w-full h-full object-contain p-1" />
-              ) : (
-                <span className="text-[8px] font-black text-slate-600">{match.home_short_name}</span>
-              )}
+            <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+               {match.home_logo ? <img src={match.home_logo} alt="" className="w-full h-full object-contain p-1.5" /> : <Zap className="text-slate-800" size={20} />}
             </div>
           </div>
 
           <div className="text-slate-800 font-black text-sm md:text-xl text-center italic tracking-widest opacity-40">VS</div>
 
-          <div className="flex items-center justify-start gap-3 md:gap-5 text-left">
-            <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden">
-              {match.away_logo ? (
-                <img src={match.away_logo} alt="" className="w-full h-full object-contain p-1" />
-              ) : (
-                <span className="text-[8px] font-black text-slate-600">{match.away_short_name}</span>
-              )}
+          <div className="flex items-center justify-start gap-3 md:gap-8 text-left">
+            <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+               {match.away_logo ? <img src={match.away_logo} alt="" className="w-full h-full object-contain p-1.5" /> : <Zap className="text-slate-800" size={20} />}
             </div>
-            <span className="text-white font-black text-xl md:text-4xl tracking-tighter uppercase leading-tight truncate">
-              {match.away_team?.team_name || match.away_short_name}
+            <span className="text-white font-black text-3xl md:text-5xl tracking-tighter uppercase leading-none">
+              {toTLA(match.away_team_name)}
             </span>
           </div>
         </div>
