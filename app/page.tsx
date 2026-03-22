@@ -100,30 +100,43 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
       {/* 🔴 Level 1: 極簡雷達清單 (Row UI) */}
       <div 
         onClick={onToggle}
-        className={`flex justify-between items-center py-3 px-4 sm:px-6 border-b border-slate-800/80 cursor-pointer transition-colors ${isExpanded ? 'bg-slate-800/80' : 'hover:bg-slate-800/40 bg-slate-950'}`}
+        className={`flex justify-between items-center py-3 px-2 sm:px-4 border-b border-slate-800/80 cursor-pointer transition-colors ${isExpanded ? 'bg-slate-800/80' : 'hover:bg-slate-800/40 bg-slate-950'}`}
       >
         {/* Left: League & Time */}
-        <div className="flex flex-col flex-1 truncate pr-2">
+        <div className="w-1/4 flex flex-col truncate pr-2">
           <span className="text-[10px] sm:text-xs text-slate-500 font-mono tracking-wider truncate">
             {match.league?.league_name?.substring(0,20) || "PRO LEAGUE"}
           </span>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-slate-400 font-mono">{timeStr}</span>
+            <span className="text-[10px] sm:text-xs text-slate-400 font-mono">{timeStr}</span>
             {match.status === "COMPLETED" && (
               <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">FIN</span>
             )}
           </div>
         </div>
 
-        {/* Center: Teams (High Contrast) */}
-        <div className="flex-1 flex justify-center items-center text-center truncate px-2">
-          <span className="text-sm sm:text-base text-white font-bold tracking-tight truncate">
-            {homeTeam} <span className="text-slate-600 font-normal mx-1 text-xs">vs</span> {awayTeam}
-          </span>
+        {/* Center: Teams (CSS Grid Alignment) */}
+        <div className="w-1/2 flex justify-center items-center">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 w-full max-w-md mx-auto">
+            {/* 主隊 (靠右 + Logo) */}
+            <div className="flex items-center justify-end gap-2 sm:gap-3 text-right">
+              <span className="text-white font-bold text-xs sm:text-sm truncate">{homeTeam}</span>
+              <img src={match.home_logo || "https://upload.wikimedia.org/wikipedia/commons/8/82/Transparent_background.png"} alt="Home" className="w-6 h-6 sm:w-8 sm:h-8 object-contain flex-shrink-0 drop-shadow-md" />
+            </div>
+
+            {/* VS (絕對置中) */}
+            <div className="text-slate-500 font-black text-[10px] sm:text-xs px-1 sm:px-2 text-center">VS</div>
+
+            {/* 客隊 (Logo + 靠左) */}
+            <div className="flex items-center justify-start gap-2 sm:gap-3 text-left">
+              <img src={match.away_logo || "https://upload.wikimedia.org/wikipedia/commons/8/82/Transparent_background.png"} alt="Away" className="w-6 h-6 sm:w-8 sm:h-8 object-contain flex-shrink-0 drop-shadow-md" />
+              <span className="text-white font-bold text-xs sm:text-sm truncate">{awayTeam}</span>
+            </div>
+          </div>
         </div>
 
         {/* Right: Triggers */}
-        <div className="flex-1 flex justify-end items-center gap-3">
+        <div className="w-1/4 flex justify-end items-center gap-3">
           {hasNarrative && (
             <AlertCircle size={14} className={`${themeText} animate-pulse`} />
           )}
