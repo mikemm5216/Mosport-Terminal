@@ -8,10 +8,10 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const navItems = [
-    { label: '賽事雷達', path: '/', icon: Radar },
-    { label: '球隊軍火庫', path: '/teams', icon: Shield },
-    { label: '屠莊戰報', path: '/reports', icon: TrendingUp },
-    { label: '監控中心', path: '/alerts', icon: Bell },
+    { label: 'RADAR', path: '/', icon: Radar },
+    { label: 'TEAMS', path: '/teams', icon: Shield },
+    { label: 'REPORTS', path: '/reports', icon: TrendingUp },
+    { label: 'ALERTS', path: '/alerts', icon: Bell },
   ];
 
   return (
@@ -49,7 +49,7 @@ export default function Navbar() {
                   }`}
                 >
                   <Icon size={16} className={isActive ? 'animate-pulse' : ''} />
-                  <span className="text-xs sm:text-sm font-bold tracking-wide">{item.label}</span>
+                  <span className="text-[10px] sm:text-xs font-bold tracking-widest uppercase">{item.label}</span>
                 </Link>
               );
             })}

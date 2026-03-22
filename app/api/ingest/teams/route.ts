@@ -5,46 +5,63 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const leaguesToFetch = ["English Premier League", "NBA"]; // 示範：抓取 EPL 和 NBA 球隊
+    // 1. Scans our Match table for all unique home_team and away_team names
+    // (Since matches store team IDs, we fetch unique Teams associated with those matches or just all Teams)
+    const existingTeams = await prisma.teams.findMany({
+      select: { team_name: true },
+      distinct: ['team_name']
+    });
+
     const results = [];
 
-    for (const league of leaguesToFetch) {
-      const url = `https://www.thesportsdb.com/api/v1/json/3/search_all_teams.php?l=${encodeURIComponent(league)}`;
+    // 2. Fetch their data from TheSportsDB
+    for (const t of existingTeams) {
+      if (!t.team_name) continue;
+      
+      const url = `https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(t.team_name)}`;
       console.error(`[Team Ingestion] Fetching: ${url}`);
       
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`Status ${res.status}`);
+      if (!res.ok) continue;
       const data = await res.json();
       
-      if (!data.teams) continue;
+      let logoUrl = null;
+      let shortName = t.team_name.substring(0, 3).toUpperCase();
+      let league = "Unknown";
 
-      for (const t of data.teams) {
-        if (!t.strTeam) continue;
-
-        const teamRow = {
-          team_name: t.strTeam,
-          short_name: t.strTeamShort || t.strTeam.substring(0,3).toUpperCase(),
-          logo_url: t.strTeamBadge || null,
-          league: t.strLeague || league
-        };
-
-        await prisma.team.upsert({
-          where: { team_name: teamRow.team_name },
-          create: teamRow,
-          update: {
-            short_name: teamRow.short_name,
-            logo_url: teamRow.logo_url,
-            league: teamRow.league
-          }
-        });
-        results.push(teamRow);
+      if (data.teams && data.teams.length > 0) {
+        const teamData = data.teams[0];
+        // 3. Save the high-res去背 logo (strBadge) into logo_url
+        logoUrl = teamData.strTeamBadge || null;
+        // 4. Save the official 3-letter abbreviation
+        if (teamData.strTeamShort) {
+          shortName = teamData.strTeamShort;
+        }
+        league = teamData.strLeague || league;
       }
+
+      // 5. Upserts this into the Team database
+      const upserted = await prisma.team.upsert({
+        where: { team_name: t.team_name },
+        create: {
+          team_name: t.team_name,
+          short_name: shortName,
+          logo_url: logoUrl,
+          league: league
+        },
+        update: {
+          short_name: shortName,
+          logo_url: logoUrl,
+          league: league
+        }
+      });
       
-      // Respectful delay
-      await new Promise(r => setTimeout(r, 1500));
+      results.push(upserted);
+      // Repectful delay
+      await new Promise(r => setTimeout(r, 800));
     }
 
-    return NextResponse.json({ success: true, ingested: results.length, data: results });
+    return NextResponse.json({ success: true, count: results.length, data: results });
   } catch (error: any) {
     console.error("[TEAM INGEST ERROR]", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

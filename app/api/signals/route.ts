@@ -18,11 +18,31 @@ export async function GET() {
       }
     });
 
-    const mappedMatches = matches.map(m => ({
-      ...m,
-      home_logo: m.home_team?.logo_url || null,
-      away_logo: m.away_team?.logo_url || null
-    }));
+    // Extract all team names we need to lookup in the new 'Team' cold database
+    const teamNames = new Set<string>();
+    matches.forEach(m => {
+      if (m.home_team?.team_name) teamNames.add(m.home_team.team_name);
+      if (m.away_team?.team_name) teamNames.add(m.away_team.team_name);
+    });
+
+    const teamsDb = await prisma.team.findMany({
+      where: { team_name: { in: Array.from(teamNames) } }
+    });
+
+    const teamMap = new Map(teamsDb.map(t => [t.team_name, t]));
+
+    const mappedMatches = matches.map(m => {
+      const homeDbTeam = m.home_team ? teamMap.get(m.home_team.team_name) : null;
+      const awayDbTeam = m.away_team ? teamMap.get(m.away_team.team_name) : null;
+
+      return {
+        ...m,
+        home_logo: homeDbTeam?.logo_url || null,
+        away_logo: awayDbTeam?.logo_url || null,
+        home_short_name: homeDbTeam?.short_name || null,
+        away_short_name: awayDbTeam?.short_name || null,
+      };
+    });
 
     return NextResponse.json({ success: true, count: mappedMatches.length, data: mappedMatches });
   } catch (error: any) {

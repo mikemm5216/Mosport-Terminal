@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronUp, AlertCircle, Shield, ArrowRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, AlertCircle, ArrowRight } from 'lucide-react';
 
 export default function Home() {
   const [matches, setMatches] = useState<any[]>([]);
@@ -12,9 +12,7 @@ export default function Home() {
     fetch('/api/signals')
       .then(res => res.json())
       .then(data => {
-        if (data.success) {
-          setMatches(data.data);
-        }
+        if (data.success) setMatches(data.data);
         setLoading(false);
       })
       .catch(e => {
@@ -29,16 +27,16 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-950 flex flex-col items-center">
-      {/* 頂部 Header */}
+      {/* HEADER */}
       <div className="w-full max-w-4xl p-4 sm:p-6 border-b border-slate-800/80 sticky top-0 bg-slate-950/90 backdrop-blur-md z-50">
         <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-widest uppercase">
           Mosport <span className="text-cyan-400">Terminal</span>
         </h1>
         <div className="flex justify-between items-center mt-1">
-          <p className="text-slate-500 text-xs font-mono">Live Intelligence Dashboard</p>
+          <p className="text-slate-500 text-xs font-mono uppercase tracking-widest">Live Intelligence Dashboard</p>
           <div className="flex gap-2">
-             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-             <span className="text-[10px] text-slate-400 font-mono">LIVE SYNC</span>
+             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mt-0.5"></span>
+             <span className="text-[10px] text-slate-400 font-mono tracking-widest">LIVE SYNC</span>
           </div>
         </div>
       </div>
@@ -48,8 +46,8 @@ export default function Home() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
         </div>
       ) : matches.length === 0 ? (
-        <div className="w-full max-w-4xl p-10 text-center text-slate-500 font-mono text-sm">
-          NO ACTIVE SIGNALS DETECTED
+        <div className="w-full max-w-4xl p-10 text-center text-slate-500 font-mono text-sm tracking-widest uppercase">
+          No Active Signals
         </div>
       ) : (
         <div className="w-full max-w-4xl pb-20">
@@ -64,7 +62,7 @@ export default function Home() {
 
 function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: boolean, onToggle: () => void }) {
   const matchDate = new Date(match.match_date);
-  const timeStr = matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const timeStr = matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 
   // Parsing bio-battery
   const { homeBattery, awayBattery } = useMemo(() => {
@@ -81,10 +79,8 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
     return { homeBattery: 50, awayBattery: 50 };
   }, [match]);
 
-  const homeTeam = match.home_team?.team_name || "Unknown Home";
-  const awayTeam = match.away_team?.team_name || "Unknown Away";
-  const homeLogo = match.home_team?.logo_url;
-  const awayLogo = match.away_team?.logo_url;
+  const homeTeamFull = match.home_team?.team_name || "UNKNOWN";
+  const awayTeamFull = match.away_team?.team_name || "UNKNOWN";
 
   const hasNarrative = !!match.narrative;
   const themeBorder = match.narrative_type === "fatigue" ? "border-cyan-400" :
@@ -97,54 +93,64 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
 
   return (
     <div className="group">
-      {/* 🔴 Level 1: 極簡雷達清單 (Row UI) */}
+      {/* 🔴 Level 1: Extreme Radar List (Row UI) */}
       <div 
         onClick={onToggle}
-        className={`flex justify-between items-center py-3 px-2 sm:px-4 border-b border-slate-800/80 cursor-pointer transition-colors ${isExpanded ? 'bg-slate-800/80' : 'hover:bg-slate-800/40 bg-slate-950'}`}
+        className={`w-full max-w-lg mx-auto py-3 border-b border-slate-800 cursor-pointer transition-colors ${isExpanded ? 'bg-slate-800/80' : 'hover:bg-slate-800/50'}`}
       >
-        {/* Left: League & Time */}
-        <div className="w-1/4 flex flex-col truncate pr-2">
-          <span className="text-[10px] sm:text-xs text-slate-500 font-mono tracking-wider truncate">
-            {match.league?.league_name?.substring(0,20) || "PRO LEAGUE"}
-          </span>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[10px] sm:text-xs text-slate-400 font-mono">{timeStr}</span>
-            {match.status === "COMPLETED" && (
-              <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">FIN</span>
+        {/* LEAGUE / TIME / TOGGLER HEADER */}
+        <div className="flex justify-between items-center px-4 mb-2">
+           <span className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">
+             {match.league?.league_name?.substring(0,20) || "PRO LEAGUE"}
+           </span>
+           <div className="flex items-center gap-2">
+             {hasNarrative && <AlertCircle size={10} className={`${themeText} animate-pulse`} />}
+             <span className="text-[9px] text-slate-400 font-mono tracking-widest">{timeStr}</span>
+             {match.status === "COMPLETED" && (
+               <span className="text-[8px] bg-slate-800 text-slate-400 px-1 py-0.5 rounded border border-slate-700 uppercase tracking-widest">FIN</span>
+             )}
+             {isExpanded ? <ChevronUp size={12} className="text-slate-500" /> : <ChevronDown size={12} className="text-slate-500" />}
+           </div>
+        </div>
+
+        {/* STRICT SYMMETRICAL GRID */}
+        <div className="grid grid-cols-[1fr_40px_1fr] items-center gap-4 w-full">
+          
+          {/* HOME TEAM (Right Aligned) */}
+          <div className="flex items-center justify-end gap-3">
+            <span className="text-white font-black text-xl tracking-widest uppercase">
+              {match.home_short_name || homeTeamFull.substring(0, 3).toUpperCase()}
+            </span>
+            {match.home_logo ? (
+              <img src={match.home_logo} alt="Home" className="w-9 h-9 object-contain flex-shrink-0 drop-shadow-md" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-black text-slate-500 flex-shrink-0">
+                {homeTeamFull.substring(0, 3).toUpperCase()}
+              </div>
             )}
           </div>
-        </div>
 
-        {/* Center: Teams (CSS Grid Alignment) */}
-        <div className="w-1/2 flex justify-center items-center">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 w-full max-w-md mx-auto">
-            {/* 主隊 (靠右 + Logo) */}
-            <div className="flex items-center justify-end gap-2 sm:gap-3 text-right">
-              <span className="text-white font-bold text-xs sm:text-sm truncate">{homeTeam}</span>
-              <img src={match.home_logo || "https://upload.wikimedia.org/wikipedia/commons/8/82/Transparent_background.png"} alt="Home" className="w-6 h-6 sm:w-8 sm:h-8 object-contain flex-shrink-0 drop-shadow-md" />
-            </div>
+          {/* VS (Strictly Centered) */}
+          <div className="text-slate-600 font-black text-[10px] text-center tracking-widest">VS</div>
 
-            {/* VS (絕對置中) */}
-            <div className="text-slate-500 font-black text-[10px] sm:text-xs px-1 sm:px-2 text-center">VS</div>
-
-            {/* 客隊 (Logo + 靠左) */}
-            <div className="flex items-center justify-start gap-2 sm:gap-3 text-left">
-              <img src={match.away_logo || "https://upload.wikimedia.org/wikipedia/commons/8/82/Transparent_background.png"} alt="Away" className="w-6 h-6 sm:w-8 sm:h-8 object-contain flex-shrink-0 drop-shadow-md" />
-              <span className="text-white font-bold text-xs sm:text-sm truncate">{awayTeam}</span>
-            </div>
+          {/* AWAY TEAM (Left Aligned) */}
+          <div className="flex items-center justify-start gap-3">
+            {match.away_logo ? (
+              <img src={match.away_logo} alt="Away" className="w-9 h-9 object-contain flex-shrink-0 drop-shadow-md" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-black text-slate-500 flex-shrink-0">
+                {awayTeamFull.substring(0, 3).toUpperCase()}
+              </div>
+            )}
+            <span className="text-white font-black text-xl tracking-widest uppercase">
+              {match.away_short_name || awayTeamFull.substring(0, 3).toUpperCase()}
+            </span>
           </div>
-        </div>
 
-        {/* Right: Triggers */}
-        <div className="w-1/4 flex justify-end items-center gap-3">
-          {hasNarrative && (
-            <AlertCircle size={14} className={`${themeText} animate-pulse`} />
-          )}
-          {isExpanded ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
         </div>
       </div>
 
-      {/* 🔴 Level 2: 展開情報面板 (Expanded UI) */}
+      {/* 🔴 Level 2: Expanded Intelligence Panel */}
       {isExpanded && (
         <div className="bg-slate-900 px-4 py-5 sm:px-6 border-b border-slate-800 shadow-inner">
           
@@ -153,16 +159,9 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
             
             {/* Home Side */}
             <div className="flex items-center gap-3 w-1/3">
-              <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-800/50 rounded-full border border-slate-700 p-1">
-                {homeLogo ? (
-                   <img src={homeLogo} alt={homeTeam} className="w-full h-full object-contain drop-shadow-md" />
-                ) : (
-                   <Shield size={20} className="text-slate-600" />
-                )}
-              </div>
               <div className="flex flex-col truncate">
-                <span className="text-xs text-slate-300 font-bold truncate">{homeTeam}</span>
-                <span className="text-[10px] text-cyan-500/80 font-mono truncate">X-Factor: 核心戰力</span>
+                <span className="text-xs text-slate-300 font-bold truncate uppercase">{homeTeamFull}</span>
+                <span className="text-[10px] text-cyan-500/80 font-mono truncate uppercase">X-Factor: CORE SCORER</span>
               </div>
             </div>
 
@@ -175,22 +174,15 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
                   <span className="text-xl font-black text-white">{match.away_score}</span>
                 </div>
               ) : (
-                <span className="text-[10px] text-slate-600 font-black tracking-widest">MATCHUP</span>
+                <span className="text-[10px] text-slate-600 font-black tracking-widest uppercase">UPCOMING</span>
               )}
             </div>
 
             {/* Away Side */}
-            <div className="flex items-center justify-end gap-3 w-1/3 text-right flex-row-reverse">
-              <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-slate-800/50 rounded-full border border-slate-700 p-1">
-                {awayLogo ? (
-                   <img src={awayLogo} alt={awayTeam} className="w-full h-full object-contain drop-shadow-md" />
-                ) : (
-                   <Shield size={20} className="text-slate-600" />
-                )}
-              </div>
-              <div className="flex flex-col truncate">
-                <span className="text-xs text-slate-300 font-bold truncate">{awayTeam}</span>
-                <span className="text-[10px] text-orange-400/80 font-mono truncate">X-Factor: 防守樞紐</span>
+            <div className="flex items-center justify-end gap-3 w-1/3 text-right">
+              <div className="flex flex-col truncate items-end">
+                <span className="text-xs text-slate-300 font-bold truncate uppercase">{awayTeamFull}</span>
+                <span className="text-[10px] text-orange-400/80 font-mono truncate uppercase">X-Factor: DEFENSE ANCHOR</span>
               </div>
             </div>
 
@@ -198,9 +190,9 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
 
           {/* Bio-Battery Bar */}
           <div className="mb-6">
-            <div className="flex justify-between items-center text-[10px] font-mono mb-1.5 px-1">
+            <div className="flex justify-between items-center text-[10px] font-mono mb-1.5 px-1 uppercase tracking-widest">
               <span className="text-emerald-400 font-bold">BATTERY {homeBattery}%</span>
-              <span className="text-slate-600 tracking-widest">ENERGETIC GAP</span>
+              <span className="text-slate-600">ENERGETIC GAP</span>
               <span className="text-red-400 font-bold">{awayBattery}% BATTERY</span>
             </div>
             <div className="w-full h-1.5 bg-slate-800/80 rounded flex overflow-hidden border border-slate-700/50 relative">
@@ -225,18 +217,18 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
           <div className="flex justify-between items-end border-t border-slate-800/50 pt-3">
              <div className="flex gap-2">
                {match.signal_pick && (
-                  <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                  <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 uppercase tracking-widest">
                     PICK: {match.signal_pick}
                   </span>
                )}
                {match.signal_conf && (
-                  <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                  <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 uppercase tracking-widest">
                     CONF: {match.signal_conf}%
                   </span>
                )}
              </div>
-             <button className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400 hover:text-white transition-colors cursor-pointer group/btn font-mono uppercase">
-               進入深度戰情室
+             <button className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400 hover:text-white transition-colors cursor-pointer group/btn font-mono uppercase tracking-widest">
+               ENTER WAR ROOM
                <ArrowRight size={12} className="group-hover/btn:translate-x-1 transition-transform text-cyan-500" />
              </button>
           </div>
