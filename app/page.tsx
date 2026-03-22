@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronUp, AlertCircle, ArrowRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, ArrowRight, User } from 'lucide-react';
 import MatchTicker from '@/components/match-ticker';
+import { formatLocalTime } from '@/lib/timezone';
 
 export default function Home() {
   const [matches, setMatches] = useState<any[]>([]);
@@ -76,14 +77,10 @@ const getLeagueDisplay = (leagueName?: string): string => {
 };
 
 function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: boolean, onToggle: () => void }) {
-  const matchDate = new Date(match.match_date);
-  const timeStr = matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-
   const isUCL = (match.league?.league_name || '').toUpperCase().includes('CHAMPIONS LEAGUE');
 
   return (
     <div className="group border-b border-slate-900/50">
-      {/* 🔴 Level 1: Extreme Radar List (Row UI) */}
       <div 
         onClick={onToggle}
         className={`w-full py-6 md:py-8 cursor-pointer transition-all duration-300 relative overflow-hidden ${isExpanded ? 'bg-slate-900/40' : 'hover:bg-slate-900/20'}`}
@@ -94,7 +91,7 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
              <span className="text-[10px] md:text-sm text-slate-400 font-black tracking-[0.2em] uppercase flex items-center gap-2">
                {getLeagueDisplay(match.league?.league_name)}
                {isUCL && (
-                 <span className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded shadow-[0_0_10px_rgba(52,211,153,0.2)] animate-pulse">
+                 <span className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(16,185,129,0.3)] animate-pulse">
                    [FREE TO VIEW]
                  </span>
                )}
@@ -107,7 +104,9 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
              )}
            </div>
            <div className="flex items-center gap-3">
-             <span className="text-[10px] md:text-sm text-slate-500 font-mono tracking-widest font-bold">{timeStr} UTC</span>
+             <span className="text-[10px] md:text-sm text-slate-500 font-mono tracking-widest font-bold">
+                {formatLocalTime(match.match_date)}
+             </span>
              {match.status === "COMPLETED" && (
                <span className="text-[9px] md:text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 font-black uppercase tracking-widest">FINAL</span>
              )}
@@ -117,69 +116,37 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
 
         {/* STRICT SYMMETRICAL GRID */}
         <div className="grid grid-cols-[1fr_60px_1fr] md:grid-cols-[1fr_100px_1fr] items-center gap-4 md:gap-10 w-full px-4 md:px-6">
-          
-          {/* HOME TEAM */}
-          <div className="flex items-center justify-end gap-4 md:gap-8">
-            <span className="text-white font-black text-2xl md:text-5xl tracking-tighter uppercase transition-transform group-hover:scale-105 duration-500">
-              {match.home_short_name}
+          <div className="flex items-center justify-end gap-4 md:gap-8 text-right">
+            <span className="text-white font-black text-xl md:text-4xl tracking-tighter uppercase leading-tight">
+              {match.home_team?.team_name || match.home_team_id}
             </span>
-            {match.home_logo ? (
-              <img src={match.home_logo} alt="Home" className="w-10 h-10 md:w-16 md:h-16 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-transform group-hover:rotate-6" />
-            ) : (
-              <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-xs font-black text-slate-600">
-                {match.home_short_name}
-              </div>
-            )}
           </div>
-
-          {/* VS */}
-          <div className="text-slate-800 font-black text-xl md:text-3xl text-center italic tracking-widest opacity-40">VS</div>
-
-          {/* AWAY TEAM */}
-          <div className="flex items-center justify-start gap-4 md:gap-8">
-            {match.away_logo ? (
-              <img src={match.away_logo} alt="Away" className="w-10 h-10 md:w-16 md:h-16 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-transform group-hover:-rotate-6" />
-            ) : (
-              <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-xs font-black text-slate-600">
-                {match.away_short_name}
-              </div>
-            )}
-            <span className="text-white font-black text-2xl md:text-5xl tracking-tighter uppercase transition-transform group-hover:scale-105 duration-500">
-              {match.away_short_name}
+          <div className="text-slate-800 font-black text-sm md:text-xl text-center italic tracking-widest opacity-40">VS</div>
+          <div className="flex items-center justify-start gap-4 md:gap-8 text-left">
+            <span className="text-white font-black text-xl md:text-4xl tracking-tighter uppercase leading-tight">
+              {match.away_team?.team_name || match.away_team_id}
             </span>
           </div>
         </div>
       </div>
 
-      {/* 🔴 Level 2: Expanded Intelligence Panel */}
       {isExpanded && (
         <div className="bg-slate-900/60 px-6 py-8 md:px-12 border-t border-slate-800/50 shadow-inner">
           <div className="max-w-3xl mx-auto">
-            {/* Market Sentiment Bubble */}
             <div className="bg-slate-950/80 p-6 md:p-8 rounded-xl border border-slate-800 relative overflow-hidden group/narrative mb-8">
                <div className="absolute top-0 right-0 w-1 h-full bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)]" />
                <div className="flex justify-between items-center mb-4">
                  <div className="flex items-center gap-2">
                    <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                   <span className="text-[10px] font-black tracking-[0.2em] uppercase text-purple-400">
-                     Market Sentiment Intelligence
-                   </span>
+                   <span className="text-[10px] font-black tracking-[0.2em] uppercase text-purple-400">Market Sentiment Intelligence</span>
                  </div>
-                 <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">Ref: Global Consensus Grid</span>
                </div>
                <p className="text-base md:text-lg text-slate-200 leading-relaxed font-medium italic">
                  "{match.marketSentiment || "Aggregating market intelligence and expert keywords..."}"
                </p>
             </div>
 
-            {/* Bottom Action Area */}
             <div className="flex justify-between items-center border-t border-slate-800/50 pt-6">
-               <div className="flex gap-4">
-                 <div className="flex flex-col">
-                   <span className="text-[8px] font-mono text-slate-600 uppercase mb-1">Confidence</span>
-                   <span className="text-xs font-black text-cyan-400">HIGH_RELIABILITY</span>
-                 </div>
-               </div>
                <Link
                  href={`/matches/${match.match_id}`}
                  onClick={e => e.stopPropagation()}

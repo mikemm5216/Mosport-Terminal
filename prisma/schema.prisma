@@ -36,6 +36,8 @@ model Players {
   team_id     String
   player_name String
   position    String
+  number      String? // Jersey Number
+  stats       Json?   // Multi-role stats (e.g. stats.P, stats.DH)
   
   team        Teams  @relation(fields: [team_id], references: [team_id])
 }
