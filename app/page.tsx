@@ -60,6 +60,15 @@ export default function Home() {
   );
 }
 
+const getLeagueIcon = (leagueName?: string) => {
+  if (!leagueName) return "⚽";
+  const upper = leagueName.toUpperCase();
+  if (upper.includes("NBA") || upper.includes("BASKETBALL")) return "🏀";
+  if (upper.includes("MLB") || upper.includes("BASEBALL")) return "⚾";
+  if (upper.includes("NFL") || upper.includes("FOOTBALL")) return "🏈";
+  return "⚽";
+};
+
 function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: boolean, onToggle: () => void }) {
   const matchDate = new Date(match.match_date);
   const timeStr = matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -100,7 +109,8 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
       >
         {/* LEAGUE / TIME / TOGGLER HEADER */}
         <div className="flex justify-between items-center px-4 mb-2">
-           <span className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">
+           <span className="text-[9px] text-slate-500 font-mono tracking-widest uppercase flex items-center gap-1.5">
+             <span className="text-[10px]">{getLeagueIcon(match.league?.league_name)}</span>
              {match.league?.league_name?.substring(0,20) || "PRO LEAGUE"}
            </span>
            <div className="flex items-center gap-2">
