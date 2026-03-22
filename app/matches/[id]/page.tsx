@@ -69,11 +69,57 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   const aPercent = 100 - hPercent;
 
   // Extract Key Players for Battle Mode
-  const homeStar = match.home_team?.players?.[0];
-  const awayStar = match.away_team?.players?.[0];
+  const sport = match.league?.sport || "Soccer";
+  const activeRole = sport === "Baseball" ? "P" : sport === "Basketball" ? "PF" : "ST";
+  
+  // DEMO FALLBACK: If DB is empty, provide CEO-spec Star Data
+  let homeStar = match.home_team?.players?.find(p => {
+    const s = p.stats as Record<string, any>;
+    return s && s[activeRole];
+  }) || match.home_team?.players?.[0];
+
+  let awayStar = match.away_team?.players?.find(p => {
+    const s = p.stats as Record<string, any>;
+    return s && s[activeRole];
+  }) || match.away_team?.players?.[0];
+
+  // Force Hydration for Demo if data is missing
+  if (!homeStar) {
+    homeStar = {
+       player_id: "demo_home_star",
+       player_name: sport === "Baseball" ? "S. Ohtani" : sport === "Basketball" ? "L. James" : "H. Kane",
+       number: sport === "Baseball" ? "17" : sport === "Basketball" ? "23" : "9",
+       position: sport === "Baseball" ? "P" : sport === "Basketball" ? "PF" : "ST",
+       stats: sport === "Baseball" ? {
+         "P": { ERA: "2.52", K: "186", WHIP: "1.02" },
+         "DH": { AVG: ".304", HR: "44", RBI: "95" }
+       } : sport === "Basketball" ? {
+         "PF": { PPG: "25.7", RPG: "7.3", APG: "8.3" }
+       } : {
+         "ST": { G: "32", A: "12", SPG: "3.4" }
+       }
+    } as any;
+  }
+  
+  if (!awayStar) {
+    awayStar = {
+       player_id: "demo_away_star",
+       player_name: "Tactic Rival",
+       number: "99",
+       position: sport === "Baseball" ? "DH" : "PG",
+       stats: {
+         "DH": { AVG: ".285", HR: "22" },
+         "PG": { PPG: "18.2", APG: "9.4" },
+         "CDM": { TAC: "4.2", INT: "2.1" }
+       }
+    } as any;
+  }
+
+  const homePlayerStats = (homeStar?.stats as Record<string, any>)?.[activeRole] || (homeStar?.stats as Record<string, any>)?.[Object.keys(homeStar?.stats || {})[0]] || {};
+  const awayPlayerStats = (awayStar?.stats as Record<string, any>)?.[activeRole] || (awayStar?.stats as Record<string, any>)?.[Object.keys(awayStar?.stats || {})[0]] || {};
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30">
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30 overflow-x-hidden">
       <nav className="w-full border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-4">
         <div className="max-w-7xl mx-auto h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
@@ -86,33 +132,33 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* HERO SECTION */}
-        <header className="flex flex-col md:flex-row items-center justify-between gap-12 mb-12">
-          <div className="text-center md:text-right flex-1">
-             <h2 className="text-3xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none">{homeStats.shortName}</h2>
-             <p className="text-xs font-mono text-slate-500 mt-2 tracking-widest uppercase">{homeStats.name}</p>
+        {/* HERO SECTION - SURGICAL PERMANENT HORIZONTAL LOCK */}
+        <header className="flex flex-row flex-nowrap items-center justify-between gap-4 md:gap-12 mb-12">
+          <div className="text-center md:text-right flex-1 shrink-0">
+             <h2 className="text-2xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none">{homeStats.shortName}</h2>
+             <p className="text-[10px] md:text-xs font-mono text-slate-500 mt-2 tracking-widest uppercase">{homeStats.name}</p>
           </div>
-          <div className="flex flex-col items-center gap-3">
-             <div className="text-slate-800 font-black text-5xl md:text-7xl italic opacity-20 select-none">VS</div>
-             <div className="bg-cyan-500/10 border border-cyan-500/30 px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.15)] animate-pulse">
-                <span className="text-xs font-black text-cyan-400 tracking-tighter uppercase">{simulation.primaryTag}</span>
+          <div className="flex flex-col items-center gap-3 shrink-0">
+             <div className="text-slate-800 font-black text-3xl md:text-7xl italic opacity-20 select-none">VS</div>
+             <div className="bg-cyan-500/10 border border-cyan-500/30 px-3 md:px-4 py-1 md:py-1.5 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+                <span className="text-[8px] md:text-xs font-black text-cyan-400 tracking-tighter uppercase">{simulation.primaryTag}</span>
              </div>
           </div>
-          <div className="text-center md:text-left flex-1">
-             <h2 className="text-3xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none">{awayStats.shortName}</h2>
-             <p className="text-xs font-mono text-slate-500 mt-2 tracking-widest uppercase">{awayStats.name}</p>
+          <div className="text-center md:text-left flex-1 shrink-0">
+             <h2 className="text-2xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none">{awayStats.shortName}</h2>
+             <p className="text-[10px] md:text-xs font-mono text-slate-500 mt-2 tracking-widest uppercase">{awayStats.name}</p>
           </div>
         </header>
 
         {/* BIO-BATTERY */}
         <section className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-6 md:p-8 mb-12 max-w-5xl mx-auto">
            <div className="flex justify-between items-end mb-4 px-2">
-              <span className="text-2xl font-black text-emerald-400">{hPercent}%</span>
+              <span className="text-xl md:text-2xl font-black text-emerald-400">{hPercent}%</span>
               <div className="flex items-center gap-2 mb-1">
                  <Zap size={14} className="text-emerald-400" />
                  <span className="text-[10px] font-black tracking-[0.2em] text-white uppercase whitespace-nowrap">Proprietary Match Energy Index</span>
               </div>
-              <span className="text-2xl font-black text-red-500">{aPercent}%</span>
+              <span className="text-xl md:text-2xl font-black text-red-500">{aPercent}%</span>
            </div>
            <div className="w-full h-3 bg-slate-950 rounded-full border border-slate-800/50 flex overflow-hidden p-0.5 shadow-inner">
               <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)]" style={{ width: `${hPercent}%` }} />
@@ -120,79 +166,80 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
            </div>
         </section>
 
-        {/* DUAL INTELLIGENCE GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+        {/* DUAL INTELLIGENCE GRID - FIXED FOR TABLET/LAPTOP */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
            
            {/* STANDARD ANALYSIS */}
-           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 md:p-10 relative overflow-hidden h-full">
+           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 md:p-10 relative overflow-hidden h-fit lg:h-full">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500 shadow-[4px_0_15px_rgba(6,182,212,0.4)]" />
               <div className="flex items-center gap-4 mb-8">
                  <Activity size={20} className="text-cyan-400" />
                  <h3 className="text-sm font-black tracking-[0.2em] uppercase text-white">Standard Analysis</h3>
               </div>
-              <p className="text-lg md:text-xl text-slate-200 leading-relaxed font-medium italic">
+              <p className="text-base md:text-xl text-slate-200 leading-relaxed font-medium italic">
                  {simulation.standardAnalysis}
               </p>
               <div className="mt-12 pt-8 border-t border-slate-800 flex flex-wrap gap-8">
                  <div>
                     <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mb-1 block">Reliability</span>
-                    <span className="text-2xl font-black text-white">{Math.round(simulation.confidence * 100)}%</span>
+                    <span className="text-xl md:text-2xl font-black text-white">{Math.round(simulation.confidence * 100)}%</span>
                  </div>
                  <div>
                     <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mb-1 block">Bias Pick</span>
-                    <span className="text-2xl font-black text-cyan-400 uppercase">{simulation.predictedWinner === 'home' ? homeStats.shortName : awayStats.shortName}</span>
+                    <span className="text-xl md:text-2xl font-black text-cyan-400 uppercase">{simulation.predictedWinner === 'home' ? homeStats.shortName : awayStats.shortName}</span>
                  </div>
               </div>
            </section>
 
            {/* KEY PLAYERS SHOWDOWN (BATTLE MODE) */}
-           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 md:p-10 h-full">
+           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 md:p-10 h-fit lg:h-full">
               <div className="flex items-center justify-between mb-10">
                  <div className="flex items-center gap-4">
                     <User size={20} className="text-indigo-400" />
                     <h3 className="text-sm font-black tracking-[0.2em] uppercase text-white">Tactical Showdown</h3>
                  </div>
-                 <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">Battle Mode Active</span>
+                 <span className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">Active Role: [{activeRole}]</span>
               </div>
 
               <div className="flex flex-col gap-6 relative">
-                 {/* SHOWDOWN CENTER VS */}
                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-                    <div className="bg-slate-950 border border-slate-800 w-12 h-12 rounded flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.2)] rotate-45">
-                       <span className="text-indigo-500 font-black italic -rotate-45">VS</span>
+                    <div className="bg-slate-950 border border-slate-800 w-10 h-10 md:w-12 md:h-12 rounded flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.2)] rotate-45">
+                       <span className="text-indigo-500 font-black italic -rotate-45 text-xs md:text-base">VS</span>
                     </div>
                  </div>
 
                  {/* HOME PLAYER */}
-                 <Link href={`/players/${homeStar?.player_id}`} className="flex items-center gap-6 justify-between bg-slate-950/50 p-6 rounded-2xl border border-slate-800/80 group hover:border-indigo-500/40 transition-all duration-300">
+                 <Link href={`/players/${homeStar?.player_id}`} className="flex items-center gap-4 md:gap-6 justify-between bg-slate-950/50 p-4 md:p-6 rounded-2xl border border-slate-800/80 group hover:border-indigo-500/40 transition-all duration-300">
                     <TacticalAvatar 
                       number={homeStar?.number || "00"} 
                       position={homeStar?.position || "???"} 
                       name={homeStar?.player_name || "N/A"}
                       side="HOME"
                     />
-                    <div className="flex flex-col gap-4 flex-1 items-end min-w-0">
+                    <div className="flex flex-col gap-2 md:gap-4 flex-1 items-end min-w-0">
                        <div className="text-right">
-                          <h4 className="text-white font-black text-sm uppercase tracking-tight truncate max-w-[120px]">{homeStar?.player_name || "Unknown Star"}</h4>
-                          <span className="text-[9px] text-indigo-400 font-mono tracking-widest uppercase">{homeStats.shortName} Main Anchor</span>
+                          <h4 className="text-white font-black text-xs md:text-sm uppercase tracking-tight truncate max-w-[100px] md:max-w-[120px]">{homeStar?.player_name || "Unknown Star"}</h4>
+                          <span className="text-[8px] md:text-[9px] text-indigo-400 font-mono tracking-widest uppercase">{homeStats.shortName} Main Anchor</span>
                        </div>
-                       <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                          <StatBlock label="EFX" value="28.4" />
-                          <StatBlock label="IMP" value="HIGH" color="text-emerald-400" />
+                       <div className="grid grid-cols-2 gap-x-4 md:gap-x-6 gap-y-1 md:gap-y-2">
+                          {Object.entries(homePlayerStats).slice(0, 2).map(([k, v]: [string, any]) => (
+                             <StatBlock key={k} label={k} value={String(v)} />
+                          ))}
                        </div>
                     </div>
                  </Link>
 
                  {/* AWAY PLAYER */}
-                 <Link href={`/players/${awayStar?.player_id}`} className="flex items-center gap-6 justify-between bg-slate-950/50 p-6 rounded-2xl border border-slate-800/80 group hover:border-orange-500/40 transition-all duration-300">
-                    <div className="flex flex-col gap-4 flex-1 items-start min-w-0">
+                 <Link href={`/players/${awayStar?.player_id}`} className="flex items-center gap-4 md:gap-6 justify-between bg-slate-950/50 p-4 md:p-6 rounded-2xl border border-slate-800/80 group hover:border-orange-500/40 transition-all duration-300">
+                    <div className="flex flex-col gap-2 md:gap-4 flex-1 items-start min-w-0">
                        <div className="text-left">
-                          <h4 className="text-white font-black text-sm uppercase tracking-tight truncate max-w-[120px]">{awayStar?.player_name || "Unknown Star"}</h4>
-                          <span className="text-[9px] text-orange-400 font-mono tracking-widest uppercase">{awayStats.shortName} Strike Risk</span>
+                          <h4 className="text-white font-black text-xs md:text-sm uppercase tracking-tight truncate max-w-[100px] md:max-w-[120px]">{awayStar?.player_name || "Unknown Star"}</h4>
+                          <span className="text-[8px] md:text-[9px] text-orange-400 font-mono tracking-widest uppercase">{awayStats.shortName} Strike Risk</span>
                        </div>
-                       <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                          <StatBlock label="EFX" value="24.1" />
-                          <StatBlock label="IMP" value="PEAK" color="text-cyan-400" />
+                       <div className="grid grid-cols-2 gap-x-4 md:gap-x-6 gap-y-1 md:gap-y-2">
+                          {Object.entries(awayPlayerStats).slice(0, 2).map(([k, v]: [string, any]) => (
+                             <StatBlock key={k} label={k} value={String(v)} />
+                          ))}
                        </div>
                     </div>
                     <TacticalAvatar 
@@ -204,12 +251,10 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                  </Link>
               </div>
 
-              <div className="mt-10 p-5 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl backdrop-blur-sm">
-                 <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2 block flex items-center gap-2">
-                    <Activity size={10} /> Intelligence Summary
-                 </span>
-                 <p className="text-xs text-slate-400 leading-relaxed uppercase font-medium">
-                    Tactical overlap detected in high-post rotations. Expect {homeStats.shortName}'s anchor to mitigate deep-paint entries.
+              <div className="mt-10 p-5 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
+                 <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">Tactical Engine Log</span>
+                 <p className="text-[10px] text-slate-400 leading-relaxed uppercase">
+                    Battle mode is cross-referencing {activeRole} metrics. High correlation detected between {homeStats.shortName} stability and result variance.
                  </p>
               </div>
            </section>
@@ -228,10 +273,10 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
 function TacticalAvatar({ number, position, name, side }: { number: string, position: string, name: string, side: 'HOME' | 'AWAY' }) {
   const color = side === 'HOME' ? 'border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.2)]' : 'border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.2)]';
   return (
-    <div className={`w-16 h-16 md:w-20 md:h-20 bg-slate-900 border-2 rounded flex flex-col items-center justify-center relative shrink-0 ${color}`}>
-        <span className="text-2xl md:text-4xl font-black text-white select-none">{number}</span>
-        <div className="absolute -bottom-2 right-0 bg-slate-950 border border-slate-800 px-1.5 py-0.5 rounded shadow-xl">
-           <span className="text-[8px] md:text-[10px] font-black text-white uppercase tracking-tighter">{position}</span>
+    <div className={`w-14 h-14 md:w-20 md:h-20 bg-slate-900 border-2 rounded flex flex-col items-center justify-center relative shrink-0 ${color}`}>
+        <span className="text-xl md:text-4xl font-black text-white select-none">{number}</span>
+        <div className="absolute -bottom-2 right-0 bg-slate-950 border border-slate-800 px-1 py-0.5 rounded shadow-xl">
+           <span className="text-[7px] md:text-[10px] font-black text-white uppercase tracking-tighter">{position}</span>
         </div>
     </div>
   );
@@ -240,8 +285,8 @@ function TacticalAvatar({ number, position, name, side }: { number: string, posi
 function StatBlock({ label, value, color = "text-white" }: { label: string, value: string, color?: string }) {
   return (
     <div className="flex flex-col">
-       <span className="text-[8px] text-slate-600 font-mono uppercase tracking-widest mb-0.5">{label}</span>
-       <span className={`text-sm font-black ${color} tracking-tight`}>{value}</span>
+       <span className="text-[7px] md:text-[8px] text-slate-600 font-mono uppercase tracking-widest mb-0.5">{label}</span>
+       <span className={`text-[10px] md:text-sm font-black ${color} tracking-tight`}>{value}</span>
     </div>
   );
 }
