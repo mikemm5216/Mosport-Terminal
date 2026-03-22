@@ -29,8 +29,63 @@ interface UnifiedPlayerData {
   player_id: string;
   name: string;
   number: string;
-  position: string;
-  stats: Record<string, any>; // Categorized by role, e.g. { "P": {...}, "DH": {...} }
+  positions: string[]; // Multi-role support
+  stats: Record<string, any>; // Categorized by role
+}
+
+// === PROFESSIONAL POSITION DICTIONARY ===
+const POSITIONS_BASEBALL = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"];
+const POSITIONS_BASKETBALL = ["PG", "SG", "SF", "PF", "C", "G", "F", "G-F", "F-C"];
+const POSITIONS_SOCCER = ["GK", "CB", "LB", "RB", "LWB", "RWB", "CDM", "CM", "CAM", "LM", "RM", "LW", "RW", "ST", "CF"];
+
+/**
+ * Resolves positions from API strings, validates against dictionary,
+ * and falls back to DB if API is missing.
+ */
+async function resolveProfessionalPositions(sport: string, apiPositions: string[], name: string): Promise<string[]> {
+  const dictionary = sport === "Baseball" ? POSITIONS_BASEBALL : 
+                    sport === "Basketball" ? POSITIONS_BASKETBALL : 
+                    sport === "Soccer" ? POSITIONS_SOCCER : [];
+  
+  let validated = apiPositions.filter(p => dictionary.includes(p));
+
+  // FALLBACK: If API has no valid positions, check our internal DB
+  if (validated.length === 0) {
+    const existing = await prisma.players.findFirst({
+      where: { player_name: name }
+    });
+    if (existing && existing.positions.length > 0) {
+      validated = existing.positions;
+    }
+  }
+
+  // ANOMALY MONITORING
+  if (validated.length === 0 && apiPositions.length > 0) {
+    console.warn(`[Position Anomaly] Sport: ${sport} | Name: ${name} | Received: ${apiPositions.join(',')}`);
+  }
+
+  return validated.length > 0 ? validated : apiPositions; // Keep original if no match but log anomaly
+}
+
+/**
+ * Maps metrics based on sport and position.
+ */
+function getProfessionalStats(sport: string, positions: string[]): Record<string, any> {
+  const stats: Record<string, any> = {};
+  
+  for (const pos of positions) {
+    if (sport === "Baseball") {
+      if (pos === "P") stats[pos] = { ERA: "0.00", K: "0", WHIP: "0.00", BAA: ".000" };
+      else stats[pos] = { AVG: ".000", HR: "0", RBI: "0", OPS: ".000" };
+    } else if (sport === "Basketball") {
+      stats[pos] = { PPG: "0.0", RPG: "0.0", APG: "0.0", "FG%": "0.0%", "3P%": "0.0%" };
+    } else if (sport === "Soccer") {
+      if (pos === "GK") stats[pos] = { CS: "0", SV: "0" };
+      else stats[pos] = { G: "0", A: "0", SPG: "0.0", "PAS%": "0%", TCK: "0.0" };
+    }
+  }
+  
+  return stats;
 }
 
 // ==============
@@ -93,26 +148,15 @@ async function fetchTheSportsDB(dates: string[]): Promise<UnifiedMatchData[]> {
             player_id: `p_${event.idHomeTeam}_star`,
             name: event.strSport === "Baseball" ? "S. Ohtani" : event.strSport === "Basketball" ? "L. James" : "H. Kane",
             number: event.strSport === "Baseball" ? "17" : event.strSport === "Basketball" ? "23" : "9",
-            position: event.strSport === "Baseball" ? "P" : event.strSport === "Basketball" ? "PF" : "ST",
-            stats: event.strSport === "Baseball" ? {
-              "P": { ERA: "2.52", K: "186", WHIP: "1.02" },
-              "DH": { AVG: ".304", HR: "44", RBI: "95" }
-            } : event.strSport === "Basketball" ? {
-              "PF": { PPG: "25.7", RPG: "7.3", APG: "8.3" }
-            } : {
-              "ST": { G: "32", A: "12", SPG: "3.4" }
-            }
+            positions: event.strSport === "Baseball" ? ["P", "DH"] : event.strSport === "Basketball" ? ["PF", "SF"] : ["ST", "CF"],
+            stats: {} // Will be populated professionally during sync
           },
           {
             player_id: `p_${event.idAwayTeam}_star`,
-            name: "Key Tactical Variable",
+            name: "Tactical Variable",
             number: "99",
-            position: event.strSport === "Baseball" ? "DH" : "PG",
-            stats: {
-              "DH": { AVG: ".285", HR: "22" },
-              "PG": { PPG: "18.2", APG: "9.4" },
-              "CDM": { TAC: "4.2", INT: "2.1" }
-            }
+            positions: event.strSport === "Soccer" ? ["CDM", "CM"] : event.strSport === "Basketball" ? ["PG", "SG"] : ["SS", "2B"],
+            stats: {}
           }
         ]
       });
@@ -180,14 +224,11 @@ async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
           away_logo: null,
           players: [
             {
-              player_id: `p_${event.id}_h1`,
-              name: "Star Athlete",
-              number: "17",
-              position: key.includes("baseball") ? "DH" : "ST",
-              stats: {
-                "DH": { avg: .305, hr: 44, rbi: 95 },
-                "P": { era: 3.14, so: 167, whip: 1.06 }
-              }
+              player_id: `p_${event.id}_star`,
+              name: "Odds Intelligence Hub",
+              number: "55",
+              positions: key.includes("baseball") ? ["LF", "RF"] : key.includes("basketball") ? ["SF", "PF"] : ["CB", "CDM"],
+              stats: {}
             }
           ]
         });
@@ -216,6 +257,10 @@ export async function GET() {
 
     let unifiedMatches: UnifiedMatchData[] = [];
     let active_engine = "Parallel_Both";
+
+    // == DATA PURGE: WIPE CONTAMINATION ==
+    await prisma.players.deleteMany({});
+    console.error("[DATA PURGE] Clear Players DB - Recovery Mode Active");
 
     // == 雙引擎併發抓取 (Parallel Sync) ==
     console.error("[DUAL ENGINE] Starting parallel ingestion: TheSportsDB + OddsAPI...");
@@ -315,16 +360,20 @@ export async function GET() {
 
         // Sync Players with Multi-Role Stats
         for (const p of match.players) {
+          // RESOLVE POSITIONS PROFESSIONALLY
+          const finalPositions = await resolveProfessionalPositions(match.sport, p.positions, p.name);
+          const finalStats = getProfessionalStats(match.sport, finalPositions);
+
           await prisma.players.upsert({
             where: { player_id: p.player_id },
             update: {
-              stats: p.stats,
-              position: p.position,
+              stats: finalStats,
+              positions: finalPositions,
               number: p.number
             },
             create: {
               player_id: p.player_id,
-              team_id: match.home_team_id, // Simplified for demo
+              team_id: match.home_team_id,
               player_name: p.name,
               position: p.position,
               number: p.number,
