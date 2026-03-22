@@ -1,24 +1,26 @@
-import { NextResponse } from 'next/server';
-import { db } from '../../../lib/db';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const signals = await db.signals.findMany({
-      where: { signal_type: 'true_signal' },
-      orderBy: { snr: 'desc' },
+    const matches = await prisma.matches.findMany({
+      take: 50,
+      orderBy: { match_date: 'desc' },
       include: {
-        match: {
-          include: {
-            home_team: true,
-            away_team: true
-          }
+        home_team: true,
+        away_team: true,
+        snapshots: {
+          take: 1,
+          orderBy: { snapshot_time: 'desc' }
         }
-      },
-      take: 50
+      }
     });
 
-    return NextResponse.json({ success: true, signals });
+    return NextResponse.json({ success: true, count: matches.length, data: matches });
   } catch (error: any) {
+    console.error("[SIGNALS API ERROR]", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

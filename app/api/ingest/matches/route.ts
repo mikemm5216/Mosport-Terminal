@@ -20,6 +20,8 @@ interface UnifiedMatchData {
   match_date: Date;
   home_score: number | null;
   away_score: number | null;
+  home_logo: string | null;
+  away_logo: string | null;
 }
 
 // ==============
@@ -75,6 +77,8 @@ async function fetchTheSportsDB(dates: string[]): Promise<UnifiedMatchData[]> {
         match_date: dateObj,
         home_score: event.intHomeScore ? parseInt(event.intHomeScore) : null,
         away_score: event.intAwayScore ? parseInt(event.intAwayScore) : null,
+        home_logo: event.strHomeTeamBadge || null,
+        away_logo: event.strAwayTeamBadge || null,
       });
     }
 
@@ -126,6 +130,8 @@ async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
       match_date: new Date(event.commence_time),
       home_score: homeScore,
       away_score: awayScore,
+      home_logo: null,
+      away_logo: null,
     });
   }
   
@@ -189,8 +195,8 @@ export async function GET() {
         sport: data.sport,
         country: "Global"
       });
-      teamsMap.set(data.home_team_id, { team_id: data.home_team_id, league_id: data.league_id, team_name: data.home_team_name, home_city: "Unknown" });
-      teamsMap.set(data.away_team_id, { team_id: data.away_team_id, league_id: data.league_id, team_name: data.away_team_name, home_city: "Unknown" });
+      teamsMap.set(data.home_team_id, { team_id: data.home_team_id, league_id: data.league_id, team_name: data.home_team_name, home_city: "Unknown", logo_url: data.home_logo });
+      teamsMap.set(data.away_team_id, { team_id: data.away_team_id, league_id: data.league_id, team_name: data.away_team_name, home_city: "Unknown", logo_url: data.away_logo });
       matchRows.push({
         match_id: data.match_id,
         league_id: data.league_id,

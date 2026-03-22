@@ -22,6 +22,7 @@ model Teams {
   league_id String
   team_name String
   home_city String
+  logo_url  String? // Added for UI Logo Normalization
   
   league    Leagues @relation(fields: [league_id], references: [league_id])
   players   Players[]
