@@ -143,21 +143,35 @@ export async function GET() {
     }
 
     let unifiedMatches: UnifiedMatchData[] = [];
-    let active_engine = "TheSportsDB";
+    let active_engine = "Parallel_Both";
 
-    // == 雙引擎容錯切換 ==
-    try {
-      console.error("[ENGINE 1] Starting TheSportsDB Ingestion...");
-      unifiedMatches = await fetchTheSportsDB(dates);
-      
-      if (unifiedMatches.length === 0) {
-        throw new Error("TheSportsDB returned 0 usable matches. Triggering API Fallback.");
-      }
-    } catch (e: any) {
-      console.error(`[ENGINE 1 FAILED] ${e.message}. Switching to Odds API Fallback.`);
-      active_engine = "OddsAPI";
-      unifiedMatches = await fetchOddsApiFallback();
+    // == 雙引擎併發抓取 (Parallel Sync) ==
+    console.error("[DUAL ENGINE] Starting parallel ingestion: TheSportsDB + OddsAPI...");
+    
+    const [sportsDbResult, oddsApiResult] = await Promise.allSettled([
+      fetchTheSportsDB(dates),
+      fetchOddsApiFallback()
+    ]);
+
+    let sportsDbMatches: UnifiedMatchData[] = [];
+    if (sportsDbResult.status === "fulfilled") {
+      sportsDbMatches = sportsDbResult.value;
+      console.error(`[ENGINE 1] TheSportsDB extracted: ${sportsDbMatches.length} matches`);
+    } else {
+      console.error(`[ENGINE 1 FAILED] TheSportsDB error:`, sportsDbResult.reason);
     }
+
+    let oddsApiMatches: UnifiedMatchData[] = [];
+    if (oddsApiResult.status === "fulfilled") {
+      oddsApiMatches = oddsApiResult.value;
+      console.error(`[ENGINE 2] Odds API extracted: ${oddsApiMatches.length} matches`);
+    } else {
+      console.error(`[ENGINE 2 FAILED] Odds API error:`, oddsApiResult.reason);
+    }
+
+    // 將兩邊抓取到的所有賽事合併
+    // 雖然可能會有重複，但 Prisma 迴圈的 upsert 行為會以資料庫中的最新值覆蓋
+    unifiedMatches = [...sportsDbMatches, ...oddsApiMatches];
 
     if (unifiedMatches.length === 0) {
       return NextResponse.json({ success: false, message: "Both engines failed or returned 0 matches." }, { status: 500 });
