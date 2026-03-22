@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { ChevronDown, ChevronUp, AlertCircle, ArrowRight } from 'lucide-react';
 
 export default function Home() {
@@ -60,13 +61,16 @@ export default function Home() {
   );
 }
 
-const getLeagueIcon = (leagueName?: string) => {
-  if (!leagueName) return "⚽";
-  const upper = leagueName.toUpperCase();
-  if (upper.includes("NBA") || upper.includes("BASKETBALL")) return "🏀";
-  if (upper.includes("MLB") || upper.includes("BASEBALL")) return "⚾";
-  if (upper.includes("NFL") || upper.includes("FOOTBALL")) return "🏈";
-  return "⚽";
+const getLeagueDisplay = (leagueName?: string): string => {
+  const upper = (leagueName || '').toUpperCase();
+  if (upper.includes('NBA') || upper.includes('BASKETBALL')) return '🏀 NBA';
+  if (upper.includes('MLB') || upper.includes('BASEBALL')) return '⚾ MLB';
+  if (upper.includes('NFL') || upper.includes('FOOTBALL')) return '🏈 NFL';
+  if (upper.includes('PREMIER')) return `⚽ PREMIER LEAGUE`;
+  if (upper.includes('LA LIGA') || upper.includes('LALIGA')) return `⚽ LA LIGA`;
+  if (upper.includes('BUNDESLIGA')) return `⚽ BUNDESLIGA`;
+  if (upper.includes('SERIE A')) return `⚽ SERIE A`;
+  return upper ? `⚽ ${upper}` : '⚽ PRO LEAGUE';
 };
 
 function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: boolean, onToggle: () => void }) {
@@ -110,8 +114,7 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
         {/* LEAGUE / TIME / TOGGLER HEADER */}
         <div className="flex justify-between items-center px-4 md:px-8 mb-2">
            <span className="text-[9px] md:text-xs text-slate-500 font-mono tracking-widest uppercase flex items-center gap-1.5">
-             <span className="text-[10px] md:text-sm">{getLeagueIcon(match.league?.league_name)}</span>
-             {match.league?.league_name?.substring(0,20) || "PRO LEAGUE"}
+             {getLeagueDisplay(match.league?.league_name)}
            </span>
            <div className="flex items-center gap-2">
              {hasNarrative && <AlertCircle size={10} className={`${themeText} animate-pulse`} />}
@@ -237,10 +240,14 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
                   </span>
                )}
              </div>
-             <button className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400 hover:text-white transition-colors cursor-pointer group/btn font-mono uppercase tracking-widest">
+             <Link
+               href={`/matches/${match.match_id || match.id}`}
+               onClick={e => e.stopPropagation()}
+               className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer group/btn font-mono uppercase tracking-widest"
+             >
                ENTER WAR ROOM
                <ArrowRight size={12} className="group-hover/btn:translate-x-1 transition-transform text-cyan-500" />
-             </button>
+             </Link>
           </div>
 
         </div>

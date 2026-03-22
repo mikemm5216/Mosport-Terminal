@@ -3,97 +3,175 @@ import { Shield } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
+// --- Metric helpers ---
+function calcMomentum(history: { result: string }[]): number {
+  const last5 = history.slice(0, 5);
+  if (last5.length === 0) return 0;
+  const pts = last5.reduce((sum, h) => {
+    if (h.result === 'W') return sum + 1.0;
+    if (h.result === 'D') return sum + 0.5;
+    return sum;
+  }, 0);
+  return Math.round((pts / 5) * 100) / 100;
+}
+
+function calcStrength(history: { result: string }[]): number {
+  if (history.length === 0) return 0;
+  const wins = history.filter(h => h.result === 'W').length;
+  return Math.round((wins / history.length) * 100) / 100;
+}
+
+function calcFatigue(history: { date: Date }[]): number {
+  if (history.length === 0) return 0;
+  const mostRecent = history[0].date;
+  const daysSince = (Date.now() - mostRecent.getTime()) / (1000 * 60 * 60 * 24);
+  if (daysSince < 2) return 0.9;
+  if (daysSince <= 4) return 0.5;
+  return 0.1;
+}
+
+function getResultColor(result: string): string {
+  if (result === 'W') return 'bg-emerald-500';
+  if (result === 'D') return 'bg-slate-500';
+  return 'bg-rose-500';
+}
+
 export default async function TeamsAnalyticsPage() {
-  // Fetch all records from the Team table
   const teams = await prisma.team.findMany({
     orderBy: { team_name: 'asc' }
   });
 
+  // Fetch match history for all teams (keyed by team_id = team.id)
+  const allHistory = await prisma.matchHistory.findMany({
+    orderBy: { date: 'desc' }
+  });
+
+  // Map: team.id => sorted history entries
+  const historyByTeamId = new Map<string, typeof allHistory>();
+  for (const entry of allHistory) {
+    const existing = historyByTeamId.get(entry.team_id) || [];
+    existing.push(entry);
+    historyByTeamId.set(entry.team_id, existing);
+  }
+
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center px-4 py-6">
       <div className="w-full max-w-7xl mb-8 border-b border-slate-800/80 pb-4">
         <h1 className="text-2xl font-black text-white tracking-widest uppercase">
           Teams Vault
         </h1>
         <p className="text-slate-500 text-xs font-mono uppercase tracking-widest mt-1">
-          Squad Intelligence & Visual Assets
+          Squad Intelligence &amp; World State Analytics
         </p>
       </div>
 
       {teams.length === 0 ? (
         <div className="text-center p-20 text-slate-500 font-mono text-sm tracking-widest uppercase border border-dashed border-slate-800 rounded-2xl w-full">
-          NO TEAMS IN COLD DATABASE. INITIATE INGESTION PROTOCOL.
+          NO TEAMS IN COLD DATABASE. INITIATE INGESTION PROTOCOL AT /api/ingest/teams
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-7xl">
-          {teams.map(team => (
-            <div 
-              key={team.id} 
-              className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-cyan-900/50 hover:shadow-[0_0_20px_rgba(8,145,178,0.1)] transition-all group"
-            >
-              {/* Header: Logo, Sub, Full Name */}
-              <div className="flex items-center gap-4 mb-5 border-b border-slate-800/50 pb-4">
-                {team.logo_url ? (
-                  <div className="w-14 h-14 bg-slate-950/50 rounded-full border border-slate-800 p-2 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-500">
-                    <img src={team.logo_url} alt={team.team_name} className="w-full h-full object-contain drop-shadow-md" />
+          {teams.map(team => {
+            const history = historyByTeamId.get(team.id) || [];
+            const momentum = calcMomentum(history);
+            const strength = calcStrength(history);
+            const fatigue = calcFatigue(history);
+            const last5 = history.slice(0, 5);
+            const hasData = history.length > 0;
+
+            return (
+              <div
+                key={team.id}
+                className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-cyan-900/50 hover:shadow-[0_0_20px_rgba(8,145,178,0.07)] transition-all group"
+              >
+                {/* Header: Logo + Names */}
+                <div className="flex items-center gap-4 mb-5 border-b border-slate-800/50 pb-4">
+                  {team.logo_url ? (
+                    <div className="w-14 h-14 bg-slate-950/50 rounded-full border border-slate-800 p-1.5 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-500">
+                      <img src={team.logo_url} alt={team.team_name} className="w-full h-full object-contain drop-shadow-md" />
+                    </div>
+                  ) : (
+                    <div className="w-14 h-14 bg-slate-950/50 rounded-full border border-slate-800 flex items-center justify-center flex-shrink-0">
+                      <Shield size={24} className="text-slate-600" />
+                    </div>
+                  )}
+                  <div className="flex flex-col truncate min-w-0">
+                    <span className="text-white font-black text-xl tracking-widest uppercase leading-tight">
+                      {team.short_name || team.team_name.substring(0, 3).toUpperCase()}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-bold truncate tracking-widest">
+                      {team.team_name}
+                    </span>
+                    {/* LAST 5 Form dots */}
+                    <div className="flex gap-1 mt-1.5">
+                      {hasData ? last5.map((h, i) => (
+                        <div
+                          key={i}
+                          title={h.result}
+                          className={`w-3 h-3 rounded-full ${getResultColor(h.result)}`}
+                        />
+                      )) : (
+                        <span className="text-[9px] text-slate-600 font-mono tracking-widest uppercase">No History</span>
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  <div className="w-14 h-14 bg-slate-950/50 rounded-full border border-slate-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-500">
-                    <Shield size={24} className="text-slate-600" />
+                </div>
+
+                {/* Real Metrics */}
+                <div className="space-y-3">
+
+                  {/* Momentum */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex justify-between items-end">
+                      <span className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">Momentum</span>
+                      <span className="text-xs text-cyan-400 font-black font-mono">{hasData ? `${Math.round(momentum * 100)}%` : 'N/A'}</span>
+                    </div>
+                    <div className="w-full h-1 bg-slate-950 rounded overflow-hidden">
+                      <div
+                        className="h-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)] transition-all duration-700"
+                        style={{ width: hasData ? `${momentum * 100}%` : '0%' }}
+                      />
+                    </div>
                   </div>
-                )}
-                <div className="flex flex-col truncate">
-                  <span className="text-white font-black text-xl tracking-widest uppercase">
-                    {team.short_name || team.team_name.substring(0, 3).toUpperCase()}
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-bold truncate tracking-widest">
-                    {team.team_name}
-                  </span>
+
+                  {/* Strength */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex justify-between items-end">
+                      <span className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">Strength</span>
+                      <span className="text-xs text-amber-400 font-black font-mono">{hasData ? `${Math.round(strength * 100)}%` : 'N/A'}</span>
+                    </div>
+                    <div className="w-full h-1 bg-slate-950 rounded overflow-hidden">
+                      <div
+                        className="h-full bg-amber-500 transition-all duration-700"
+                        style={{ width: hasData ? `${strength * 100}%` : '0%' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Fatigue */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex justify-between items-end">
+                      <span className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">Fatigue</span>
+                      <span className="text-xs text-rose-400 font-black font-mono">{hasData ? `${Math.round(fatigue * 100)}%` : 'N/A'}</span>
+                    </div>
+                    <div className="w-full h-1 bg-slate-950 rounded overflow-hidden">
+                      <div
+                        className="h-full bg-rose-500 transition-all duration-700"
+                        style={{ width: hasData ? `${fatigue * 100}%` : '0%' }}
+                      />
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Footer */}
+                <div className="mt-5 pt-3 border-t border-slate-800/50 flex justify-between items-center text-[8px] font-mono text-slate-600 tracking-widest uppercase">
+                  <span>{team.league || 'Unknown League'}</span>
+                  <span>{history.length} MATCHES</span>
                 </div>
               </div>
-
-              {/* Dummy "World State" Stats below the logo */}
-              <div className="space-y-3">
-                
-                <div className="flex flex-col gap-1">
-                  <div className="flex justify-between items-end">
-                    <span className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">Strength</span>
-                    <span className="text-xs text-white font-black font-mono">88%</span>
-                  </div>
-                  <div className="w-full h-1 bg-slate-950 rounded overflow-hidden">
-                    <div className="h-full bg-cyan-500 w-[88%] shadow-[0_0_10px_rgba(6,182,212,0.5)]"></div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <div className="flex justify-between items-end">
-                    <span className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">Momentum</span>
-                    <span className="text-xs text-white font-black font-mono">74%</span>
-                  </div>
-                  <div className="w-full h-1 bg-slate-950 rounded overflow-hidden">
-                    <div className="h-full bg-indigo-500 w-[74%]"></div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <div className="flex justify-between items-end">
-                    <span className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">Fatigue Limit</span>
-                    <span className="text-xs text-white font-black font-mono">42%</span>
-                  </div>
-                  <div className="w-full h-1 bg-slate-950 rounded overflow-hidden">
-                    <div className="h-full bg-red-500 w-[42%]"></div>
-                  </div>
-                </div>
-
-              </div>
-              
-              {/* Bottom Badge */}
-              <div className="mt-5 pt-3 border-t border-slate-800/50 flex justify-between items-center text-[8px] font-mono text-slate-600 tracking-widest uppercase">
-                <span>{team.league || "Unknown League"}</span>
-                <span>ID: {team.id.substring(team.id.length - 6)}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
