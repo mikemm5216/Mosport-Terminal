@@ -191,67 +191,17 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
       {isExpanded && (
         <div className="bg-slate-900 px-4 py-5 sm:px-6 border-b border-slate-800 shadow-inner">
           
-          {/* Logo & X-Factor Row */}
-          <div className="flex items-start justify-between mb-6">
-            
-            {/* Home Side */}
-            <div className="flex items-center gap-3 w-1/3">
-              <div className="flex flex-col truncate">
-                <span className="text-xs text-slate-300 font-bold truncate uppercase">{homeTeamFull}</span>
-                <span className="text-[10px] text-cyan-500/80 font-mono truncate uppercase">X-Factor: CORE SCORER</span>
-              </div>
-            </div>
-
-            {/* Score or VS */}
-            <div className="flex flex-col items-center justify-center w-1/3">
-              {match.status === "COMPLETED" ? (
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl font-black text-white">{match.home_score}</span>
-                  <span className="text-xs text-slate-600">-</span>
-                  <span className="text-xl font-black text-white">{match.away_score}</span>
-                </div>
-              ) : (
-                <span className="text-[10px] text-slate-600 font-black tracking-widest uppercase">UPCOMING</span>
-              )}
-            </div>
-
-            {/* Away Side */}
-            <div className="flex items-center justify-end gap-3 w-1/3 text-right">
-              <div className="flex flex-col truncate items-end">
-                <span className="text-xs text-slate-300 font-bold truncate uppercase">{awayTeamFull}</span>
-                <span className="text-[10px] text-orange-400/80 font-mono truncate uppercase">X-Factor: DEFENSE ANCHOR</span>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Bio-Battery Bar */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center text-[10px] font-mono mb-1.5 px-1 uppercase tracking-widest">
-              <span className="text-emerald-400 font-bold">BATTERY {homeBattery}%</span>
-              <span className="text-slate-600">ENERGETIC GAP</span>
-              <span className="text-red-400 font-bold">{awayBattery}% BATTERY</span>
-            </div>
-            <div className="w-full h-1.5 bg-slate-800/80 rounded flex overflow-hidden border border-slate-700/50 relative">
-               <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: `${homeBattery}%` }}></div>
-               <div className="h-full bg-red-500" style={{ width: `${awayBattery}%` }}></div>
-               <div className="absolute left-1/2 top-0 w-[1px] h-full bg-slate-900 -translate-x-1/2" />
-            </div>
-          </div>
-
-          {/* Narrative Bubble */}
-          <div className={`bg-slate-950/50 p-3 sm:p-4 rounded-r flex flex-col border-l-4 ${themeBorder} relative overflow-hidden group/narrative mb-4`}>
-             <div className={`absolute -right-4 -top-4 w-24 h-24 bg-current opacity-[0.02] rounded-full blur-2xl ${themeText}`} />
+          {/* Market Sentiment Bubble */}
+          <div className="bg-slate-950/50 p-3 sm:p-4 rounded-r flex flex-col border-l-4 border-purple-400 relative overflow-hidden group/narrative mb-4">
+             <div className="absolute -right-4 -top-4 w-24 h-24 bg-purple-400 opacity-[0.02] rounded-full blur-2xl" />
              <div className="flex justify-between items-center mb-1">
-               <span className={`text-[9px] font-bold tracking-widest uppercase ${themeText}`}>
-                 {themeLabel}
+               <span className="text-[9px] font-bold tracking-widest uppercase text-purple-400">
+                 🗞️ MARKET SENTIMENT
                </span>
-               {match.confidence && (
-                 <span className="text-[8px] font-mono text-slate-500 uppercase">MODEL CONFIDENCE: {Math.round(match.confidence * 100)}%</span>
-               )}
+               <span className="text-[8px] font-mono text-slate-500 uppercase">Expert Consensus Aggregator</span>
              </div>
-             <p className="text-xs text-slate-300 leading-relaxed font-medium">
-               {match.narrative || "System calculating outcome-driven intelligence..."}
+             <p className="text-xs text-slate-300 leading-relaxed font-medium italic">
+               "{match.marketSentiment || "Aggregating market intelligence and expert keywords..."}"
              </p>
           </div>
 
@@ -263,19 +213,13 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
                     PICK: {match.signal_pick}
                   </span>
                )}
-               {match.signal_conf && (
-                  <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 uppercase tracking-widest">
-                    CONF: {match.signal_conf}%
-                  </span>
-               )}
              </div>
              <Link
                href={`/matches/${match.match_id || match.id}`}
                onClick={e => e.stopPropagation()}
-               className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer group/btn font-mono uppercase tracking-widest"
+               className="flex items-center gap-1.5 text-[10px] sm:text-xs text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer group/btn font-mono uppercase tracking-widest font-bold"
              >
-               ENTER WAR ROOM
-               <ArrowRight size={12} className="group-hover/btn:translate-x-1 transition-transform text-cyan-500" />
+               ENTER WAR ROOM ➔
              </Link>
           </div>
 

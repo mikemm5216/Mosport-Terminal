@@ -87,10 +87,11 @@ export async function GET() {
         away_short_name: awayStats.shortName,
         // Narrative Props
         primaryTag: simulation.primaryTag,
-        narrative: simulation.narrative,
+        marketSentiment: simulation.marketSentiment,
+        standardAnalysis: simulation.standardAnalysis,
         predictedWinner: simulation.predictedWinner,
         confidence: simulation.confidence,
-        // Legacy streak fields if needed
+        // Legacy streak fields
         home_streak: WorldEngine.getStreakCount(homeHistory).type + WorldEngine.getStreakCount(homeHistory).count,
         away_streak: WorldEngine.getStreakCount(awayHistory).type + WorldEngine.getStreakCount(awayHistory).count,
       };

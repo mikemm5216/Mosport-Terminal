@@ -46,9 +46,24 @@ export const WorldEngine = {
     return { type, count };
   },
 
+  generateMarketSentiment(home: TeamStats, away: TeamStats, predictedWinner: 'home' | 'away'): string {
+    const winner = predictedWinner === 'home' ? home : away;
+    const loser = predictedWinner === 'home' ? away : home;
+    
+    const buzzwords = ["perimeter efficiency", "defensive keywords", "market volume", "sharp money", "injury volatility", "line movement"];
+    const buzz = buzzwords[Math.floor(Math.random() * buzzwords.length)];
+
+    if (predictedWinner === 'away' && winner.momentum > 0.8) {
+      return `Market analysts are heavily focusing on ${winner.shortName}'s ${buzz}, warning that ${loser.shortName}'s recent form makes them a risky fade tonight.`;
+    }
+    if (predictedWinner === 'home' && loser.fatigue > 0.7) {
+      return `Expert consensus highlights a significant energy gap; ${loser.shortName}'s road exhaustion is driving heavy sentiment toward a ${home.shortName} home cover.`;
+    }
+    return `Aggregated intelligence indicates ${winner.shortName} is gaining traction among high-volume models due to ${buzz} advantages over ${loser.shortName}.`;
+  },
+
   runMatchSimulation(home: TeamStats, away: TeamStats, forcedWinner?: 'home' | 'away') {
-    // PHASE 1: THE SECRET PREDICTION (Silently calculate math winner)
-    // Strength (50%), Momentum (30%), Fatigue (-20%)
+    // PHASE 1: THE SECRET PREDICTION
     const homeScore = (home.strength * 0.5) + (home.momentum * 0.3) - (home.fatigue * 0.2);
     const awayScore = (away.strength * 0.5) + (away.momentum * 0.3) - (away.fatigue * 0.2);
 
@@ -56,9 +71,9 @@ export const WorldEngine = {
     const isUpset = (predictedWinner === 'home' && home.strength < away.strength) || 
                     (predictedWinner === 'away' && away.strength < home.strength);
 
-    // PHASE 2: THE NARRATIVE SPIN (Selectively justify the result)
+    // PHASE 2: THE NARRATIVE SPIN
     let primaryTag = "";
-    let narrative = "";
+    let standardAnalysis = "";
     let confidence = Math.abs(homeScore - awayScore);
 
     if (predictedWinner === 'away') {
@@ -67,7 +82,6 @@ export const WorldEngine = {
       const winnerStreak = this.getStreakCount(winner.history);
       const loserStreak = this.getStreakCount(loser.history);
 
-      // Support for Away Win
       if (winnerStreak.type === 'W' && winnerStreak.count >= 2) {
         primaryTag = `🔥 ${winner.shortName} ${winnerStreak.count}W STREAK: RIDING MOMENTUM`;
       } else if (loserStreak.type === 'L' && loserStreak.count >= 2) {
@@ -78,13 +92,12 @@ export const WorldEngine = {
         primaryTag = `🚀 ${winner.shortName} PROJECTED: VALUE PLAY`;
       }
       
-      narrative = `${winner.name} are bringing massive momentum into this game against a struggling ${loser.name} squad. Quantitative models favor the road team.`;
+      standardAnalysis = `${winner.name} are bringing massive momentum into this game against a struggling ${loser.name} squad. Quantitative models favor the road team based on consistent output.`;
     } else {
       const winner = home;
       const loser = away;
       const winnerStreak = this.getStreakCount(winner.history);
 
-      // Support for Home Win (including Upsets)
       if (loser.fatigue > 0.6) {
         primaryTag = `⚠️ ${loser.shortName} FATIGUE ALERT: ROAD EXHAUSTION`;
       } else if (winnerStreak.type === 'L' && winner.strength > 0.4) {
@@ -96,15 +109,18 @@ export const WorldEngine = {
       }
 
       if (isUpset) {
-        narrative = `Despite ${loser.name}'s higher paper strength, their Bio-Battery is severely low. ${winner.name} is primed to capitalize on home soil.`;
+        standardAnalysis = `Despite ${loser.name}'s higher paper strength, their Bio-Battery is severely low. ${winner.name} is primed to capitalize on home soil and secure the upset.`;
       } else {
-        narrative = `${winner.name} looks dominant at home. Expect them to control the tempo and capitalize on ${loser.name}'s defensive gaps.`;
+        standardAnalysis = `${winner.name} looks dominant at home. Expect them to control the tempo and capitalize on ${loser.name}'s defensive gaps throughout the match.`;
       }
     }
 
+    const marketSentiment = this.generateMarketSentiment(home, away, predictedWinner);
+
     return { 
       primaryTag, 
-      narrative, 
+      marketSentiment,
+      standardAnalysis, 
       predictedWinner,
       confidence: Math.round(confidence * 100) / 100 
     };
