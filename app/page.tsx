@@ -1,48 +1,44 @@
-import Link from 'next/link';
+import { prisma } from "@/lib/prisma";
+import MatchCard from "@/components/match-card";
 
-export default function Home() {
+export const dynamic = 'force-dynamic';
+
+export default async function Home() {
+  // 抓取近期的賽事，並 include 關聯資料
+  const matches = await prisma.matches.findMany({
+    take: 33, // 執行長指定的 33 場比賽
+    orderBy: { match_date: 'desc' },
+    include: {
+      home_team: true,
+      away_team: true,
+      snapshots: {
+        take: 1,
+        orderBy: { snapshot_time: 'desc' }
+      }
+    }
+  });
+
   return (
-    <div className="space-y-12">
-      {/* Hero Section */}
-      <section className="text-center py-20 border-b border-gray-800">
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 bg-gradient-to-r from-[#00AEEF] to-[#FF2E88] text-transparent bg-clip-text">
-          Mosport Quant Terminal
+    <main className="min-h-screen bg-slate-950 flex flex-col items-center p-3 sm:p-6 md:p-8 gap-6">
+      {/* Header */}
+      <div className="w-full max-w-[90vw] sm:max-w-md md:max-w-lg lg:max-w-xl mb-4">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          Mosport <span className="text-cyan-400">Terminal</span>
         </h1>
-        <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-          The sports intelligence platform powered by dynamic world modeling, contextual event engines, and algorithmic signal extraction.
-        </p>
-        <div className="flex justify-center gap-4">
-          <Link href="/matches" className="bg-[#00AEEF] hover:bg-[#0096D1] text-white px-6 py-3 rounded font-semibold transition-colors">
-            Launch Explorer
-          </Link>
-          <Link href="/warroom" className="bg-[#181A20] hover:bg-[#20232A] border border-gray-800 text-gray-200 px-6 py-3 rounded font-semibold transition-colors">
-            War Room Dashboard
-          </Link>
-        </div>
-      </section>
+        <p className="text-slate-400 text-sm mt-1">Live Intelligence & Story Engine Feed</p>
+      </div>
 
-      {/* Feature Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-[#12141A] p-6 rounded-lg border border-gray-800">
-           <h3 className="text-xl font-bold mb-3 text-[#00AEEF]">Tier 1 Reality Data</h3>
-           <p className="text-gray-400 text-sm leading-relaxed">Box scores, match stats, and schedules crawled in real-time. Verified by Zod schemas to ensure absolute data purity.</p>
+      {/* Match Feed */}
+      {matches.length === 0 ? (
+        <div className="text-slate-500 py-20 text-center">
+          <p className="text-lg">No active signals available.</p>
+          <p className="text-sm mt-2">Waiting for ingestion engine to push data...</p>
         </div>
-        <div className="bg-[#12141A] p-6 rounded-lg border border-gray-800">
-           <h3 className="text-xl font-bold mb-3 text-[#FF2E88]">Event & Quant Engine</h3>
-           <p className="text-gray-400 text-sm leading-relaxed">News and real-world disruptions are transformed into impact scores, updating team fatigue, stability, and strength parameters.</p>
-        </div>
-        <div className="bg-[#12141A] p-6 rounded-lg border border-gray-800">
-           <h3 className="text-xl font-bold mb-3 text-[#00AEEF]">Alpha Signal Extraction</h3>
-           <p className="text-gray-400 text-sm leading-relaxed">Model probabilities are cross-referenced with global market averages to isolate statistical inefficiencies and true signals.</p>
-        </div>
-      </section>
-
-      {/* Legal Footer */}
-      <footer className="mt-20 pt-8 border-t border-gray-900 text-center pb-8">
-        <p className="text-xs text-gray-600 max-w-3xl mx-auto leading-relaxed">
-          <strong>LEGAL DISCLAIMER:</strong> Mosport does not predict games directly from raw statistics and is not a betting platform. All data is provided "as is" for research and analytical purposes. Mosport is not affiliated with the National Basketball Association, Major League Basketball, J.League, or any other official sports league. Model outputs represent statistical probabilities, not guaranteed outcomes.
-        </p>
-      </footer>
-    </div>
+      ) : (
+        matches.map((match: any) => (
+          <MatchCard key={match.match_id} match={match} />
+        ))
+      )}
+    </main>
   );
 }
