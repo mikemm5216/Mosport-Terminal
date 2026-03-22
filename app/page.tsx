@@ -113,9 +113,17 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
       >
         {/* LEAGUE / TIME / TOGGLER HEADER */}
         <div className="flex justify-between items-center px-4 md:px-8 mb-2">
-           <span className="text-[9px] md:text-xs text-slate-500 font-mono tracking-widest uppercase flex items-center gap-1.5">
-             {getLeagueDisplay(match.league?.league_name)}
-           </span>
+           <div className="flex items-center gap-3">
+             <span className="text-[9px] md:text-xs text-slate-500 font-mono tracking-widest uppercase flex items-center gap-1.5">
+               {getLeagueDisplay(match.league?.league_name)}
+             </span>
+             {match.primaryTag && (
+               <div className="flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.15)]">
+                 <span className="text-[8px] md:text-[9px] font-black text-cyan-400 tracking-tighter uppercase whitespace-nowrap">THE SIGN ➔</span>
+                 <span className="text-[8px] md:text-[9px] font-bold text-white tracking-widest uppercase truncate max-w-[120px] md:max-w-none">{match.primaryTag}</span>
+               </div>
+             )}
+           </div>
            <div className="flex items-center gap-2">
              {hasNarrative && <AlertCircle size={10} className={`${themeText} animate-pulse`} />}
              <span className="text-[9px] md:text-xs text-slate-400 font-mono tracking-widest">{timeStr}</span>
@@ -234,11 +242,16 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
           {/* Narrative Bubble */}
           <div className={`bg-slate-950/50 p-3 sm:p-4 rounded-r flex flex-col border-l-4 ${themeBorder} relative overflow-hidden group/narrative mb-4`}>
              <div className={`absolute -right-4 -top-4 w-24 h-24 bg-current opacity-[0.02] rounded-full blur-2xl ${themeText}`} />
-             <span className={`text-[9px] font-bold tracking-widest uppercase mb-1 ${themeText}`}>
-               {themeLabel}
-             </span>
+             <div className="flex justify-between items-center mb-1">
+               <span className={`text-[9px] font-bold tracking-widest uppercase ${themeText}`}>
+                 {themeLabel}
+               </span>
+               {match.confidence && (
+                 <span className="text-[8px] font-mono text-slate-500 uppercase">MODEL CONFIDENCE: {Math.round(match.confidence * 100)}%</span>
+               )}
+             </div>
              <p className="text-xs text-slate-300 leading-relaxed font-medium">
-               {match.narrative || "Waiting for intelligence feed..."}
+               {match.narrative || "System calculating outcome-driven intelligence..."}
              </p>
           </div>
 
