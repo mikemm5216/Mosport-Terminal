@@ -105,54 +105,54 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
       {/* 🔴 Level 1: Extreme Radar List (Row UI) */}
       <div 
         onClick={onToggle}
-        className={`w-full max-w-lg mx-auto py-3 border-b border-slate-800 cursor-pointer transition-colors ${isExpanded ? 'bg-slate-800/80' : 'hover:bg-slate-800/50'}`}
+        className={`w-full mx-auto py-4 md:py-6 border-b border-slate-800/80 cursor-pointer transition-all duration-200 ${isExpanded ? 'bg-slate-800/80' : 'hover:bg-slate-800/40'}`}
       >
         {/* LEAGUE / TIME / TOGGLER HEADER */}
-        <div className="flex justify-between items-center px-4 mb-2">
-           <span className="text-[9px] text-slate-500 font-mono tracking-widest uppercase flex items-center gap-1.5">
-             <span className="text-[10px]">{getLeagueIcon(match.league?.league_name)}</span>
+        <div className="flex justify-between items-center px-4 md:px-8 mb-2">
+           <span className="text-[9px] md:text-xs text-slate-500 font-mono tracking-widest uppercase flex items-center gap-1.5">
+             <span className="text-[10px] md:text-sm">{getLeagueIcon(match.league?.league_name)}</span>
              {match.league?.league_name?.substring(0,20) || "PRO LEAGUE"}
            </span>
            <div className="flex items-center gap-2">
              {hasNarrative && <AlertCircle size={10} className={`${themeText} animate-pulse`} />}
-             <span className="text-[9px] text-slate-400 font-mono tracking-widest">{timeStr}</span>
+             <span className="text-[9px] md:text-xs text-slate-400 font-mono tracking-widest">{timeStr}</span>
              {match.status === "COMPLETED" && (
-               <span className="text-[8px] bg-slate-800 text-slate-400 px-1 py-0.5 rounded border border-slate-700 uppercase tracking-widest">FIN</span>
+               <span className="text-[8px] md:text-[10px] bg-slate-800 text-slate-400 px-1 md:px-2 py-0.5 rounded border border-slate-700 uppercase tracking-widest">FIN</span>
              )}
-             {isExpanded ? <ChevronUp size={12} className="text-slate-500" /> : <ChevronDown size={12} className="text-slate-500" />}
+             {isExpanded ? <ChevronUp size={14} className="text-slate-500" /> : <ChevronDown size={14} className="text-slate-500" />}
            </div>
         </div>
 
-        {/* STRICT SYMMETRICAL GRID */}
-        <div className="grid grid-cols-[1fr_40px_1fr] items-center gap-4 w-full">
+        {/* STRICT SYMMETRICAL GRID — scales up on desktop */}
+        <div className="grid grid-cols-[1fr_40px_1fr] md:grid-cols-[1fr_60px_1fr] items-center gap-2 md:gap-6 w-full px-4 md:px-8">
           
           {/* HOME TEAM (Right Aligned) */}
-          <div className="flex items-center justify-end gap-3">
-            <span className="text-white font-black text-xl tracking-widest uppercase">
+          <div className="flex items-center justify-end gap-3 md:gap-5">
+            <span className="text-white font-black text-xl md:text-3xl tracking-widest uppercase transition-all">
               {match.home_short_name || homeTeamFull.substring(0, 3).toUpperCase()}
             </span>
             {match.home_logo ? (
-              <img src={match.home_logo} alt="Home" className="w-9 h-9 object-contain flex-shrink-0 drop-shadow-md" />
+              <img src={match.home_logo} alt="Home" className="w-8 h-8 md:w-12 md:h-12 object-contain flex-shrink-0 drop-shadow-lg transition-all" />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-black text-slate-500 flex-shrink-0">
+              <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] md:text-sm font-black text-slate-500 flex-shrink-0 transition-all">
                 {homeTeamFull.substring(0, 3).toUpperCase()}
               </div>
             )}
           </div>
 
           {/* VS (Strictly Centered) */}
-          <div className="text-slate-600 font-black text-[10px] text-center tracking-widest">VS</div>
+          <div className="text-slate-600 font-black text-[10px] md:text-sm text-center tracking-widest transition-all">VS</div>
 
           {/* AWAY TEAM (Left Aligned) */}
-          <div className="flex items-center justify-start gap-3">
+          <div className="flex items-center justify-start gap-3 md:gap-5">
             {match.away_logo ? (
-              <img src={match.away_logo} alt="Away" className="w-9 h-9 object-contain flex-shrink-0 drop-shadow-md" />
+              <img src={match.away_logo} alt="Away" className="w-8 h-8 md:w-12 md:h-12 object-contain flex-shrink-0 drop-shadow-lg transition-all" />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-black text-slate-500 flex-shrink-0">
+              <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] md:text-sm font-black text-slate-500 flex-shrink-0 transition-all">
                 {awayTeamFull.substring(0, 3).toUpperCase()}
               </div>
             )}
-            <span className="text-white font-black text-xl tracking-widest uppercase">
+            <span className="text-white font-black text-xl md:text-3xl tracking-widest uppercase transition-all">
               {match.away_short_name || awayTeamFull.substring(0, 3).toUpperCase()}
             </span>
           </div>
