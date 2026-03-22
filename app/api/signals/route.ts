@@ -18,7 +18,13 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json({ success: true, count: matches.length, data: matches });
+    const mappedMatches = matches.map(m => ({
+      ...m,
+      home_logo: m.home_team?.logo_url || null,
+      away_logo: m.away_team?.logo_url || null
+    }));
+
+    return NextResponse.json({ success: true, count: mappedMatches.length, data: mappedMatches });
   } catch (error: any) {
     console.error("[SIGNALS API ERROR]", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

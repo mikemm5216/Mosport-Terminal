@@ -213,6 +213,17 @@ model ModelRegistry {
   metrics_json Json
   created_at   DateTime @default(now())
 
-  @@index([model_type])
   @@map("model_registry")
+}
+
+// ==========================================
+// Mosport 1.5: Team Cold Database
+// ==========================================
+model Team {
+  id         String   @id @default(cuid())
+  team_name  String   @unique
+  short_name String?
+  logo_url   String?
+  league     String?
+  updatedAt  DateTime @updatedAt
 }
