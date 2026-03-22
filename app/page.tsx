@@ -131,9 +131,17 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
           
           {/* HOME TEAM (Right Aligned) */}
           <div className="flex items-center justify-end gap-3 md:gap-5">
-            <span className="text-white font-black text-xl md:text-3xl tracking-widest uppercase transition-all">
-              {match.home_short_name || homeTeamFull.substring(0, 3).toUpperCase()}
-            </span>
+            <div className="flex flex-col items-end">
+              <span className="text-white font-black text-xl md:text-3xl tracking-widest uppercase transition-all">
+                {match.home_short_name || homeTeamFull.substring(0, 3).toUpperCase()}
+              </span>
+              {match.home_streak && (
+                <span className={`text-[8px] md:text-[10px] font-bold tracking-widest uppercase mt-0.5 ${
+                  match.home_streak.includes('WIN') ? 'text-emerald-500' : 
+                  match.home_streak.includes('LOST') ? 'text-rose-500' : 'text-slate-500'
+                }`}>{match.home_streak}</span>
+              )}
+            </div>
             {match.home_logo ? (
               <img src={match.home_logo} alt="Home" className="w-8 h-8 md:w-12 md:h-12 object-contain flex-shrink-0 drop-shadow-lg transition-all" />
             ) : (
@@ -155,9 +163,17 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
                 {awayTeamFull.substring(0, 3).toUpperCase()}
               </div>
             )}
-            <span className="text-white font-black text-xl md:text-3xl tracking-widest uppercase transition-all">
-              {match.away_short_name || awayTeamFull.substring(0, 3).toUpperCase()}
-            </span>
+            <div className="flex flex-col items-start">
+              <span className="text-white font-black text-xl md:text-3xl tracking-widest uppercase transition-all">
+                {match.away_short_name || awayTeamFull.substring(0, 3).toUpperCase()}
+              </span>
+              {match.away_streak && (
+                <span className={`text-[8px] md:text-[10px] font-bold tracking-widest uppercase mt-0.5 ${
+                  match.away_streak.includes('WIN') ? 'text-emerald-500' : 
+                  match.away_streak.includes('LOST') ? 'text-rose-500' : 'text-slate-500'
+                }`}>{match.away_streak}</span>
+              )}
+            </div>
           </div>
 
         </div>
