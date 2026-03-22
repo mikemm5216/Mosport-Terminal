@@ -74,8 +74,8 @@ export async function GET() {
         console.error(`[TEAM INGEST ERROR] Failed on ${teamName}:`, err.message);
       }
 
-      // Add a brief await sleep(500) to respect rate limits
-      await sleep(500);
+      // Add a brief await sleep(1500) to respect rate limits
+      await sleep(1500);
     }
 
     return NextResponse.json({ success: true, count: results.length, data: results });
