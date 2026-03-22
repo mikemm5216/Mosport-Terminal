@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
 import { WorldEngine, TeamStats } from "@/lib/world-engine";
-import { ArrowLeft, Zap, Target, TrendingUp, Activity, User } from 'lucide-react';
+import { ArrowLeft, Zap, Activity, User } from 'lucide-react';
 
 export default async function WarRoomPage({ params }: { params: { id: string } }) {
   const { id } = await params;
@@ -28,7 +28,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
     );
   }
 
-  // Fetch Team Data & History
+  // Fetch Team Data
   const homeDb = await prisma.team.findFirst({ where: { team_name: match.home_team?.team_name ?? "" } });
   const awayDb = await prisma.team.findFirst({ where: { team_name: match.away_team?.team_name ?? "" } });
 
@@ -69,29 +69,20 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   const aPercent = 100 - hPercent;
 
   // Extract Key Players for Battle Mode
-  const sport = match.league?.sport || "Soccer";
-  // Sport-specific priority roles
+  const sport = (match.sport || "Soccer");
   const priorityRole = sport === "Baseball" ? "P" : sport === "Basketball" ? "PF" : "ST";
   
-  // DEMO FALLBACK: If DB is empty, provide CEO-spec Star Data
   let homeStar = match.home_team?.players?.find(p => p.positions.includes(priorityRole)) || match.home_team?.players?.[0];
   let awayStar = match.away_team?.players?.find(p => p.positions.includes(priorityRole)) || match.away_team?.players?.[0];
 
-  // (Fallback logic remains same but uses positions: ["P", "DH"])
+  // DEMO FALLBACK
   if (!homeStar) {
     homeStar = {
        player_id: "demo_home_star",
        player_name: sport === "Baseball" ? "S. Ohtani" : sport === "Basketball" ? "L. James" : "H. Kane",
        number: sport === "Baseball" ? "17" : sport === "Basketball" ? "23" : "9",
        positions: sport === "Baseball" ? ["P", "DH"] : sport === "Basketball" ? ["PF", "SF"] : ["ST", "CF"],
-       stats: sport === "Baseball" ? {
-         "P": { ERA: "2.52", K: "186", WHIP: "1.02", BAA: ".210" },
-         "DH": { AVG: ".304", HR: "44", RBI: "95", OPS: "1.066" }
-       } : sport === "Basketball" ? {
-         "PF": { PPG: "25.7", RPG: "7.3", APG: "8.3", "FG%": "54.2%", "3P%": "35.1%" }
-       } : {
-         "ST": { G: "32", A: "12", SPG: "3.4", "PAS%": "88%", TCK: "0.5" }
-       }
+       stats: sport === "Baseball" ? { "P": { ERA: "2.52", K: "186" } } : { "ST": { G: "32", A: "12" } }
     } as any;
   }
   
@@ -101,20 +92,29 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
        player_name: "Tactic Variable",
        number: "99",
        positions: sport === "Soccer" ? ["CDM", "CM"] : sport === "Basketball" ? ["PG", "SG"] : ["SS", "2B"],
-       stats: {
-         "CDM": { G: "1", A: "4", SPG: "0.5", "PAS%": "92%", TCK: "4.2" },
-         "PG": { PPG: "18.2", APG: "9.4", RPG: "4.1", "FG%": "48%", "3P%": "41%" },
-         "SS": { AVG: ".285", HR: "22", RBI: "75", OPS: ".880" }
-       }
+       stats: sport === "Soccer" ? { "CDM": { G: "1", A: "4" } } : { "SS": { AVG: ".285", OPS: ".880" } }
     } as any;
   }
 
-  // Active Role determination for Showdown
-  const homeActiveRole = homeStar?.positions?.includes(priorityRole) ? priorityRole : homeStar?.positions?.[0];
-  const awayActiveRole = awayStar?.positions?.includes(priorityRole) ? priorityRole : awayStar?.positions?.[0];
+  // Active Role determination
+  const homeActiveRole = (homeStar?.positions?.includes(priorityRole) ? priorityRole : homeStar?.positions?.[0]) || "ST";
+  const awayActiveRole = (awayStar?.positions?.includes(priorityRole) ? priorityRole : awayStar?.positions?.[0]) || "ST";
 
-  const homePlayerStats = (homeStar?.stats as Record<string, any>)?.[homeActiveRole] || {};
-  const awayPlayerStats = (awayStar?.stats as Record<string, any>)?.[awayActiveRole] || {};
+  // DATA RECOVERY: Handle both flat and nested structures
+  const hRaw = (homeStar?.stats as Record<string, any>) || {};
+  const aRaw = (awayStar?.stats as Record<string, any>) || {};
+  const homePlayerStats = hRaw[homeActiveRole] || hRaw;
+  const awayPlayerStats = aRaw[awayActiveRole] || aRaw;
+
+  // CEO SAFETY: Strict Metric Whitelists
+  const SOCCER_METRICS = ["G", "A", "SPG", "PAS%", "TCK", "CS", "SV"];
+  const NBA_METRICS = ["PPG", "RPG", "APG", "FG%", "3P%"];
+  const MLB_METRICS = ["AVG", "HR", "RBI", "OPS", "ERA", "K", "WHIP", "BAA"];
+  const allowedMetrics = sport === "Soccer" ? SOCCER_METRICS : 
+                       sport === "Basketball" ? NBA_METRICS : MLB_METRICS;
+
+  const hFiltered = Object.entries(homePlayerStats).filter(([k]) => allowedMetrics.includes(k)).slice(0, 4);
+  const aFiltered = Object.entries(awayPlayerStats).filter(([k]) => allowedMetrics.includes(k)).slice(0, 4);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30 overflow-x-hidden">
@@ -130,10 +130,10 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* HERO SECTION - SURGICAL PERMANENT HORIZONTAL LOCK & LOGO RESTORE */}
+        {/* HERO SECTION */}
         <header className="flex flex-row flex-nowrap items-center justify-between gap-4 md:gap-12 mb-12">
           <div className="text-center md:text-right flex-1 shrink-0 flex flex-col md:flex-row-reverse items-center md:items-end justify-center md:justify-start gap-4">
-             <div className="w-16 h-16 md:w-24 md:h-24 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+             <div className="w-16 h-16 md:w-24 md:h-24 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                {match.home_team?.logo_url ? <img src={match.home_team.logo_url} className="w-full h-full object-contain p-2" /> : <Zap className="text-slate-800" />}
              </div>
              <div>
@@ -141,14 +141,13 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                 <p className="text-[10px] md:text-xs font-mono text-slate-500 mt-2 tracking-widest uppercase">{homeStats.name}</p>
              </div>
           </div>
-          <div className="flex flex-col items-center gap-3 shrink-0">
-             <div className="text-slate-800 font-black text-3xl md:text-7xl italic opacity-20 select-none">VS</div>
-             <div className="bg-cyan-500/10 border border-cyan-500/30 px-3 md:px-4 py-1 md:py-1.5 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.15)] whitespace-nowrap">
-                <span className="text-[8px] md:text-xs font-black text-cyan-400 tracking-tighter uppercase">{simulation.primaryTag}</span>
-             </div>
+          <div className="flex flex-col items-center gap-2 shrink-0">
+             <div className="h-0.5 w-8 md:w-16 bg-slate-800" />
+             <div className="text-slate-800 font-black text-sm md:text-2xl italic tracking-[0.3em]">VS</div>
+             <div className="h-0.5 w-8 md:w-16 bg-slate-800" />
           </div>
           <div className="text-center md:text-left flex-1 shrink-0 flex flex-col md:flex-row items-center md:items-end justify-center md:justify-start gap-4">
-             <div className="w-16 h-16 md:w-24 md:h-24 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
+             <div className="w-16 h-16 md:w-24 md:h-24 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                {match.away_team?.logo_url ? <img src={match.away_team.logo_url} className="w-full h-full object-contain p-2" /> : <Zap className="text-slate-800" />}
              </div>
              <div>
@@ -174,10 +173,8 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
            </div>
         </section>
 
-        {/* DUAL INTELLIGENCE GRID - FIXED FOR TABLET/LAPTOP */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
-           
-           {/* STANDARD ANALYSIS */}
+           {/* ANALYSIS */}
            <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 md:p-10 relative overflow-hidden h-fit lg:min-h-[450px]">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500 shadow-[4px_0_15px_rgba(6,182,212,0.4)]" />
               <div className="flex items-center gap-4 mb-8">
@@ -199,7 +196,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
               </div>
            </section>
 
-           {/* KEY PLAYERS SHOWDOWN (BATTLE MODE) */}
+           {/* KEY PLAYERS */}
            <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 md:p-10 h-fit lg:min-h-[450px]">
               <div className="flex items-center justify-between mb-10">
                  <div className="flex items-center gap-4">
@@ -217,7 +214,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                  </div>
 
                  {/* HOME PLAYER */}
-                 <Link href={`/players/${homeStar?.player_id}`} className="flex items-center gap-4 md:gap-6 justify-between bg-slate-950/50 p-4 md:p-6 rounded-2xl border border-slate-800/80 group hover:border-indigo-500/40 transition-all duration-300">
+                 <div className="flex items-center gap-4 md:gap-6 justify-between bg-slate-950/50 p-4 md:p-6 rounded-2xl border border-slate-800/80 transition-all duration-300">
                     <TacticalAvatar 
                       number={homeStar?.number || "00"} 
                       position={homeActiveRole} 
@@ -227,25 +224,25 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                     <div className="flex flex-col gap-2 md:gap-4 flex-1 items-end min-w-0">
                        <div className="text-right">
                           <h4 className="text-white font-black text-xs md:text-sm uppercase tracking-tight truncate max-w-[100px] md:max-w-[120px]">{homeStar?.player_name || "Unknown Star"}</h4>
-                          <span className="text-[8px] md:text-[9px] text-indigo-400 font-mono tracking-widest uppercase">{homeStats.shortName} [{homeStar?.positions?.join('/')}]</span>
+                          <span className="text-[8px] md:text-[9px] text-indigo-400 font-mono tracking-widest uppercase">{homeStats.shortName} [{homeStar?.positions?.join('/') || homeActiveRole}]</span>
                        </div>
                        <div className="grid grid-cols-2 gap-x-4 md:gap-x-6 gap-y-1 md:gap-y-2">
-                          {Object.entries(homePlayerStats).slice(0, 4).map(([k, v]: [string, any]) => (
+                          {hFiltered.map(([k, v]) => (
                              <StatBlock key={k} label={k} value={String(v)} />
                           ))}
                        </div>
                     </div>
-                 </Link>
+                 </div>
 
                  {/* AWAY PLAYER */}
-                 <Link href={`/players/${awayStar?.player_id}`} className="flex items-center gap-4 md:gap-6 justify-between bg-slate-950/50 p-4 md:p-6 rounded-2xl border border-slate-800/80 group hover:border-orange-500/40 transition-all duration-300">
+                 <div className="flex items-center gap-4 md:gap-6 justify-between bg-slate-950/50 p-4 md:p-6 rounded-2xl border border-slate-800/80 transition-all duration-300">
                     <div className="flex flex-col gap-2 md:gap-4 flex-1 items-start min-w-0">
                        <div className="text-left">
                           <h4 className="text-white font-black text-xs md:text-sm uppercase tracking-tight truncate max-w-[100px] md:max-w-[120px]">{awayStar?.player_name || "Unknown Star"}</h4>
-                          <span className="text-[8px] md:text-[9px] text-orange-400 font-mono tracking-widest uppercase">{awayStats.shortName} [{awayStar?.positions?.join('/')}]</span>
+                          <span className="text-[8px] md:text-[9px] text-orange-400 font-mono tracking-widest uppercase">{awayStats.shortName} [{awayStar?.positions?.join('/') || awayActiveRole}]</span>
                        </div>
                        <div className="grid grid-cols-2 gap-x-4 md:gap-x-6 gap-y-1 md:gap-y-2">
-                          {Object.entries(awayPlayerStats).slice(0, 4).map(([k, v]: [string, any]) => (
+                          {aFiltered.map(([k, v]) => (
                              <StatBlock key={k} label={k} value={String(v)} />
                           ))}
                        </div>
@@ -256,7 +253,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                       name={awayStar?.player_name || "N/A"}
                       side="AWAY"
                     />
-                 </Link>
+                 </div>
               </div>
 
               <div className="mt-10 p-5 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
