@@ -1,34 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { WorldEngine } from "@/lib/world-engine";
 import { Shield } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
-
-// --- Metric helpers ---
-function calcMomentum(history: { result: string }[]): number {
-  const last5 = history.slice(0, 5);
-  if (last5.length === 0) return 0;
-  const pts = last5.reduce((sum, h) => {
-    if (h.result === 'W') return sum + 1.0;
-    if (h.result === 'D') return sum + 0.5;
-    return sum;
-  }, 0);
-  return Math.round((pts / 5) * 100) / 100;
-}
-
-function calcStrength(history: { result: string }[]): number {
-  if (history.length === 0) return 0;
-  const wins = history.filter(h => h.result === 'W').length;
-  return Math.round((wins / history.length) * 100) / 100;
-}
-
-function calcFatigue(history: { date: Date }[]): number {
-  if (history.length === 0) return 0;
-  const mostRecent = history[0].date;
-  const daysSince = (Date.now() - mostRecent.getTime()) / (1000 * 60 * 60 * 24);
-  if (daysSince < 2) return 0.9;
-  if (daysSince <= 4) return 0.5;
-  return 0.1;
-}
 
 function getResultColor(result: string): string {
   if (result === 'W') return 'bg-emerald-500';
@@ -73,9 +47,9 @@ export default async function TeamsAnalyticsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-7xl">
           {teams.map(team => {
             const history = historyByTeamId.get(team.id) || [];
-            const momentum = calcMomentum(history);
-            const strength = calcStrength(history);
-            const fatigue = calcFatigue(history);
+            const momentum = WorldEngine.calcMomentum(history);
+            const strength = WorldEngine.calcStrength(history);
+            const fatigue = WorldEngine.calcFatigue(history);
             const last5 = history.slice(0, 5);
             const hasData = history.length > 0;
 

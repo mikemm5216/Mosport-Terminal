@@ -1,26 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { WorldEngine, TeamStats } from "@/lib/world-engine";
 
 export const dynamic = 'force-dynamic';
-
-// Calculate ESPN-style streak from ordered match history
-function calcStreak(history: { result: string }[]): string | null {
-  if (!history || history.length === 0) return null;
-  const first = history[0].result;
-  let count = 1;
-  for (let i = 1; i < history.length; i++) {
-    if (history[i].result === first) {
-      count++;
-    } else break;
-  }
-  if (first === 'W') {
-    return count === 1 ? '1-GAME WIN STREAK' : `${count}-GAME WIN STREAK`;
-  } else if (first === 'L') {
-    return count === 1 ? 'LOST LAST 1' : `LOST LAST ${count}`;
-  } else {
-    return count === 1 ? '1 DRAW' : `${count} DRAWS`;
-  }
-}
 
 export async function GET() {
   try {
@@ -49,24 +31,20 @@ export async function GET() {
       where: { team_name: { in: Array.from(teamNames) } }
     });
 
-    // Debug log
-    console.error(`[SIGNALS] Matches: ${matches.length}, Cold DB teams: ${teamsDb.length}`);
-
     const teamMap = new Map(teamsDb.map(t => [t.team_name, t]));
 
-    // Fetch match history for streaks (keyed by team.id)
+    // Fetch match history for all teams
     const teamIds = teamsDb.map(t => t.id);
     const allHistory = await prisma.matchHistory.findMany({
       where: { team_id: { in: teamIds } },
-      orderBy: { date: 'desc' },
-      select: { team_id: true, result: true }
+      orderBy: { date: 'desc' }
     });
 
-    // Build history map: team_id -> sorted results (already desc by date)
-    const historyMap = new Map<string, { result: string }[]>();
+    // Build history map: team_id -> sorted objects
+    const historyMap = new Map<string, typeof allHistory>();
     for (const h of allHistory) {
       const existing = historyMap.get(h.team_id) || [];
-      existing.push({ result: h.result });
+      existing.push(h);
       historyMap.set(h.team_id, existing);
     }
 
@@ -77,14 +55,44 @@ export async function GET() {
       const homeHistory = homeDbTeam ? (historyMap.get(homeDbTeam.id) || []) : [];
       const awayHistory = awayDbTeam ? (historyMap.get(awayDbTeam.id) || []) : [];
 
+      // Construct TeamStats for World Engine
+      const homeStats: TeamStats = {
+        id: homeDbTeam?.id || 'home',
+        name: m.home_team?.team_name || 'Home',
+        shortName: homeDbTeam?.short_name || (m.home_team?.team_name?.substring(0,3).toUpperCase() ?? 'HOM'),
+        momentum: WorldEngine.calcMomentum(homeHistory),
+        strength: WorldEngine.calcStrength(homeHistory),
+        fatigue: WorldEngine.calcFatigue(homeHistory),
+        history: homeHistory,
+      };
+
+      const awayStats: TeamStats = {
+        id: awayDbTeam?.id || 'away',
+        name: m.away_team?.team_name || 'Away',
+        shortName: awayDbTeam?.short_name || (m.away_team?.team_name?.substring(0,3).toUpperCase() ?? 'AWY'),
+        momentum: WorldEngine.calcMomentum(awayHistory),
+        strength: WorldEngine.calcStrength(awayHistory),
+        fatigue: WorldEngine.calcFatigue(awayHistory),
+        history: awayHistory,
+      };
+
+      // RUN THE OUTCOME-DRIVEN NARRATIVE ENGINE
+      const simulation = WorldEngine.runMatchSimulation(homeStats, awayStats);
+
       return {
         ...m,
         home_logo: homeDbTeam?.logo_url || null,
         away_logo: awayDbTeam?.logo_url || null,
-        home_short_name: homeDbTeam?.short_name || (m.home_team?.team_name?.substring(0,3).toUpperCase() ?? null),
-        away_short_name: awayDbTeam?.short_name || (m.away_team?.team_name?.substring(0,3).toUpperCase() ?? null),
-        home_streak: calcStreak(homeHistory),
-        away_streak: calcStreak(awayHistory),
+        home_short_name: homeStats.shortName,
+        away_short_name: awayStats.shortName,
+        // Narrative Props
+        primaryTag: simulation.primaryTag,
+        narrative: simulation.narrative,
+        predictedWinner: simulation.predictedWinner,
+        confidence: simulation.confidence,
+        // Legacy streak fields if needed
+        home_streak: WorldEngine.getStreakCount(homeHistory).type + WorldEngine.getStreakCount(homeHistory).count,
+        away_streak: WorldEngine.getStreakCount(awayHistory).type + WorldEngine.getStreakCount(awayHistory).count,
       };
     });
 
