@@ -82,6 +82,8 @@ export async function GET() {
 
       return {
         ...m,
+        home_team_name: m.home_team_name || m.home_team?.team_name || 'Home',
+        away_team_name: m.away_team_name || m.away_team?.team_name || 'Away',
         home_logo: homeDbTeam?.logo_url || null,
         away_logo: awayDbTeam?.logo_url || null,
         home_short_name: homeStats.shortName,

@@ -43,11 +43,12 @@ const POSITIONS_SOCCER = ["GK", "CB", "LB", "RB", "LWB", "RWB", "CDM", "CM", "CA
  * and falls back to DB if API is missing.
  */
 async function resolveProfessionalPositions(sport: string, apiPositions: string[], name: string): Promise<string[]> {
-  const dictionary = sport === "Baseball" ? POSITIONS_BASEBALL : 
-                    sport === "Basketball" ? POSITIONS_BASKETBALL : 
-                    sport === "Soccer" ? POSITIONS_SOCCER : [];
+  const s = (sport || "").toLowerCase();
+  const dictionary = s === "baseball" ? POSITIONS_BASEBALL : 
+                    s === "basketball" ? POSITIONS_BASKETBALL : 
+                    s === "soccer" ? POSITIONS_SOCCER : [];
   
-  let validated = apiPositions.filter(p => dictionary.includes(p));
+  let validated = (apiPositions || []).filter(p => dictionary.includes(p));
 
   // FALLBACK: If API has no valid positions, check our internal DB
   if (validated.length === 0) {
@@ -59,12 +60,15 @@ async function resolveProfessionalPositions(sport: string, apiPositions: string[
     }
   }
 
-  // ANOMALY MONITORING
-  if (validated.length === 0 && apiPositions.length > 0) {
-    console.warn(`[Position Anomaly] Sport: ${sport} | Name: ${name} | Received: ${apiPositions.join(',')}`);
+  // LAST RESORT: Ensure array is NOT empty
+  if (validated.length === 0) {
+    if (s === "soccer") validated = ["ST"];
+    else if (s === "basketball") validated = ["PF"];
+    else if (s === "baseball") validated = ["DH"];
+    else validated = ["ST"];
   }
-
-  return validated.length > 0 ? validated : apiPositions; // Keep original if no match but log anomaly
+  
+  return validated;
 }
 
 /**
@@ -72,14 +76,15 @@ async function resolveProfessionalPositions(sport: string, apiPositions: string[
  */
 function getProfessionalStats(sport: string, positions: string[]): Record<string, any> {
   const stats: Record<string, any> = {};
+  const s = (sport || "").toLowerCase();
   
   for (const pos of positions) {
-    if (sport === "Baseball") {
+    if (s === "baseball") {
       if (pos === "P") stats[pos] = { ERA: "0.00", K: "0", WHIP: "0.00", BAA: ".000" };
       else stats[pos] = { AVG: ".000", HR: "0", RBI: "0", OPS: ".000" };
-    } else if (sport === "Basketball") {
+    } else if (s === "basketball") {
       stats[pos] = { PPG: "0.0", RPG: "0.0", APG: "0.0", "FG%": "0.0%", "3P%": "0.0%" };
-    } else if (sport === "Soccer") {
+    } else if (s === "soccer") {
       if (pos === "GK") stats[pos] = { CS: "0", SV: "0" };
       else stats[pos] = { G: "0", A: "0", SPG: "0.0", "PAS%": "0%", TCK: "0.0" };
     }
@@ -93,12 +98,12 @@ const normalizeLeagueTag = (leagueName: string, sport: string): string => {
   const l = (leagueName || "").toLowerCase();
   const s = (sport || "").toLowerCase();
   
-  if (l.includes("nba") || s.includes("nba")) return "NBA";
-  if (l.includes("mlb") || s.includes("mlb")) return "MLB";
+  if (l.includes("nba") || s.includes("nba") || s.includes("basketball")) return "NBA";
+  if (l.includes("mlb") || s.includes("mlb") || s.includes("baseball")) return "MLB";
   if (l.includes("premier league") || l.includes("epl") || s.includes("epl")) return "EPL";
   if (l.includes("champions league") || l.includes("ucl") || l.includes("uefa")) return "UCL";
   
-  return "EPL"; // Default fallback to active soccer
+  return "NBA"; // High traffic default for testing visibility if sport is unknown
 };
 
 // ==============
