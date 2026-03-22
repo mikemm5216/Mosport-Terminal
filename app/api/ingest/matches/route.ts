@@ -78,16 +78,18 @@ function getProfessionalStats(sport: string, positions: string[]): Record<string
   const stats: Record<string, any> = {};
   const s = (sport || "").toLowerCase();
   
-  for (const pos of positions) {
-    if (s === "baseball") {
-      if (pos === "P") stats[pos] = { ERA: "0.00", K: "0", WHIP: "0.00", BAA: ".000" };
-      else stats[pos] = { AVG: ".000", HR: "0", RBI: "0", OPS: ".000" };
-    } else if (s === "basketball") {
-      stats[pos] = { PPG: "0.0", RPG: "0.0", APG: "0.0", "FG%": "0.0%", "3P%": "0.0%" };
-    } else if (s === "soccer") {
-      if (pos === "GK") stats[pos] = { CS: "0", SV: "0" };
-      else stats[pos] = { G: "0", A: "0", SPG: "0.0", "PAS%": "0%", TCK: "0.0" };
+  if (s === "soccer") {
+    if (positions.includes("GK")) {
+      return { "CS": "0", "SV": "0", "PAS%": "75%" };
     }
+    return { "G": "0", "A": "0", "SPG": "0.0", "PAS%": "0%", "TCK": "0.0" };
+  } else if (s === "basketball") {
+    return { "PPG": "0.0", "RPG": "0.0", "APG": "0.0", "FG%": "0.0%", "3P%": "0.0%" };
+  } else if (s === "baseball") {
+    if (positions.includes("P")) {
+      return { "ERA": "0.00", "K": "0", "WHIP": "0.00", "BAA": ".000" };
+    }
+    return { "AVG": ".000", "HR": "0", "RBI": "0", "OPS": ".000" };
   }
   
   return stats;
@@ -100,10 +102,10 @@ const normalizeLeagueTag = (leagueName: string, sport: string): string => {
   
   if (l.includes("nba") || s.includes("nba") || s.includes("basketball")) return "NBA";
   if (l.includes("mlb") || s.includes("mlb") || s.includes("baseball")) return "MLB";
-  if (l.includes("premier league") || l.includes("epl") || s.includes("epl")) return "EPL";
-  if (l.includes("champions league") || l.includes("ucl") || l.includes("uefa")) return "UCL";
+  if (l.includes("premier") || l.includes("epl") || s.includes("epl") || (s.includes("soccer") && (l.includes("premier") || !l.includes("champions")))) return "EPL";
+  if (l.includes("champions") || l.includes("ucl") || l.includes("uefa")) return "UCL";
   
-  return "NBA"; // High traffic default for testing visibility if sport is unknown
+  return "NBA"; 
 };
 
 // ==============
@@ -336,8 +338,8 @@ export async function GET() {
         sport: data.sport,
         country: "Global"
       });
-      teamsMap.set(data.home_team_id, { team_id: data.home_team_id, league_id: data.league_id, team_name: data.home_team_name, home_city: "Unknown", logo_url: data.home_logo });
-      teamsMap.set(data.away_team_id, { team_id: data.away_team_id, league_id: data.league_id, team_name: data.away_team_name, home_city: "Unknown", logo_url: data.away_logo });
+      teamsMap.set(data.home_team_id, { team_id: data.home_team_id, league_id: data.league_id, team_name: data.home_team_name, home_city: "Unknown", logo_url: data.home_logo, sport: data.sport, league_name: data.league_name });
+      teamsMap.set(data.away_team_id, { team_id: data.away_team_id, league_id: data.league_id, team_name: data.away_team_name, home_city: "Unknown", logo_url: data.away_logo, sport: data.sport, league_name: data.league_name });
       matchRows.push({
         match_id: data.match_id,
         league_id: data.league_id,
@@ -362,7 +364,27 @@ export async function GET() {
     );
     await Promise.all(
       Array.from(teamsMap.values()).map(t =>
-        prisma.teams.upsert({ where: { team_id: t.team_id }, update: {}, create: t })
+        prisma.teams.upsert({ where: { team_id: t.team_id }, update: {}, create: { team_id: t.team_id, league_id: t.league_id, team_name: t.team_name, home_city: t.home_city, logo_url: t.logo_url } })
+      )
+    );
+
+    // Sync to Vault Team (singular) table
+    await Promise.all(
+      Array.from(teamsMap.values()).map(t =>
+        prisma.team.upsert({
+          where: { team_name: t.team_name },
+          update: {
+            short_name: t.team_name.substring(0, 3).toUpperCase(),
+            logo_url: t.logo_url,
+            league: normalizeLeagueTag(t.league_name, t.sport)
+          },
+          create: {
+            team_name: t.team_name,
+            short_name: t.team_name.substring(0, 3).toUpperCase(),
+            logo_url: t.logo_url,
+            league: normalizeLeagueTag(t.league_name, t.sport)
+          }
+        })
       )
     );
 
