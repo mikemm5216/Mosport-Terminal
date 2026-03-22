@@ -120,7 +120,7 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
         <div className="grid grid-cols-[1fr_60px_1fr] md:grid-cols-[1fr_100px_1fr] items-center gap-4 md:gap-10 w-full px-4 md:px-6">
           <div className="flex items-center justify-end gap-3 md:gap-8 text-right">
             <span className="text-white font-black text-3xl md:text-5xl tracking-tighter uppercase leading-none">
-              {toTLA(match.home_team_name)}
+              {toTLA(match.home_team_name || match.home_team?.team_name || match.home_short_name || 'HOM')}
             </span>
             <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)]">
                {match.home_logo ? <img src={match.home_logo} alt="" className="w-full h-full object-contain p-1.5" /> : <Zap className="text-slate-800" size={20} />}
@@ -134,7 +134,7 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
                {match.away_logo ? <img src={match.away_logo} alt="" className="w-full h-full object-contain p-1.5" /> : <Zap className="text-slate-800" size={20} />}
             </div>
             <span className="text-white font-black text-3xl md:text-5xl tracking-tighter uppercase leading-none">
-              {toTLA(match.away_team_name)}
+              {toTLA(match.away_team_name || match.away_team?.team_name || match.away_short_name || 'AWY')}
             </span>
           </div>
         </div>

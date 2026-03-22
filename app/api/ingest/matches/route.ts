@@ -260,15 +260,17 @@ async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
 
 export async function GET() {
   try {
-    // FORENSIC PURGE - Wipe dirty data first (Cascading dependencies)
+    // FORENSIC PURGE - Wipe dirty data first (Exhaustive cascading)
     await prisma.matchStats.deleteMany({});
     await prisma.marketProbabilities.deleteMany({});
     await prisma.signals.deleteMany({});
     await prisma.eventSnapshot.deleteMany({});
     await prisma.experience.deleteMany({});
+    await prisma.matchesHistory.deleteMany({});
+    await prisma.signalsHistory.deleteMany({});
     await prisma.players.deleteMany({});
     await prisma.matches.deleteMany({});
-    console.error("[INGEST] Forensic Purge Executed (Cascading).");
+    console.error("[INGEST] Forensic Purge Executed (Exhaustive).");
 
     const dates: string[] = [];
     // 日常排程 (Daily Sync)：只抓昨天 (-1)、今天 (0) 及未來三天 (1~3)
