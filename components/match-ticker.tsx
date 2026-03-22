@@ -1,26 +1,18 @@
-import { prisma } from "@/lib/prisma";
-import { WorldEngine } from "@/lib/world-engine";
+"use client"
 
-export default async function MatchTicker() {
-  const now = new Date();
-  const past12h = new Date(now.getTime() - 12 * 60 * 60 * 1000);
-  const future12h = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+import { useEffect, useState } from 'react';
 
-  const matches = await prisma.matches.findMany({
-    where: {
-      match_date: {
-        gte: past12h,
-        lte: future12h,
-      },
-    },
-    include: {
-      home_team: true,
-      away_team: true,
-    },
-    orderBy: {
-      match_date: 'asc',
-    },
-  });
+export default function MatchTicker() {
+  const [matches, setMatches] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/matches/ticker')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setMatches(data.data);
+      })
+      .catch(e => console.error("Ticker fetch error", e));
+  }, []);
 
   if (matches.length === 0) return null;
 
@@ -32,8 +24,9 @@ export default async function MatchTicker() {
       <div className="flex animate-marquee whitespace-nowrap items-center">
         {tickerItems.map((match, idx) => {
           const isFinished = match.status === "COMPLETED";
-          const timeStr = match.match_date.getUTCHours().toString().padStart(2, '0') + ":" + 
-                         match.match_date.getUTCMinutes().toString().padStart(2, '0');
+          const d = new Date(match.match_date);
+          const timeStr = d.getUTCHours().toString().padStart(2, '0') + ":" + 
+                         d.getUTCMinutes().toString().padStart(2, '0');
           
           const homeName = match.home_team?.short_name || match.home_team_id.substring(0,3).toUpperCase();
           const awayName = match.away_team?.short_name || match.away_team_id.substring(0,3).toUpperCase();
