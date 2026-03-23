@@ -17,7 +17,6 @@ export async function GET() {
 
     return NextResponse.json({ success: true, liveScores });
   } catch (error: any) {
-    console.error("[API/Live] Failed to fetch from Redis", error);
-    return NextResponse.json({ success: false, error: 'Live data temporarily unavailable' }, { status: 500 });
+    return NextResponse.json({ success: false, liveScores: [] });
   }
 }

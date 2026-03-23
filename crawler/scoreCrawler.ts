@@ -2,7 +2,6 @@ import { redis } from '../lib/redis';
 import { db } from '../lib/db';
 
 export async function runScoreCrawler() {
-  console.log("[Score Crawler] Fetching delayed live scores to Redis cache...");
   
   // Find all matches currently marked as 'live'
   const liveMatches = await db.matches.findMany({
@@ -29,6 +28,5 @@ export async function runScoreCrawler() {
 
     // Save to Redis with 30-second TTL to prevent stale reads
     await redis.setex(redisKey, 30, payload);
-    console.log(`[Score Crawler] Updated Redis cache for ${redisKey}`);
   }
 }

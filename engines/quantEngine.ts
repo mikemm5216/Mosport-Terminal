@@ -6,7 +6,6 @@ import { db } from "../lib/db";
  */
 
 export async function runQuantSimulations() {
-  console.log("[Quant Engine] Running simulations for scheduled matches...");
 
   const upcomingMatches = await db.matches.findMany({
     where: { status: "scheduled" },

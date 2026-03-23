@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildFeatureVector } from "@/lib/feature";
 
@@ -6,7 +6,7 @@ const INFERENCE_URL = process.env.INFERENCE_URL;
 const TIMEOUT_MS = 3000;
 const MAX_RETRIES = 2;
 
-// 從 DB 撈取真實特徵向量
+// �?DB ?��??�實?�徵?��?
 async function getFeatureVectorFromDB(match_id: string, snapshot_type: string): Promise<number[] | null> {
   try {
     const match = await prisma.matches.findUnique({
@@ -21,14 +21,13 @@ async function getFeatureVectorFromDB(match_id: string, snapshot_type: string): 
     });
 
     if (!match || match.snapshots.length === 0) {
-      console.warn(`[PREDICT] No snapshot found for ${match_id} (${snapshot_type})`);
       return null;
     }
 
     const snapshot = match.snapshots[0];
     const current_venue = match.home_team?.home_city || "Unknown";
     
-    // 統一呼叫 global buildFeatureVector
+    // 統�??�叫 global buildFeatureVector
     return await buildFeatureVector(
       snapshot.feature_json as Record<string, any> | number[],
       match.home_team_id,
@@ -38,12 +37,11 @@ async function getFeatureVectorFromDB(match_id: string, snapshot_type: string): 
     );
 
   } catch (error) {
-    console.error("[PREDICT DB ERROR]", error);
     return null;
   }
 }
 
-// 帶 timeout 的 fetch
+// �?timeout ??fetch
 async function fetchWithTimeout(url: string, options: any, timeout: number) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
@@ -82,7 +80,6 @@ async function callInference(payload: any) {
       return await res.json();
 
     } catch (err: any) {
-      console.error(`[INFERENCE ERROR] attempt=${attempt}`, err.message);
 
       if (attempt === MAX_RETRIES) {
         throw err;
@@ -109,8 +106,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 👉 建立 feature vector（從真實 DB snapshot 撈取）
-    const feature_vector = await getFeatureVectorFromDB(match_id, snapshot_type);
+    // ?? 建�? feature vector（�??�實 DB snapshot ?��?�?    const feature_vector = await getFeatureVectorFromDB(match_id, snapshot_type);
 
     if (!feature_vector) {
       return NextResponse.json({
@@ -126,12 +122,11 @@ export async function POST(req: Request) {
       feature_vector,
     };
 
-    // 👉 呼叫 Python inference
+    // ?? ?�叫 Python inference
     const result = await callInference(payload);
 
-    // 👉 Fail-safe
+    // ?? Fail-safe
     if (result?.error || result?.probability === -1) {
-      console.warn("[PREDICT FAILSAFE TRIGGERED]");
       return NextResponse.json({
         success: false,
         probability: null,
@@ -139,7 +134,6 @@ export async function POST(req: Request) {
     }
 
     const latency = Date.now() - start;
-    console.log(`[PREDICT] match=${match_id} latency=${latency}ms`);
 
     return NextResponse.json({
       success: true,
@@ -150,9 +144,6 @@ export async function POST(req: Request) {
     });
 
   } catch (error: any) {
-    console.error("[PREDICT ERROR]", error.message);
-
-    // 👉 最終保護：永遠不要讓前端炸掉
     return NextResponse.json({
       success: false,
       probability: null,

@@ -54,8 +54,7 @@ export async function sendToDeadLetterQueue(source: string, payload: any, error:
         error: error.message || String(error)
       }
     });
-    console.error(`[ACL] Invalid data sent to Dead Letter Queue from ${source}`);
   } catch(e) {
-    console.error("[ACL] Failed to save to dead letter queue", e);
+    // DLQ Silent Fail
   }
 }

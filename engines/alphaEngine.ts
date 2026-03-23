@@ -1,4 +1,4 @@
-import { db } from "../lib/db";
+import { prisma } from "@/lib/prisma";
 import { runQuantSimulations } from "./quantEngine";
 
 /**
@@ -8,7 +8,7 @@ import { runQuantSimulations } from "./quantEngine";
  */
 
 export async function generateSignals() {
-  console.log("[Alpha Engine] Generating pre-match alpha signals...");
+
 
   const quantResults = await runQuantSimulations();
   
@@ -18,14 +18,15 @@ export async function generateSignals() {
        continue;
     }
 
-    const marketData = await db.marketProbabilities.findFirst({
-      where: { match_id: q.match_id },
-      orderBy: { id: "desc" }
+    const marketData = await prisma.eventSnapshot.findFirst({
+      where: { match_id: q.match_id, snapshot_type: "MARKET" },
+      orderBy: { created_at: "desc" }
     });
 
     if (!marketData) continue; 
     
-    const market_prob = marketData.market_probability_home;
+    // @ts-ignore - state_json is Json
+    const market_prob = marketData.state_json?.market_probability_home || 0.5;
     const model_prob = q.win_probability_home;
 
     const edge = model_prob - market_prob;
@@ -38,18 +39,19 @@ export async function generateSignals() {
       signal_type = "true_signal";
     }
 
-    // Save/Update Signal
-    await db.signals.create({
+    // Save/Update Signal as a Snapshot
+    await prisma.eventSnapshot.create({
       data: {
         match_id: q.match_id,
-        model_probability_home: model_prob,
-        market_probability_home: market_prob,
-        edge,
-        snr,
-        signal_type
+        snapshot_type: "SIGNAL",
+        state_json: {
+          model_probability_home: model_prob,
+          market_probability_home: market_prob,
+          edge,
+          snr,
+          signal_type
+        } as any
       }
     });
-
-    console.log(`[Alpha Engine] Match ${q.match_id} Pre-Match Signal: Edge ${edge.toFixed(3)} -> ${signal_type}`);
   }
 }

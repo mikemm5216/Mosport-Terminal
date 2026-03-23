@@ -11,7 +11,6 @@ const StatsSchema = z.object({
 });
 
 export async function runStatsCrawler(mockData?: any[]) {
-  console.log("[StatsCrawler] Fetching box score stats...");
 
   const data = mockData || [];
 
@@ -51,5 +50,4 @@ export async function runStatsCrawler(mockData?: any[]) {
     });
   }
 
-  console.log("[StatsCrawler] Completed.");
 }

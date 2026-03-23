@@ -7,84 +7,70 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function GET() {
   try {
-    console.error("[TEAM INGEST] Starting Team Data Extraction...");
-    
-    // 1. Queries the Match table for all unique home_team and away_team names
     const matches = await prisma.matches.findMany({
       include: { home_team: true, away_team: true }
     });
 
     const uniqueTeamNames = new Set<string>();
     for (const m of matches) {
-      if (m.home_team && m.home_team.team_name) {
-        uniqueTeamNames.add(m.home_team.team_name);
+      if (m.home_team && m.home_team.full_name) {
+        uniqueTeamNames.add(m.home_team.full_name);
       }
-      if (m.away_team && m.away_team.team_name) {
-        uniqueTeamNames.add(m.away_team.team_name);
+      if (m.away_team && m.away_team.full_name) {
+        uniqueTeamNames.add(m.away_team.full_name);
       }
     }
 
     const teamNames = Array.from(uniqueTeamNames);
-    console.error(`[TEAM INGEST] Found ${teamNames.length} unique teams. Commencing TheSportsDB extraction...`);
-
     const results = [];
 
-    // 2. Iterates through the list and fetches data from TheSportsDB
     for (const teamName of teamNames) {
       const url = `https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamName)}`;
-      console.error(`[TEAM INGEST] Fetching: ${teamName}`);
       
       try {
         const res = await fetch(url);
-        if (!res.ok) throw new Error(`Status ${res.status}`);
+        if (!res.ok) continue;
         const data = await res.json();
         
-        // 3. Extracts the high-res transparent logo and 3-letter abbreviation
         let logoUrl = null;
-        let shortName = teamName.substring(0, 3).toUpperCase();
-        let league = "Unknown";
+        let shortName = (teamName || 'TM').substring(0, 3).toUpperCase();
+        let leagueName = "Unknown";
 
         if (data.teams && data.teams.length > 0) {
           const teamDetails = data.teams[0];
-          // TheSportsDB searchteams returns 'strBadge' (NOT strTeamBadge)
           logoUrl = teamDetails.strBadge || teamDetails.strTeamBadge || null;
           if (teamDetails.strTeamShort) {
             shortName = teamDetails.strTeamShort;
           } else if (teamDetails.strAlternate) {
-            // fallback: use first 3 chars of alternate name
             shortName = (teamDetails.strAlternate as string).substring(0, 3).toUpperCase();
           }
-          league = teamDetails.strLeague || league;
+          leagueName = teamDetails.strLeague || leagueName;
         }
 
-        // 4. Upserts this data into our Prisma Team table
-        const upsertedTeam = await prisma.team.upsert({
-          where: { team_name: teamName },
+        const upsertedTeam = await prisma.teams.upsert({
+          where: { full_name: teamName },
           create: {
-            team_name: teamName,
+            full_name: teamName,
             short_name: shortName,
             logo_url: logoUrl,
-            league: league
+            league_type: "SOCCER" // Default or map from leagueName
           },
           update: {
             short_name: shortName,
-            logo_url: logoUrl,
-            league: league
+            logo_url: logoUrl
           }
         });
 
         results.push(upsertedTeam);
       } catch (err: any) {
-        console.error(`[TEAM INGEST ERROR] Failed on ${teamName}:`, err.message);
+        // Silent failure for individual teams
       }
 
-      // Add a brief await sleep(1500) to respect rate limits
       await sleep(1500);
     }
 
-    return NextResponse.json({ success: true, count: results.length, data: results });
+    return NextResponse.json({ success: true, count: results.length });
   } catch (error: any) {
-    console.error("[TEAM INGEST FATAL ERROR]", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, count: 0 });
   }
 }

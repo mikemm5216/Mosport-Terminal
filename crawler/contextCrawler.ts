@@ -3,7 +3,6 @@ import { ContextEventSchema, sendToDeadLetterQueue } from "../lib/validator";
 
 // Tier 3 - Context Crawler
 export async function runContextCrawler() {
-  console.log("[Context Crawler] Scraping Tier 3 News and Event Data...");
 
   // Mock NLP extraction from news
   const mockNewsData = [

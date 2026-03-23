@@ -15,7 +15,7 @@ export default function MatchTicker() {
           setMatches([...data.matches, ...data.matches, ...data.matches]);
         }
       })
-      .catch(e => console.error("Ticker fetch error", e));
+      .catch(e => {});
   }, []);
 
   // CEO DIRECTIVE: Always render the ticker frame even if empty

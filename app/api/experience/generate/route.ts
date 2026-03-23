@@ -79,11 +79,11 @@ async function processMatch(match: any): Promise<{ processed: number; results: a
 export async function POST(request: Request) {
   try {
     let body: { match_id?: string } = {};
-    try { body = await request.json(); } catch { /* 空 body 正常，進入批量模式 */ }
+    try { body = await request.json(); } catch { /* �?body �?��，進入?��?模�? */ }
 
     const { match_id } = body;
 
-    // 單場模式
+    // ?�場模�?
     if (match_id) {
       const match = await prisma.matches.findUnique({
         where: { match_id },
@@ -97,8 +97,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, processed_count: processed, results }, { status: 201 });
     }
 
-    // 批量自動掃描模式：找所有已完賽但尚未生成 experience 的比賽
-    const completedMatches = await prisma.matches.findMany({
+    // ?��??��??��?模�?：找?�?�已完賽但�??��???experience ?��?�?    const completedMatches = await prisma.matches.findMany({
       where: {
         home_score: { not: null },
         experiences: { none: {} }
@@ -120,7 +119,10 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    console.error("Experience Generation Error:", error);
-    return NextResponse.json({ error: "Internal Server Error", detail: error?.message || String(error) }, { status: 500 });
+    return NextResponse.json({
+      success: false,
+      scanned_count: 0,
+      processed_count: 0,
+    });
   }
 }

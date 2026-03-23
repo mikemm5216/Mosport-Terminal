@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -20,7 +20,6 @@ export default function Home() {
         setLoading(false);
       })
       .catch(e => {
-        console.error("Failed to fetch signals", e);
         setLoading(false);
       });
   }, []);
@@ -31,7 +30,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-950 flex flex-col items-center overflow-x-hidden">
-      {/* 🟢 LIVE MATCH TICKER (MARQUEE) */}
+      {/* ?�� LIVE MATCH TICKER (MARQUEE) */}
       <MatchTicker />
 
       {/* HEADER */}
@@ -68,12 +67,12 @@ export default function Home() {
 
 const getLeagueDisplay = (leagueName?: string): string => {
   const upper = (leagueName || '').toUpperCase();
-  if (upper.includes('NBA') || upper.includes('BASKETBALL')) return '🏀 NBA';
-  if (upper.includes('MLB') || upper.includes('BASEBALL')) return '⚾ MLB';
-  if (upper.includes('NFL') || upper.includes('FOOTBALL')) return '🏈 NFL';
-  if (upper.includes('CHAMPIONS LEAGUE') || upper.includes('UEFA')) return '🏆 UEFA CHAMPIONS LEAGUE';
-  if (upper.includes('PREMIER')) return `⚽ PREMIER LEAGUE`;
-  return upper ? `⚽ ${upper}` : '⚽ PRO LEAGUE';
+  if (upper.includes('NBA') || upper.includes('BASKETBALL')) return '?? NBA';
+  if (upper.includes('MLB') || upper.includes('BASEBALL')) return '??MLB';
+  if (upper.includes('NFL') || upper.includes('FOOTBALL')) return '?? NFL';
+  if (upper.includes('CHAMPIONS LEAGUE') || upper.includes('UEFA')) return '?? UEFA CHAMPIONS LEAGUE';
+  if (upper.includes('PREMIER')) return `??PREMIER LEAGUE`;
+  return upper ? `??${upper}` : '??PRO LEAGUE';
 };
 
 const toTLA = (name: string) => getShortName(name);

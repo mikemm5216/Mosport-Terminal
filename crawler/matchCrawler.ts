@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { prisma } from "../db/prisma";
+import { prisma } from "@/lib/prisma";
 
 const MatchSchema = z.object({
   id: z.string(),
@@ -11,7 +11,7 @@ const MatchSchema = z.object({
 });
 
 export async function runMatchCrawler(mockData?: any[]) {
-  console.log("[MatchCrawler] Fetching match schedules...");
+
 
   // In real life, fetch from external API. Using mockData for simulation.
   const data = mockData || [];
@@ -33,12 +33,11 @@ export async function runMatchCrawler(mockData?: any[]) {
     const { id, league_id, home_team_id, away_team_id, match_date, status } = result.data;
 
     // We assume the teams and league exist or we create placeholders (simplified)
-    await prisma.match.upsert({
-      where: { id },
+    await prisma.matches.upsert({
+      where: { match_id: id },
       update: { status, match_date: new Date(match_date) },
       create: {
-        id,
-        league_id,
+        match_id: id,
         home_team_id,
         away_team_id,
         match_date: new Date(match_date),
@@ -47,5 +46,5 @@ export async function runMatchCrawler(mockData?: any[]) {
     });
   }
 
-  console.log("[MatchCrawler] Completed.");
+
 }

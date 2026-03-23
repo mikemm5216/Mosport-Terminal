@@ -91,16 +91,16 @@ export const WorldEngine = {
       const loserStreak = this.getStreakCount(loser.history);
 
       if (winnerStreak.type === 'W' && winnerStreak.count >= 2) {
-        primaryTag = `üî• ${winnerStreak.count}W STREAK: RIDING MOMENTUM`;
+        primaryTag = `?î• ${winnerStreak.count}W STREAK: RIDING MOMENTUM`;
         tagTarget = "away";
       } else if (loserStreak.type === 'L' && loserStreak.count >= 2) {
-        primaryTag = `üìâ L${loserStreak.count}: STRUGGLING FORM`;
+        primaryTag = `?? L${loserStreak.count}: STRUGGLING FORM`;
         tagTarget = "home";
       } else if (winner.strength > loser.strength + 0.2) {
-        primaryTag = `üéØ DOMINANT: SUPERIOR CLASS`;
+        primaryTag = `?éØ DOMINANT: SUPERIOR CLASS`;
         tagTarget = "away";
       } else {
-        primaryTag = `üöÄ PROJECTED: VALUE PLAY`;
+        primaryTag = `?? PROJECTED: VALUE PLAY`;
         tagTarget = "away";
       }
       
@@ -111,16 +111,16 @@ export const WorldEngine = {
       const winnerStreak = this.getStreakCount(winner.history);
 
       if (loser.fatigue > 0.6) {
-        primaryTag = `‚ö†Ô∏è FATIGUE ALERT: ROAD EXHAUSTION`;
+        primaryTag = `?†Ô? FATIGUE ALERT: ROAD EXHAUSTION`;
         tagTarget = "away";
       } else if (winnerStreak.type === 'L' && winner.strength > 0.4) {
-        primaryTag = `üö® DUE FOR A BOUNCE BACK`;
+        primaryTag = `?ö® DUE FOR A BOUNCE BACK`;
         tagTarget = "home";
       } else if (winner.momentum > loser.momentum) {
-        primaryTag = `üî• PROTECTING HOME TURF`;
+        primaryTag = `?î• PROTECTING HOME TURF`;
         tagTarget = "home";
       } else {
-        primaryTag = `üèüÔ∏è HOME ADVANTAGE FAVORED`;
+        primaryTag = `??Ô∏?HOME ADVANTAGE FAVORED`;
         tagTarget = "home";
       }
 

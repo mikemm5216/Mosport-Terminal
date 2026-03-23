@@ -6,8 +6,7 @@ const BATCH_SIZE = 5;
 export async function POST(request: Request) {
   try {
     const now = new Date();
-    // 找出過去 24 小時內剛結束的比賽
-    const past24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    // ?�出?�去 24 小�??��?結�??��?�?    const past24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     const finishedMatches = await prisma.matches.findMany({
       where: {
@@ -19,7 +18,7 @@ export async function POST(request: Request) {
         away_score: { not: null },
       },
       select: { match_id: true },
-      take: 100, // 安全上限
+      take: 100, // 安全上�?
     });
 
     const results: any[] = [];
@@ -31,8 +30,7 @@ export async function POST(request: Request) {
       
       await Promise.all(
         batch.map(async (m) => {
-          // 節流
-          await new Promise(r => setTimeout(r, 100)); 
+          // 節�?          await new Promise(r => setTimeout(r, 100)); 
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 5000);
 
@@ -59,7 +57,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, processed: finishedMatches.length, results }, { status: 200 });
 
   } catch (error: any) {
-    console.error("Experience Scheduler Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ success: false, processed: 0, results: [] });
   }
 }

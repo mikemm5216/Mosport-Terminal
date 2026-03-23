@@ -1,62 +1,44 @@
-import { prisma } from "../db/prisma";
+import { prisma } from "@/lib/prisma";
 
 export async function runSignalEngine() {
-  console.log("[Signal Engine] Generating signals...");
-
-  // Get scheduled matches with quant and odds data
-  const upcomingMatches = await prisma.match.findMany({
+  const upcomingMatches = await prisma.matches.findMany({
     where: { status: "scheduled" },
-    include: { quant: true, odds: true }
+    include: { snapshots: true }
   });
 
   for (const match of upcomingMatches) {
-    if (!match.quant || match.odds.length === 0) continue;
+    // Find QUANT snapshot
+    const quantSnapshot = match.snapshots.find(s => s.snapshot_type === "QUANT");
+    const oddsSnapshot = match.snapshots.find(s => s.snapshot_type === "MARKET");
 
-    const quant = match.quant;
-    const odds = match.odds[0]; // Assuming latest odds
+    if (!quantSnapshot || !oddsSnapshot) continue;
 
-    const totalExpected = quant.expected_home_score + quant.expected_away_score;
+    const quant = quantSnapshot.state_json as any;
+    const odds = oddsSnapshot.state_json as any;
+
+    const totalExpected = (quant.expected_home_score || 0) + (quant.expected_away_score || 0);
     if (totalExpected === 0) continue;
 
-    const model_probability = quant.expected_home_score / totalExpected;
-    const market_probability = odds.market_home_prob;
+    const model_probability = (quant.expected_home_score || 0) / totalExpected;
+    const market_probability = odds.market_home_prob || 0.5;
     
-    // signal_strength: model_probability minus market_probability
     const signal_strength = model_probability - market_probability;
-    
-    // snr: signal_strength divided by variance
-    const snr = signal_strength / quant.variance;
-    
-    // anc_flag: true when absolute(signal_strength) > 0.15
+    const snr = quant.variance ? (signal_strength / quant.variance) : 0;
     const anc_flag = Math.abs(signal_strength) > 0.15;
 
-    // We check if signal already exists (though id is PK, we handle it similarly to state update)
-    const existingSignal = await prisma.signal.findFirst({ where: { match_id: match.id } });
-
-    if (existingSignal) {
-      await prisma.signal.update({
-        where: { id: existingSignal.id },
-        data: {
+    await prisma.eventSnapshot.create({
+      data: {
+        match_id: match.match_id,
+        snapshot_type: "SIGNAL",
+        state_json: {
           model_probability,
           market_probability,
           signal_strength,
           snr,
-          anc_flag
-        }
-      });
-    } else {
-      await prisma.signal.create({
-        data: {
-          match_id: match.id,
-          model_probability,
-          market_probability,
-          signal_strength,
-          snr,
-          anc_flag
-        }
-      });
-    }
+          anc_flag,
+          computed_at: new Date().toISOString()
+        } as any
+      }
+    });
   }
-
-  console.log("[Signal Engine] Completed.");
 }

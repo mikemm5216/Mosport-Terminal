@@ -1,62 +1,56 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // 嚴格映射：如果沒有給值，強制給出安全的預設參數，絕不允許出現 undefined
-    const pick = body.pick || "和局/未定";
+    // ?�格?��?：�??��??�給?��?強制給出安全?��?設�??��?絕�??�許?�現 undefined
+    const pick = body.pick || "?��?/?��?";
     const confidence = typeof body.confidence === "number" ? body.confidence : 50.0;
     const fatigue_diff = typeof body.fatigue_diff === "number" ? body.fatigue_diff : 0;
     const news_tags = Array.isArray(body.news_tags) ? body.news_tags : [];
     
-    // 判斷劇本走向
+    // ?�斷?�本走�?
     let narrativeType = "standard";
     let extraContext = "";
 
     if (Math.abs(fatigue_diff) > 20) {
       narrativeType = "fatigue";
-      extraContext = `重點劇本：地獄賽程導致嚴重的體能枯竭/軟腳。請以此強調疲勞因素。 (雙方疲勞差距高達 ${fatigue_diff})`;
-    } else if (news_tags.includes("scandal") || news_tags.includes("醜聞")) {
+      extraContext = `?��??�本：地?�賽程�??�嚴?��?體能?�竭/軟腳?��?以此強調?��??��???(?�方?��?差�?高�? ${fatigue_diff})`;
+    } else if (news_tags.includes("scandal") || news_tags.includes("?��?")) {
       narrativeType = "scandal";
-      extraContext = "重點劇本：場外風波重擊了對手軍心，氣氛極度緊張。請以此強調混亂局面帶來的優勢。";
+      extraContext = "?��??�本：場外風波�??��?對�?軍�?，氣氛極度�?張。�?以此強調混�?局?�帶來�??�勢??;
     } else if (news_tags.length > 0) {
       narrativeType = "news_driven";
-      extraContext = `重點劇本：有重要情報更新（${news_tags.join(", ")}）。這將成為比賽的絕對變數。`;
+      extraContext = `?��??�本：�??��??�報?�新�?{news_tags.join(", ")}）。這�??�為比賽?��?對�??�。`;
     }
 
     const systemPrompt = `
-你是一位硬核、幽默、且極具專業性的「體育界說書人」。
-你的任務是根據輸入的賽前信號分析數據，用充滿張力的語氣產出一段吸引人的觀賽前瞻文案（約50~80字）。
-絕對禁止使用「金融投資」、「理財建議」或「生硬 AI 機器人」的口吻。
-
-強制要求：請務必以純 JSON 格式回傳，格式如下：
+你是一位硬?�、幽默、�?極具專業?��??��??��?說書人」�?你�?任�??�根?�輸?��?賽�?信�??��??��?，用?�滿張�??��?�?��?��?段吸引人?��?賽�??��?案�?�?0~80字�???絕�?禁止使用?��??��?資」、「�?財建議」�??��?�?AI 機器人」�???��??
+強制要�?：�??��?以�? JSON ?��??�傳，格式�?下�?
 {
-  "narrative": "這裡放你生成的硬核文案",
-  "type": "輸入的 narrativeType"
+  "narrative": "?�裡?��??��??�硬?��?�?,
+  "type": "輸入??narrativeType"
 }
 `;
 
     const userPrompt = `
-賽前信號分析數據如下：
-- 系統首選 (Pick): ${pick}
-- 模型信心度 (Confidence): ${confidence}%
-- 分析主題 (Type): ${narrativeType}
-- 附加條件與劇本: ${extraContext || "無特殊場外因素，請專注於實力與信心度的對決。"}
+賽�?信�??��??��?如�?�?- 系統首選 (Pick): ${pick}
+- 模�?信�?�?(Confidence): ${confidence}%
+- ?��?主�? (Type): ${narrativeType}
+- ?��?條件?��??? ${extraContext || "?�特殊場外�?素�?請�?注於實�??�信心度?��?決�?}
 
-請以此為基礎，產生 JSON 格式的回傳。
-`;
+請以此為?��?，產??JSON ?��??��??��?`;
 
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
     
     if (!OPENAI_API_KEY) {
-      console.warn("[Story Engine] OPENAI_API_KEY is not set. Using Fallback generation.");
       
-      // 如果沒有設定 API Key，使用不會噴 undefined 的安全降級版人話
-      let fallbackText = `賽前特評：模型算出 ${pick} 今回贏面較大，信心值飆到 ${confidence}%。`;
-      if (narrativeType === "fatigue") fallbackText += "地獄般密集的賽程讓對手腿軟，這將是趁虛而入的最佳機會！";
-      else if (narrativeType === "scandal") fallbackText += "對手剛經歷令人崩潰的場外風波，軍心渙散，今天等著看戲就好！";
-      else fallbackText += "雙方實力硬碰硬，但數據天秤已經悄悄傾斜了。";
+      // 如�?沒�?設�? API Key，使?��??�噴 undefined ?��??��?級�?人話
+      let fallbackText = `賽�??��?：模?��???${pick} 今�?贏面較大，信心值�???${confidence}%?�`;
+      if (narrativeType === "fatigue") fallbackText += "?��??��??��?賽�?讓�??�腿軟�??��??��??�而入?��?佳�??��?";
+      else if (narrativeType === "scandal") fallbackText += "對�??��?歷令人崩潰�??��?風波，�?心�????今天等�??�戲就好�?;
+      else fallbackText += "?�方實�?硬碰硬�?但數?�天秤已經�??�傾?��???;
 
       return NextResponse.json({
         narrative: fallbackText,
@@ -72,8 +66,7 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: "gpt-4o",  // 或者是 gpt-3.5-turbo 等
-        response_format: { type: "json_object" },
+        model: "gpt-4o",  // ?�者是 gpt-3.5-turbo �?        response_format: { type: "json_object" },
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -91,11 +84,13 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       narrative: resultObj.narrative,
-      type: narrativeType // 強制使用我們先判定好的 type，確保 Contract 合格
+      type: narrativeType // 強制使用?�們�??��?好�? type，確�?Contract ?�格
     });
 
   } catch (error: any) {
-    console.error("[STORY ENGINE ERROR]", error);
-    return NextResponse.json({ error: "Failed to generate narrative", details: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      narrative: "?��??��??��?，數?�正?��?步中??, 
+      type: "standard" 
+    });
   }
 }

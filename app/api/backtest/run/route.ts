@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { QuantEngine } from "@/lib/quant";
 import { buildFeatureVector } from "@/lib/feature";
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const limit = body.limit || 500;
 
-    // 1. 撈取近期完賽紀錄與對應快照 (包含 home_team 資訊以取得場館)
+    // 1. ?��?近�?完賽紀?��?對�?快照 (?�含 home_team 資�?以�?得場�?
     const pastMatches = await prisma.matches.findMany({
       where: {
         home_score: { not: null },
@@ -39,8 +39,7 @@ export async function POST(req: Request) {
       take: limit,
     });
 
-    // 💰 初始資金與風險追蹤
-    let bankroll = 10000;
+    // ?�� ?��?資�??�風?�追�?    let bankroll = 10000;
     let peak = bankroll;
     let maxDrawdown = 0;
     let totalBets = 0;
@@ -48,8 +47,7 @@ export async function POST(req: Request) {
     const equityCurve: number[] = [bankroll];
     const returns: number[] = [];
 
-    // Bio-Battery 三階層門檣（與 edge/route.ts 同步）
-    const BIO_LOW_EDGE    = 12;
+    // Bio-Battery 三�?層�?�????edge/route.ts ?�步�?    const BIO_LOW_EDGE    = 12;
     const BIO_MEDIUM_EDGE = 18;
     const BIO_HIGH_EDGE   = 25;
 
@@ -61,24 +59,21 @@ export async function POST(req: Request) {
 
       try {
         if (!snapshot.feature_json) {
-          console.log("[SKIP] missing feature_json:", snapshot.match_id);
           continue;
         }
 
-        // STEP 1: 使用真實賠率 (從 Snapshot 提取)
+        // STEP 1: 使用?�實賠�? (�?Snapshot ?��?)
         const odds = (snapshot.feature_json as Record<string, any>)?.market_odds_home;
         if (!odds || typeof odds !== "number" || odds <= 1) {
-          console.log("[SKIP] invalid odds:", snapshot.match_id);
           continue;
         }
 
-        // STEP 2: 加入莊家抽水 (Realistic Edge)
-        // 模擬 5% 的莊家邊際，讓模型更難找到 "價值"
+        // STEP 2: ?�入?�家?�水 (Realistic Edge)
+        // 模擬 5% ?��?家�??��?讓模?�更??��??"?��?
         const rawImplied = 1 / odds;
         const impliedProb = rawImplied * 1.05; 
 
-        // 全域統一使用 buildFeatureVector 重建 6 位特徵包含最新疲勞
-        const current_venue = match.home_team?.home_city || "Unknown";
+        // ?��?統�?使用 buildFeatureVector ?�建 6 位特徵�??��??�疲??        const current_venue = match.home_team?.home_city || "Unknown";
         const feature_vector = await buildFeatureVector(
           snapshot.feature_json as Record<string, any> | number[],
           match.home_team_id,
@@ -89,7 +84,7 @@ export async function POST(req: Request) {
 
         let modelProb = (snapshot.feature_json as Record<string, any>)?.predicted_prob_home || 0.5;
         
-        // 餵給推論 API 取得真實推論 (若環境變數存在)
+        // 餵給?��? API ?��??�實?��? (?�環境�??��???
         if (INFERENCE_URL) {
           try {
             const res = await fetchWithTimeout(`${INFERENCE_URL}/predict`, {
@@ -109,28 +104,24 @@ export async function POST(req: Request) {
               }
             }
           } catch(e) {
-            console.error(`[BACKTEST FETCH ERROR] match=${match.match_id}`, e);
           }
         }
         
         if (!modelProb || modelProb <= 0 || modelProb > 1) {
-          console.log("[SKIP] invalid prob:", snapshot.match_id, modelProb);
           continue;
         }
 
         const edge = modelProb - impliedProb;
 
-        // STEP 3: 嚴格 Edge 過濾器 (提高閾值以降低雜訊)
+        // STEP 3: ?�格 Edge ?�濾??(?��??�值以?��??��?)
         if (edge <= 0.03) continue;
 
-        // STEP 4: 凱利準則 (Kelly Criterion) 計算投注量
-        const kelly = QuantEngine.getKellySuggest(modelProb, odds);
+        // STEP 4: ?�利準�? (Kelly Criterion) 計�??�注??        const kelly = QuantEngine.getKellySuggest(modelProb, odds);
         const betSize = bankroll * kelly;
 
         if (betSize <= 0) continue;
 
-        // Bio-Battery 三階層統計
-        const fJson = snapshot.feature_json as Record<string, any>;
+        // Bio-Battery 三�?層統�?        const fJson = snapshot.feature_json as Record<string, any>;
         const bbHome = typeof fJson?.bio_battery_home === 'number' ? fJson.bio_battery_home : null;
         const bbAway = typeof fJson?.bio_battery_away === 'number' ? fJson.bio_battery_away : null;
         if (bbHome !== null && bbAway !== null) {
@@ -139,11 +130,11 @@ export async function POST(req: Request) {
           else if (gap >= BIO_MEDIUM_EDGE) bioMediumCount++;
           else if (gap >= BIO_LOW_EDGE)    bioLowCount++;
         }
-        // 判斷勝負 (僅示範 Home Win 邏輯)
+        // ?�斷?��? (?�示�?Home Win ?�輯)
         const isWin = match.home_score! > match.away_score!;
         totalBets++;
 
-        // STEP 4 & 5: 更新 Bankroll 與 Equity Curve
+        // STEP 4 & 5: ?�新 Bankroll ??Equity Curve
         if (isWin) {
           wins++;
           bankroll += betSize * (odds - 1);
@@ -152,20 +143,19 @@ export async function POST(req: Request) {
         }
         equityCurve.push(bankroll);
 
-        // STEP 6: 最大回撤 (Max Drawdown) 計算
+        // STEP 6: ?�大�???(Max Drawdown) 計�?
         if (bankroll > peak) peak = bankroll;
         const currentDrawdown = (peak - bankroll) / peak;
         if (currentDrawdown > maxDrawdown) maxDrawdown = currentDrawdown;
 
-        // 紀錄收益率用於 Sharpe Ratio
+        // 紀?�收?��??�於 Sharpe Ratio
         returns.push((equityCurve[equityCurve.length - 1] - equityCurve[equityCurve.length - 2]) / equityCurve[equityCurve.length - 2]);
       } catch (err) {
-        console.error("[ERROR MATCH]", snapshot.match_id, err);
         continue;
       }
     }
 
-    // STEP 7: Sharpe Ratio 計算 (量化核心指標)
+    // STEP 7: Sharpe Ratio 計�? (?��??��??��?)
     // Formula: S = (Avg Return) / (Std Dev of Return)
     const avgReturn = returns.reduce((a, b) => a + b, 0) / (returns.length || 1);
     const stdReturn = Math.sqrt(
@@ -192,10 +182,8 @@ export async function POST(req: Request) {
     });
 
   } catch (error: any) {
-    console.error("BACKTEST FATAL:", error);
     return NextResponse.json({
-      success: false,
-      error: error.message
-    }, { status: 500 });
+      success: false
+    });
   }
 }

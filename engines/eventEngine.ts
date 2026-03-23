@@ -56,7 +56,6 @@ export async function applyEventModifiers(team_id: string, events: any[]) {
 }
 
 export async function processUnprocessedEvents() {
-  console.log("[Event Engine] Processing contextual events...");
   const events = await db.events.findMany({
     where: {
       // Assuming we'd mark them as processed or delete them. We'll simply process recent ones here for the skeleton

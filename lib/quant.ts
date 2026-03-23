@@ -20,7 +20,7 @@ export const QuantEngine = {
     // Fractional Kelly (1/4)
     const quarterKelly = fStar * 0.25;
 
-    // Risk Cap（避免爆倉）
+    // Risk Cap（避?��??��?
     const capped = Math.min(quarterKelly, 0.05);
 
     return Math.max(0, capped);

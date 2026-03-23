@@ -10,7 +10,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Missing type query parameter (e.g. ?type=T-10min)" }, { status: 400 });
     }
 
-    // 邏輯: 讀取並回傳最新的 ModelRegistry
+    // ?�輯: 讀?�並?�傳?�?��? ModelRegistry
     const latestModel = await prisma.modelRegistry.findFirst({
       where: { model_type: type },
       orderBy: { created_at: 'desc' },
@@ -33,7 +33,6 @@ export async function GET(request: Request) {
     }, { status: 200 });
 
   } catch (error: any) {
-    console.error("Model API Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ success: false, data: null });
   }
 }

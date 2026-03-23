@@ -11,7 +11,6 @@ const ResultSchema = z.object({
 
 // Tier 1 - Result Crawler
 export async function runResultCrawler() {
-  console.log("[Result Crawler] Fetching Tier 1 Match Results & Box Scores...");
 
   const mockApiData = [
     { match_id: "idx1", home_score: 102, away_score: 98, raw_stats: { rebounds: 40, assists: 20 } }
