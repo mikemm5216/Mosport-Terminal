@@ -64,8 +64,8 @@ export const WorldEngine = {
 
     return {
       expert,
-      money: `Sharp Money Trend: High-volume position detected on ${winner.shortName} ${predictedWinner === 'home' ? 'spread' : 'moneyline'}.`,
-      social: `Fan Sentiment / Social Heat: Viral trend favoring ${winner.shortName} across major sports betting forums.`
+      money: `${winner.shortName} ${predictedWinner === 'home' ? 'spread' : 'moneyline'} position detected.`,
+      social: `Viral trend favoring ${winner.shortName} across major sports betting forums.`
     };
   },
 
@@ -80,6 +80,7 @@ export const WorldEngine = {
 
     // PHASE 2: THE NARRATIVE SPIN
     let primaryTag = "";
+    let tagTarget: "home" | "away" = "home";
     let standardAnalysis = "";
     let confidence = Math.abs(homeScore - awayScore);
 
@@ -91,12 +92,16 @@ export const WorldEngine = {
 
       if (winnerStreak.type === 'W' && winnerStreak.count >= 2) {
         primaryTag = `🔥 ${winner.shortName} ${winnerStreak.count}W STREAK: RIDING MOMENTUM`;
+        tagTarget = "away";
       } else if (loserStreak.type === 'L' && loserStreak.count >= 2) {
         primaryTag = `📉 ${loser.shortName} L${loserStreak.count}: STRUGGLING FORM`;
+        tagTarget = "home";
       } else if (winner.strength > loser.strength + 0.2) {
         primaryTag = `🎯 ${winner.shortName} DOMINANT: SUPERIOR CLASS`;
+        tagTarget = "away";
       } else {
         primaryTag = `🚀 ${winner.shortName} PROJECTED: VALUE PLAY`;
+        tagTarget = "away";
       }
       
       standardAnalysis = `${winner.name} are bringing massive momentum into this game against a struggling ${loser.name} squad. Quantitative models favor the road team based on consistent output.`;
@@ -107,12 +112,16 @@ export const WorldEngine = {
 
       if (loser.fatigue > 0.6) {
         primaryTag = `⚠️ ${loser.shortName} FATIGUE ALERT: ROAD EXHAUSTION`;
+        tagTarget = "away";
       } else if (winnerStreak.type === 'L' && winner.strength > 0.4) {
         primaryTag = `🚨 ${winner.shortName}: DUE FOR A BOUNCE BACK`;
+        tagTarget = "home";
       } else if (winner.momentum > loser.momentum) {
         primaryTag = `🔥 ${winner.shortName}: PROTECTING HOME TURF`;
+        tagTarget = "home";
       } else {
         primaryTag = `🏟️ HOME ADVANTAGE: ${winner.shortName} FAVORED`;
+        tagTarget = "home";
       }
 
       if (isUpset) {
@@ -126,6 +135,7 @@ export const WorldEngine = {
 
     return { 
       primaryTag, 
+      tagTarget,
       marketSentiment,
       standardAnalysis, 
       predictedWinner,
