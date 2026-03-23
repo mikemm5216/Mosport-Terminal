@@ -153,15 +153,15 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
                <ul className="space-y-2 text-sm text-slate-300">
                   <li className="flex items-start gap-2">
                     <span className="text-purple-500 mt-1">•</span>
-                    <span>Expert/Model Analysis: {match.marketSentiment || "Aggregating keywords..."}</span>
+                    <span>Expert Model Analysis: {match.marketSentiment || "Aggregating keywords..."}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-purple-500 mt-1">•</span>
-                    <span>Sharp Money / Betting Trend: High-volume position detected.</span>
+                    <span>Sharp Money Trend: High-volume position detected.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-purple-500 mt-1">•</span>
-                    <span>Fan / Social Sentiment: Mixed outlook across major platforms.</span>
+                    <span>Fan Sentiment / Social Heat: Mixed outlook across major platforms.</span>
                   </li>
                </ul>
             </div>
