@@ -14,7 +14,11 @@ export default function SignalsPage() {
         const res = await fetch("/api/signals");
         if (res.ok) {
           const data = await res.json();
-          setSignals(data);
+          if (data.success) {
+            setSignals(data.signals || []);
+          } else {
+            setSignals([]);
+          }
         }
       } catch (e) {
         console.error("Failed to fetch signals", e);

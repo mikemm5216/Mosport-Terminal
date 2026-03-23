@@ -110,9 +110,21 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ success: true, count: mappedMatches.length, data: mappedMatches });
+    return NextResponse.json({ 
+      success: true, 
+      count: mappedMatches.length, 
+      matches: mappedMatches,
+      signals: mappedMatches, // For legacy/dashboard/warroom support
+      data: mappedMatches     // For home page support
+    });
   } catch (error: any) {
     console.error("[SIGNALS API ERROR]", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message,
+      matches: [],
+      signals: [],
+      data: []
+    }, { status: 500 });
   }
 }

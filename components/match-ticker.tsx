@@ -18,12 +18,13 @@ export default function MatchTicker() {
       .catch(e => console.error("Ticker fetch error", e));
   }, []);
 
-  if (matches.length === 0) return null;
+  // CEO DIRECTIVE: Always render the ticker frame even if empty
+  // to ensure "Truth" is represented.
 
   return (
     <div className="w-full bg-slate-900 border-b border-cyan-500/30 overflow-hidden h-10 flex items-center group relative z-50">
       <div className="flex animate-marquee whitespace-nowrap group-hover:pause">
-        {matches.map((match, i) => (
+        {matches.length > 0 ? matches.map((match, i) => (
           <div key={`${match.match_id}-${i}`} className="inline-flex items-center px-8 border-r border-slate-800/50">
             {match.status === "COMPLETED" || match.status === "FINISHED" ? (
               <span className="text-[10px] font-mono tracking-widest text-slate-300 uppercase">
@@ -35,7 +36,13 @@ export default function MatchTicker() {
               </span>
             )}
           </div>
-        ))}
+        )) : (
+          <div className="inline-flex items-center px-8 w-full justify-center">
+            <span className="text-[10px] font-mono tracking-[0.3em] text-slate-500 uppercase animate-pulse">
+              [ NO ACTIVE MATCH INTELLIGENCE SCHEDULED FOR THIS CYCLE ]
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
