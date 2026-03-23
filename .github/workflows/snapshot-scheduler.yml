@@ -11,6 +11,6 @@ jobs:
 
     steps:
       - name: Call Snapshot Scheduler API
-        # 將 YOUR_DOMAIN 替換為實際網站的網址，例如 https://mosport.vercel.app
         run: |
-          curl -X POST https://YOUR_DOMAIN/api/scheduler/run
+          curl -X POST https://www.mosport.app/api/scheduler/run \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

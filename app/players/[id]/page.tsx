@@ -70,6 +70,50 @@ export default async function PlayerVaultPage({ params }: { params: { id: string
            </div>
         </header>
 
+        {/* PERFORMANCE TREND CHART */}
+        <div className="mb-16">
+           <div className="flex items-center gap-4 mb-8">
+              <Shield size={24} className="text-emerald-400" />
+              <h2 className="text-xl font-black tracking-[0.3em] uppercase text-white">Last 5 Performance Trend</h2>
+           </div>
+           <div className="bg-slate-900/40 p-8 rounded-3xl border border-slate-800/50">
+              <div className="flex items-end justify-between h-32 gap-2">
+                 {[78, 92, 85, 95, 88].map((val, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
+                       <div className="relative w-full bg-slate-800/50 rounded-t overflow-hidden flex items-end" style={{ height: '100%' }}>
+                          <div 
+                             className="w-full bg-cyan-500/40 group-hover:bg-cyan-400/60 transition-all duration-500" 
+                             style={{ height: `${val}%` }} 
+                          />
+                          <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] font-black text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                             {val}
+                          </div>
+                       </div>
+                       <span className="text-[8px] text-slate-600 font-mono font-black">GM {i+1}</span>
+                    </div>
+                 ))}
+              </div>
+              <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+                 <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                    <span className="text-[8px] text-slate-500 font-mono uppercase tracking-widest block mb-1">Volatility Index</span>
+                    <span className="text-xl font-black text-white">LOW</span>
+                 </div>
+                 <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                    <span className="text-[8px] text-slate-500 font-mono uppercase tracking-widest block mb-1">Reliability</span>
+                    <span className="text-xl font-black text-emerald-400">92%</span>
+                 </div>
+                 <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                    <span className="text-[8px] text-slate-500 font-mono uppercase tracking-widest block mb-1">Usage Rate</span>
+                    <span className="text-xl font-black text-white">34.2%</span>
+                 </div>
+                 <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                    <span className="text-[8px] text-slate-500 font-mono uppercase tracking-widest block mb-1">Story Bias</span>
+                    <span className="text-xl font-black text-purple-400">POSITIVE</span>
+                 </div>
+              </div>
+           </div>
+        </div>
+
         {/* FULL SPECTRUM INTELLIGENCE GRID */}
         <div className="space-y-12">
            <div className="flex items-center gap-4 mb-8">

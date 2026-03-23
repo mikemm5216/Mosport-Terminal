@@ -131,14 +131,14 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
 
       <main className="max-w-7xl mx-auto px-4 py-4 h-full flex flex-col">
         {/* HERO SECTION */}
-        <header className="flex flex-row flex-nowrap items-center justify-between gap-4 md:gap-12 mb-6">
-          <div className="text-center md:text-right flex-1 shrink-0 flex flex-col md:flex-row-reverse items-center md:items-end justify-center md:justify-start gap-4">
-             <div className="w-16 h-16 md:w-24 md:h-24 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+        <header className="flex flex-row flex-nowrap items-center justify-between gap-4 md:gap-12 mb-3">
+          <div className="text-center md:text-right flex-1 shrink-0 flex flex-col md:flex-row-reverse items-center md:items-end justify-center md:justify-start gap-2">
+             <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                {match.home_team?.logo_url ? <img src={match.home_team.logo_url} className="w-full h-full object-contain p-2" /> : <Zap className="text-slate-800" />}
              </div>
              <div>
-                <h2 className="text-2xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none">{homeStats.shortName}</h2>
-                <p className="text-[10px] md:text-xs font-mono text-slate-500 mt-2 tracking-widest uppercase">{homeStats.name}</p>
+                <h2 className="text-2xl md:text-5xl font-black tracking-tighter text-white uppercase leading-none">{homeStats.shortName}</h2>
+                <p className="hidden md:block text-[9px] font-mono text-slate-500 mt-1 tracking-widest uppercase">{homeStats.name}</p>
              </div>
           </div>
           <div className="flex flex-col items-center gap-2 shrink-0">
@@ -146,27 +146,28 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
              <div className="text-slate-800 font-black text-sm md:text-2xl italic tracking-[0.3em]">VS</div>
              <div className="h-0.5 w-8 md:w-16 bg-slate-800" />
           </div>
-          <div className="text-center md:text-left flex-1 shrink-0 flex flex-col md:flex-row items-center md:items-end justify-center md:justify-start gap-4">
-             <div className="w-16 h-16 md:w-24 md:h-24 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+          <div className="text-center md:text-left flex-1 shrink-0 flex flex-col md:flex-row items-center md:items-end justify-center md:justify-start gap-2">
+             <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                {match.away_team?.logo_url ? <img src={match.away_team.logo_url} className="w-full h-full object-contain p-2" /> : <Zap className="text-slate-800" />}
              </div>
              <div>
-                <h2 className="text-2xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none">{awayStats.shortName}</h2>
+                <h2 className="text-2xl md:text-5xl font-black tracking-tighter text-white uppercase leading-none">{awayStats.shortName}</h2>
+                <p className="hidden md:block text-[9px] font-mono text-slate-500 mt-1 tracking-widest uppercase">{awayStats.name}</p>
              </div>
           </div>
         </header>
 
         {/* BIO-BATTERY */}
-        <section className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4 mb-6 max-w-5xl mx-auto w-full">
-           <div className="flex justify-between items-end mb-4 px-2">
-              <span className="text-xl md:text-2xl font-black text-emerald-400">{hPercent}%</span>
-              <div className="flex items-center gap-2 mb-1">
-                 <Zap size={14} className="text-emerald-400" />
-                 <span className="text-[10px] font-black tracking-[0.2em] text-white uppercase whitespace-nowrap">Proprietary Match Energy Index</span>
+        <section className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-3 mb-3 max-w-5xl mx-auto w-full">
+           <div className="flex justify-between items-end mb-2 px-2">
+              <span className="text-lg md:text-xl font-black text-emerald-400">{hPercent}%</span>
+              <div className="flex items-center gap-2 mb-0.5">
+                 <Zap size={12} className="text-emerald-400" />
+                 <span className="text-[9px] font-black tracking-[0.2em] text-white uppercase whitespace-nowrap">Match Energy Index</span>
               </div>
-              <span className="text-xl md:text-2xl font-black text-red-500">{aPercent}%</span>
+              <span className="text-lg md:text-xl font-black text-red-500">{aPercent}%</span>
            </div>
-           <div className="w-full h-3 bg-slate-950 rounded-full border border-slate-800/50 flex overflow-hidden p-0.5 shadow-inner">
+           <div className="w-full h-2 bg-slate-950 rounded-full border border-slate-800/50 flex overflow-hidden p-0.5 shadow-inner">
               <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)]" style={{ width: `${hPercent}%` }} />
               <div className="h-full bg-red-600 rounded-full ml-auto" style={{ width: `${aPercent}%` }} />
            </div>
@@ -174,9 +175,9 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start flex-1 overflow-hidden">
            {/* ANALYSIS */}
-           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 md:p-8 relative overflow-hidden h-full">
+           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-4 md:p-6 relative overflow-hidden h-full">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500 shadow-[4px_0_15px_rgba(6,182,212,0.4)]" />
-              <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center gap-4 mb-2">
                  <Activity size={20} className="text-cyan-400" />
                  <h3 className="text-sm font-black tracking-[0.2em] uppercase text-white">Standard Analysis</h3>
               </div>
@@ -196,8 +197,8 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
            </section>
 
            {/* KEY PLAYERS */}
-           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 md:p-8 h-full">
-              <div className="flex items-center justify-between mb-6">
+           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-4 md:p-6 h-full">
+              <div className="flex items-center justify-between mb-4">
                  <div className="flex items-center gap-4">
                     <User size={20} className="text-indigo-400" />
                     <h3 className="text-sm font-black tracking-[0.2em] uppercase text-white">Tactical Showdown</h3>
@@ -255,7 +256,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                  </div>
               </div>
 
-              <div className="mt-6 p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
+              <div className="mt-4 p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">Tactical Engine Log</span>
                  <p className="text-[10px] text-slate-400 leading-relaxed uppercase">
                     Dictionary v2.0 Active. Position metrics mapped for {sport}. Accuracy optimization confirmed.
