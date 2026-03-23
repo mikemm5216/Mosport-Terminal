@@ -14,22 +14,22 @@ function getResultColor(result: string): string {
 export default async function TeamsAnalyticsPage({ 
   searchParams 
 }: { 
-  searchParams: { sport?: string } 
+  searchParams: Promise<{ sport?: string }> 
 }) {
-  const { sport } = await searchParams;
+  const { sport = 'SOCCER' } = await searchParams;
 
   const allTeams = await prisma.team.findMany({
     orderBy: { team_name: 'asc' }
   });
 
   // Simple keyword-based filtering
+  // Strict sport/league mapping
   const teams = allTeams.filter(t => {
-    if (!sport || sport === 'ALL') return true;
     const league = (t.league || '').toUpperCase();
     if (sport === 'NBA') return league.includes('NBA') || league.includes('BASKETBALL');
     if (sport === 'MLB') return league.includes('MLB') || league.includes('BASEBALL');
-    if (sport === 'SOCCER') return !league.includes('NBA') && !league.includes('BASKETBALL') && !league.includes('BASEBALL');
-    return true;
+    if (sport === 'SOCCER') return league.includes('EPL') || league.includes('UCL') || league.includes('LALIGA') || league.includes('SERIEA') || league.includes('BUNDESLIGA');
+    return false;
   });
 
   // Fetch match history for all teams
@@ -72,8 +72,7 @@ export default async function TeamsAnalyticsPage({
           </div>
           
           <div className="flex gap-4 flex-wrap">
-            <FilterButton label="ALL" value="ALL" active={!sport || sport === 'ALL'} icon="🌐" />
-            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER'} icon="⚽" />
+            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="⚽" />
             <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} icon="🏀" />
             <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} icon="⚾" />
           </div>

@@ -110,42 +110,39 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
            </div>
         </div>
 
-        {/* STRICT SYMMETRICAL GRID - TLA NORMALIZATION */}
+      <div className="flex flex-col gap-4 w-full">
+        {/* ROW 1: SIGNAL TAG (FULL WIDTH) */}
+        <div className="flex justify-center h-6">
+          {match.primaryTag && (
+            <div className="bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse">
+              <span className="text-[10px] md:text-xs font-black text-cyan-400 uppercase tracking-widest">{match.primaryTag}</span>
+            </div>
+          )}
+        </div>
+
+        {/* ROW 2: TEAMS GRID */}
         <div className="grid grid-cols-[1fr_60px_1fr] md:grid-cols-[1fr_100px_1fr] items-center gap-4 md:gap-10 w-full px-4 md:px-6">
           <div className="flex items-center justify-end gap-3 md:gap-8 text-right">
-            <div className="flex flex-col items-center gap-1 md:items-end">
-              {match.tagTarget === "home" && match.primaryTag && (
-                <div className="bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(6,182,212,0.2)] whitespace-nowrap">
-                  <span className="text-[8px] md:text-[10px] font-black text-cyan-400 uppercase tracking-tighter">{match.primaryTag}</span>
-                </div>
-              )}
-              <span className="text-white font-black text-3xl md:text-5xl tracking-tighter uppercase leading-none">
-                {toTLA(match.home_team_name || match.home_team?.team_name || match.home_short_name || 'HOM')}
-              </span>
-            </div>
-            <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-               {match.home_logo ? <img src={match.home_logo} alt="" className="w-full h-full object-contain p-1.5" /> : <Zap className="text-slate-800" size={20} />}
+            <span className="text-white font-black text-3xl md:text-5xl tracking-tighter uppercase leading-none">
+              {toTLA(match.home_team_name || match.home_team?.team_name || match.home_short_name || 'HOM')}
+            </span>
+            <div className="w-10 h-10 md:w-16 md:h-16 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.6)]">
+               {match.home_logo ? <img src={match.home_logo} alt="" className="w-full h-full object-contain p-2" /> : <Zap className="text-slate-800" size={24} />}
             </div>
           </div>
 
           <div className="text-slate-800 font-black text-sm md:text-xl text-center italic tracking-widest opacity-40">VS</div>
 
           <div className="flex items-center justify-start gap-3 md:gap-8 text-left">
-            <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-               {match.away_logo ? <img src={match.away_logo} alt="" className="w-full h-full object-contain p-1.5" /> : <Zap className="text-slate-800" size={20} />}
+            <div className="w-10 h-10 md:w-16 md:h-16 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.6)]">
+               {match.away_logo ? <img src={match.away_logo} alt="" className="w-full h-full object-contain p-2" /> : <Zap className="text-slate-800" size={24} />}
             </div>
-            <div className="flex flex-col items-center gap-1 md:items-start">
-              {match.tagTarget === "away" && match.primaryTag && (
-                <div className="bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(6,182,212,0.2)] whitespace-nowrap">
-                  <span className="text-[8px] md:text-[10px] font-black text-cyan-400 uppercase tracking-tighter">{match.primaryTag}</span>
-                </div>
-              )}
-              <span className="text-white font-black text-3xl md:text-5xl tracking-tighter uppercase leading-none">
-                {toTLA(match.away_team_name || match.away_team?.team_name || match.away_short_name || 'AWY')}
-              </span>
-            </div>
+            <span className="text-white font-black text-3xl md:text-5xl tracking-tighter uppercase leading-none">
+              {toTLA(match.away_team_name || match.away_team?.team_name || match.away_short_name || 'AWY')}
+            </span>
           </div>
         </div>
+      </div>
       </div>
 
       {isExpanded && (
