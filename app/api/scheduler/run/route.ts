@@ -12,6 +12,13 @@ const BATCH_SIZE = 5;
 
 export async function POST(request: Request) {
   try {
+    // ⚔️ SECURITY AUDIT: Explicit Authorization Check (Fixes 403 Forbidden)
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      console.error("[SCHEDULER 403] Unauthorized access attempt.");
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const now = new Date();
     const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
