@@ -27,13 +27,15 @@ async function upsertSnapshotForMatch(
       form_strength_away: 60.5,
     };
 
-    // ä½¿ç”¨ match.match_date ä½œç‚º?²å??ºæ?ï¼›venue ç¼ºå¤±??travelKm=0ï¼Œè³½ç¨‹å?åº¦ä?æ­?¸¸è¨ˆç?
     const current_venue = match.home_team?.home_city || "Unknown";
+    
+    // Restoration: current_venue passed as 5th argument
     const feature_vector = await buildFeatureVector(
       baseFakeFeatures,
       match.home_team_id,
       match.away_team_id,
-      match.match_date,  // æ­·å²?ºæ?é»?      current_venue
+      match.match_date,
+      current_venue
     );
 
     const existing = await prisma.eventSnapshot.findUnique({
@@ -41,7 +43,6 @@ async function upsertSnapshotForMatch(
     });
 
     if (existing) {
-      // rebuild æ¨¡å?ï¼šå¼·?¶è??‹è?å¿«ç…§
       await prisma.eventSnapshot.update({
         where: { match_id_snapshot_type: { match_id: match.match_id, snapshot_type } },
         data: {
@@ -71,11 +72,11 @@ async function upsertSnapshotForMatch(
 export async function POST(request: Request) {
   try {
     let body: { match_id?: string; snapshot_type?: string; rebuild?: boolean } = {};
-    try { body = await request.json(); } catch { /* ç©?body = ?¹é?æ¨¡å? */ }
+    try { body = await request.json(); } catch { /* Ignore body parse error */ }
 
     const { match_id, snapshot_type, rebuild = false } = body;
 
-    // ?®å ´æ¨¡å?
+    // Single match processing
     if (match_id) {
       if (!snapshot_type || !(snapshot_type in TYPE_TO_MS)) {
         return NextResponse.json({ error: "Missing or invalid snapshot_type" }, { status: 400 });
@@ -89,18 +90,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, result });
     }
 
-    // ===== ?¹é?æ¨¡å? =====
     const startTime = Date.now();
 
-    // è¨ºæ–·å±?    const [total_matches, matches_without_any_snapshot] = await Promise.all([
+    // Restoration: Proper destructuring for Promise.all
+    const [total_matches, matches_without_any_snapshot] = await Promise.all([
       prisma.matches.count(),
       prisma.matches.count({ where: { snapshots: { none: {} } } }),
     ]);
 
-    // rebuild=trueï¼šæ??¨éƒ¨ matchesï¼ˆå¼·?¶è??‹è?å¿«ç…§ï¼?    // rebuild=falseï¼šåª?ƒé?æ²’æ?å¿«ç…§??matches
-    const whereClause = rebuild
-      ? {}
-      : { snapshots: { none: {} } };
+    const whereClause = rebuild ? {} : { snapshots: { none: {} } };
 
     const matches = await prisma.matches.findMany({
       where: whereClause,
@@ -125,7 +123,8 @@ export async function POST(request: Request) {
       diagnostic: { total_matches, matches_without_any_snapshot },
       scanned_count: matches.length,
       created_count: created,
-      updated_count: updated,   // rebuild æ¨¡å?ä¸‹é€™å€‹æ•¸å­—æ?è©²ç?è¡?      error_count: errors,
+      updated_count: updated,
+      error_count: errors,
       time_elapsed_ms: Date.now() - startTime,
     });
 
