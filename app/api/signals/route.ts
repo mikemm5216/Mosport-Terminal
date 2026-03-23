@@ -20,50 +20,70 @@ export async function GET() {
       include: {
         home_team: true,
         away_team: true,
-        league: true,
-        snapshots: {
-          take: 1,
-          orderBy: { snapshot_time: 'desc' }
-        }
       }
     });
 
-    // Extract all team names (full_name)
-    const teamNames = new Set<string>();
+    if (matches.length === 0) {
+      return NextResponse.json({ 
+        success: true, 
+        count: 0, 
+        matches: [], 
+        signals: [], 
+        data: [] 
+      });
+    }
+
+    // Extract all team IDs
+    const teamIds = new Set<string>();
     matches.forEach(m => {
-      // In the new schema, matches relates to Teams which has full_name
-      if (m.home_team?.full_name) teamNames.add(m.home_team.full_name);
-      if (m.away_team?.full_name) teamNames.add(m.away_team.full_name);
+      if (m.home_team_id) teamIds.add(m.home_team_id);
+      if (m.away_team_id) teamIds.add(m.away_team_id);
     });
 
-    // Fetch from Teams (unified) table
+    // Fetch team metadata for mapping
     const teamsDb = await prisma.teams.findMany({
-      where: { full_name: { in: Array.from(teamNames) } }
-    }) as unknown as TeamFromDb[];
+      where: { team_id: { in: Array.from(teamIds) } }
+    });
+    const teamMap = new Map<string, any>(teamsDb.map(t => [t.team_id, t]));
 
-    const teamMap = new Map<string, TeamFromDb>(teamsDb.map(t => [t.full_name, t]));
-
-    // Fetch match history for all teams
-    const teamIds = teamsDb.map(t => t.team_id);
-    const allHistory = await prisma.matchHistory.findMany({
-      where: { team_id: { in: teamIds } },
-      orderBy: { date: 'desc' }
+    // Fetch previous matches (History) using the matches table
+    const historicalMatches = await prisma.matches.findMany({
+      where: {
+        status: 'COMPLETED',
+        OR: [
+          { home_team_id: { in: Array.from(teamIds) } },
+          { away_team_id: { in: Array.from(teamIds) } }
+        ]
+      },
+      orderBy: { match_date: 'desc' },
+      take: 100
     });
 
-    // Build history map: team_id -> sorted objects
-    const historyMap = new Map<string, typeof allHistory>();
-    for (const h of allHistory) {
-      const existing = historyMap.get(h.team_id) || [];
-      existing.push(h);
-      historyMap.set(h.team_id, existing);
+    // Helper: Map result for a team from a match
+    const getResultForTeam = (m: any, teamId: string) => {
+      if (m.home_score === null || m.away_score === null) return 'D';
+      const isHome = m.home_team_id === teamId;
+      if (m.home_score === m.away_score) return 'D';
+      return (isHome ? m.home_score > m.away_score : m.away_score > m.home_score) ? 'W' : 'L';
+    };
+
+    const historyMap = new Map<string, { result: string; date: Date }[]>();
+    for (const tid of teamIds) {
+      const history = historicalMatches
+        .filter(m => m.home_team_id === tid || m.away_team_id === tid)
+        .map(m => ({
+          result: getResultForTeam(m, tid),
+          date: m.match_date
+        }));
+      historyMap.set(tid, history);
     }
 
     const mappedMatches = matches.map(m => {
-      const homeDbTeam = m.home_team ? teamMap.get(m.home_team.full_name) : null;
-      const awayDbTeam = m.away_team ? teamMap.get(m.away_team.full_name) : null;
+      const homeDbTeam = m.home_team_id ? teamMap.get(m.home_team_id) : null;
+      const awayDbTeam = m.away_team_id ? teamMap.get(m.away_team_id) : null;
 
-      const homeHistory = homeDbTeam ? (historyMap.get(homeDbTeam.team_id) || []) : [];
-      const awayHistory = awayDbTeam ? (historyMap.get(awayDbTeam.team_id) || []) : [];
+      const homeHistory = m.home_team_id ? (historyMap.get(m.home_team_id) || []) : [];
+      const awayHistory = m.away_team_id ? (historyMap.get(m.away_team_id) || []) : [];
 
       // Construct TeamStats for World Engine
       const homeStats: TeamStats = {
