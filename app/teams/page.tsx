@@ -18,17 +18,15 @@ export default async function TeamsAnalyticsPage({
 }) {
   const { sport = 'SOCCER' } = await searchParams;
 
-  const allTeams = await prisma.team.findMany({
-    orderBy: { team_name: 'asc' }
+  const allTeams = await prisma.teams.findMany({
+    orderBy: { full_name: 'asc' }
   });
 
-  // Simple keyword-based filtering
-  // Strict sport/league mapping
+  // Strict sport/league mapping using LeagueType Enum
   const teams = allTeams.filter(t => {
-    const league = (t.league || '').toUpperCase();
-    if (sport === 'NBA') return league.includes('NBA') || league.includes('BASKETBALL');
-    if (sport === 'MLB') return league.includes('MLB') || league.includes('BASEBALL');
-    if (sport === 'SOCCER') return league.includes('EPL') || league.includes('UCL') || league.includes('LALIGA') || league.includes('SERIEA') || league.includes('BUNDESLIGA');
+    if (sport === 'NBA') return t.league_type === 'NBA';
+    if (sport === 'MLB') return t.league_type === 'MLB';
+    if (sport === 'SOCCER') return t.league_type === 'SOCCER';
     return false;
   });
 
@@ -92,9 +90,8 @@ export default async function TeamsAnalyticsPage({
             const fatigue = WorldEngine.calcFatigue(history);
             const last5 = history.slice(0, 5);
             const hasData = history.length > 0;
-            const leagueUpper = (team.league || '').toUpperCase();
-            const isNBA = leagueUpper.includes('NBA') || leagueUpper.includes('BASKETBALL');
-            const isMLB = leagueUpper.includes('MLB') || leagueUpper.includes('BASEBALL');
+            const isNBA = team.league_type === 'NBA';
+            const isMLB = team.league_type === 'MLB';
 
             return (
               <div
@@ -106,18 +103,18 @@ export default async function TeamsAnalyticsPage({
                 {/* Header: Logo + Names */}
                 <div className="flex items-center gap-5 mb-6 border-b border-slate-800/40 pb-5">
                   {team.logo_url ? (
-                    <img src={team.logo_url} alt={team.team_name} className="w-16 h-16 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-500" />
+                    <img src={team.logo_url} alt={team.full_name} className="w-16 h-16 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-500" />
                   ) : (
                     <div className="w-16 h-16 bg-slate-950 rounded-full border border-slate-800 flex items-center justify-center text-slate-600 font-black text-xl">
-                      {team.short_name?.[0] || team.team_name[0]}
+                      {team.short_name?.[0] || team.full_name[0]}
                     </div>
                   )}
                   <div className="flex flex-col truncate min-w-0">
                     <span className="text-white font-black text-2xl tracking-tighter uppercase leading-tight group-hover:text-cyan-400 transition-colors">
-                      {team.short_name || team.team_name.substring(0, 3).toUpperCase()}
+                      {team.short_name || team.full_name.substring(0, 3).toUpperCase()}
                     </span>
                     <span className="text-[9px] text-slate-500 font-bold truncate tracking-widest uppercase mt-0.5">
-                      {team.team_name}
+                      {team.full_name}
                     </span>
                     {/* LAST 5 Form dots */}
                     <div className="flex gap-1.5 mt-2">
@@ -144,7 +141,7 @@ export default async function TeamsAnalyticsPage({
                 {/* Footer (Dynamic League) */}
                 <div className="mt-6 pt-4 border-t border-slate-800/40 flex justify-between items-center text-[9px] font-black text-slate-500 tracking-[0.2em] uppercase">
                   <span className="flex items-center gap-2">
-                    {isNBA ? '🏀' : isMLB ? '⚾' : '⚽'} {team.league || 'PRO LEAGUE'}
+                    {isNBA ? '🏀' : isMLB ? '⚾' : '⚽'} {team.league_type} PRO
                   </span>
                   <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800">{history.length} OPS</span>
                 </div>
