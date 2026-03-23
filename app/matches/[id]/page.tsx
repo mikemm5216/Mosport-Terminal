@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
 import { WorldEngine, TeamStats } from "@/lib/world-engine";
 import { ArrowLeft, Zap, Activity, User } from 'lucide-react';
+import { getShortName } from '@/lib/teams';
 
 export default async function WarRoomPage({ params }: { params: { id: string } }) {
   const { id } = await params;
@@ -38,7 +39,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   const homeStats: TeamStats = {
     id: homeDb?.id ?? 'home',
     name: match.home_team?.team_name ?? 'Home',
-    shortName: homeDb?.short_name ?? match.home_team?.team_name?.substring(0,3).toUpperCase() ?? 'HOM',
+    shortName: homeDb?.short_name ?? getShortName(match.home_team?.team_name ?? 'Home'),
     momentum: WorldEngine.calcMomentum(homeHistory),
     strength: WorldEngine.calcStrength(homeHistory),
     fatigue: WorldEngine.calcFatigue(homeHistory),
@@ -48,7 +49,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   const awayStats: TeamStats = {
     id: awayDb?.id ?? 'away',
     name: match.away_team?.team_name ?? 'Away',
-    shortName: awayDb?.short_name ?? match.away_team?.team_name?.substring(0,3).toUpperCase() ?? 'AWY',
+    shortName: awayDb?.short_name ?? getShortName(match.away_team?.team_name ?? 'Away'),
     momentum: WorldEngine.calcMomentum(awayHistory),
     strength: WorldEngine.calcStrength(awayHistory),
     fatigue: WorldEngine.calcFatigue(awayHistory),
@@ -117,21 +118,20 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   const aFiltered = Object.entries(awayPlayerStats).filter(([k]) => allowedMetrics.includes(k)).slice(0, 4);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30 overflow-x-hidden">
+    <div className="h-[calc(100vh-80px)] overflow-hidden bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30">
       <nav className="w-full border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-4">
         <div className="max-w-7xl mx-auto h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <ArrowLeft size={16} className="text-slate-500 group-hover:text-cyan-400 transition-colors" />
             <span className="text-xs font-mono tracking-widest uppercase text-slate-400 group-hover:text-white">RADAR FEED</span>
           </Link>
-          <span className="text-[10px] text-slate-500 font-mono tracking-[0.3em] uppercase">War Room v2.5</span>
           <div className="w-24"></div>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-4 h-full flex flex-col">
         {/* HERO SECTION */}
-        <header className="flex flex-row flex-nowrap items-center justify-between gap-4 md:gap-12 mb-12">
+        <header className="flex flex-row flex-nowrap items-center justify-between gap-4 md:gap-12 mb-6">
           <div className="text-center md:text-right flex-1 shrink-0 flex flex-col md:flex-row-reverse items-center md:items-end justify-center md:justify-start gap-4">
              <div className="w-16 h-16 md:w-24 md:h-24 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shrink-0 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
                {match.home_team?.logo_url ? <img src={match.home_team.logo_url} className="w-full h-full object-contain p-2" /> : <Zap className="text-slate-800" />}
@@ -152,13 +152,12 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
              </div>
              <div>
                 <h2 className="text-2xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none">{awayStats.shortName}</h2>
-                <p className="text-[10px] md:text-xs font-mono text-slate-500 mt-2 tracking-widest uppercase">{awayStats.name}</p>
              </div>
           </div>
         </header>
 
         {/* BIO-BATTERY */}
-        <section className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-6 md:p-8 mb-12 max-w-5xl mx-auto">
+        <section className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4 mb-6 max-w-5xl mx-auto w-full">
            <div className="flex justify-between items-end mb-4 px-2">
               <span className="text-xl md:text-2xl font-black text-emerald-400">{hPercent}%</span>
               <div className="flex items-center gap-2 mb-1">
@@ -173,11 +172,11 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
            </div>
         </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start flex-1 overflow-hidden">
            {/* ANALYSIS */}
-           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 md:p-10 relative overflow-hidden h-fit lg:min-h-[450px]">
+           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 md:p-8 relative overflow-hidden h-full">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500 shadow-[4px_0_15px_rgba(6,182,212,0.4)]" />
-              <div className="flex items-center gap-4 mb-8">
+              <div className="flex items-center gap-4 mb-4">
                  <Activity size={20} className="text-cyan-400" />
                  <h3 className="text-sm font-black tracking-[0.2em] uppercase text-white">Standard Analysis</h3>
               </div>
@@ -197,8 +196,8 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
            </section>
 
            {/* KEY PLAYERS */}
-           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 md:p-10 h-fit lg:min-h-[450px]">
-              <div className="flex items-center justify-between mb-10">
+           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 md:p-8 h-full">
+              <div className="flex items-center justify-between mb-6">
                  <div className="flex items-center gap-4">
                     <User size={20} className="text-indigo-400" />
                     <h3 className="text-sm font-black tracking-[0.2em] uppercase text-white">Tactical Showdown</h3>
@@ -256,7 +255,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                  </div>
               </div>
 
-              <div className="mt-10 p-5 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
+              <div className="mt-6 p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">Tactical Engine Log</span>
                  <p className="text-[10px] text-slate-400 leading-relaxed uppercase">
                     Dictionary v2.0 Active. Position metrics mapped for {sport}. Accuracy optimization confirmed.
@@ -266,7 +265,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
         </div>
       </main>
 
-      <footer className="w-full max-w-7xl mx-auto px-4 py-16 border-t border-slate-900 text-center opacity-50">
+      <footer className="w-full max-w-7xl mx-auto px-4 py-4 border-t border-slate-900 text-center opacity-50 shrink-0">
          <p className="text-[10px] text-slate-600 font-mono tracking-[0.5em] uppercase">
             Proprietary Data Grid • Mosport Terminal v2.5.1
          </p>

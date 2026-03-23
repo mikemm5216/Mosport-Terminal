@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronDown, ChevronUp, ArrowRight, User, Zap, Activity } from 'lucide-react';
 import MatchTicker from '@/components/match-ticker';
 import { formatLocalTime } from '@/lib/timezone';
+import { getShortName } from '@/lib/teams';
 
 export default function Home() {
   const [matches, setMatches] = useState<any[]>([]);
@@ -39,7 +40,6 @@ export default function Home() {
           Mosport <span className="text-cyan-400">Terminal</span>
         </h1>
         <div className="flex justify-between items-center mt-2">
-          <p className="text-slate-500 text-[10px] md:text-xs font-mono uppercase tracking-[0.3em]">Proprietary Intelligence Grid v2.5</p>
           <div className="flex gap-2 items-center">
              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
              <span className="text-[10px] text-slate-400 font-mono tracking-widest uppercase">Live Link Active</span>
@@ -76,7 +76,7 @@ const getLeagueDisplay = (leagueName?: string): string => {
   return upper ? `⚽ ${upper}` : '⚽ PRO LEAGUE';
 };
 
-const toTLA = (name: string) => (name || '').substring(0, 3).toUpperCase();
+const toTLA = (name: string) => getShortName(name);
 
 function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: boolean, onToggle: () => void }) {
   const isUCL = (match.league?.league_name || '').toUpperCase().includes('CHAMPIONS LEAGUE');
@@ -99,8 +99,7 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
                )}
              </span>
              {match.primaryTag && (
-               <div className="flex items-center gap-2 bg-cyan-500/5 border border-cyan-500/10 px-3 py-1 rounded-full group-hover:border-cyan-500/30 transition-colors max-w-[120px] md:max-w-[200px] truncate">
-                 <span className="text-[9px] md:text-xs font-black text-cyan-500 tracking-tighter uppercase whitespace-nowrap shrink-0">THE SIGN ➔</span>
+               <div className="flex items-center gap-2 bg-cyan-500/5 border border-cyan-500/10 px-3 py-1 rounded-full group-hover:border-cyan-500/30 transition-colors max-w-[200px] truncate">
                  <span className="text-[9px] md:text-xs font-black text-white tracking-[0.1em] uppercase truncate">{match.primaryTag}</span>
                </div>
              )}
@@ -151,9 +150,20 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
                    <span className="text-[10px] font-black tracking-[0.2em] uppercase text-purple-400">Market Sentiment Intelligence</span>
                  </div>
                </div>
-               <p className="text-base md:text-lg text-slate-200 leading-relaxed font-medium italic">
-                 "{match.marketSentiment || "Aggregating market intelligence and expert keywords..."}"
-               </p>
+               <ul className="space-y-2 text-sm text-slate-300">
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-500 mt-1">•</span>
+                    <span>Expert/Model Analysis: {match.marketSentiment || "Aggregating keywords..."}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-500 mt-1">•</span>
+                    <span>Sharp Money / Betting Trend: High-volume position detected.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-500 mt-1">•</span>
+                    <span>Fan / Social Sentiment: Mixed outlook across major platforms.</span>
+                  </li>
+               </ul>
             </div>
 
             <div className="flex justify-between items-center border-t border-slate-800/50 pt-6">
