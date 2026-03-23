@@ -6,6 +6,14 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    interface TeamFromDb {
+      team_id: string;
+      full_name: string;
+      short_name: string;
+      logo_url: string | null;
+      league_type: string;
+    }
+
     const matches = await prisma.matches.findMany({
       take: 50,
       orderBy: { match_date: 'desc' },
@@ -20,22 +28,23 @@ export async function GET() {
       }
     });
 
-    // Extract all team names
+    // Extract all team names (full_name)
     const teamNames = new Set<string>();
     matches.forEach(m => {
-      if (m.home_team?.team_name) teamNames.add(m.home_team.team_name);
-      if (m.away_team?.team_name) teamNames.add(m.away_team.team_name);
+      // In the new schema, matches relates to Teams which has full_name
+      if (m.home_team?.full_name) teamNames.add(m.home_team.full_name);
+      if (m.away_team?.full_name) teamNames.add(m.away_team.full_name);
     });
 
-    // Fetch from Team cold DB
-    const teamsDb = await prisma.team.findMany({
-      where: { team_name: { in: Array.from(teamNames) } }
-    });
+    // Fetch from Teams (unified) table
+    const teamsDb = await prisma.teams.findMany({
+      where: { full_name: { in: Array.from(teamNames) } }
+    }) as unknown as TeamFromDb[];
 
-    const teamMap = new Map(teamsDb.map(t => [t.team_name, t]));
+    const teamMap = new Map<string, TeamFromDb>(teamsDb.map(t => [t.full_name, t]));
 
     // Fetch match history for all teams
-    const teamIds = teamsDb.map(t => t.id);
+    const teamIds = teamsDb.map(t => t.team_id);
     const allHistory = await prisma.matchHistory.findMany({
       where: { team_id: { in: teamIds } },
       orderBy: { date: 'desc' }
@@ -50,17 +59,17 @@ export async function GET() {
     }
 
     const mappedMatches = matches.map(m => {
-      const homeDbTeam = m.home_team ? teamMap.get(m.home_team.team_name) : null;
-      const awayDbTeam = m.away_team ? teamMap.get(m.away_team.team_name) : null;
+      const homeDbTeam = m.home_team ? teamMap.get(m.home_team.full_name) : null;
+      const awayDbTeam = m.away_team ? teamMap.get(m.away_team.full_name) : null;
 
-      const homeHistory = homeDbTeam ? (historyMap.get(homeDbTeam.id) || []) : [];
-      const awayHistory = awayDbTeam ? (historyMap.get(awayDbTeam.id) || []) : [];
+      const homeHistory = homeDbTeam ? (historyMap.get(homeDbTeam.team_id) || []) : [];
+      const awayHistory = awayDbTeam ? (historyMap.get(awayDbTeam.team_id) || []) : [];
 
       // Construct TeamStats for World Engine
       const homeStats: TeamStats = {
-        id: homeDbTeam?.id || 'home',
-        name: m.home_team?.team_name || 'Home',
-        shortName: homeDbTeam?.short_name || (m.home_team?.team_name?.substring(0,3).toUpperCase() ?? 'HOM'),
+        id: homeDbTeam?.team_id || 'home',
+        name: m.home_team?.full_name || 'Home',
+        shortName: homeDbTeam?.short_name || (m.home_team?.full_name?.substring(0,3).toUpperCase() ?? 'HOM'),
         momentum: WorldEngine.calcMomentum(homeHistory),
         strength: WorldEngine.calcStrength(homeHistory),
         fatigue: WorldEngine.calcFatigue(homeHistory),
@@ -68,9 +77,9 @@ export async function GET() {
       };
 
       const awayStats: TeamStats = {
-        id: awayDbTeam?.id || 'away',
-        name: m.away_team?.team_name || 'Away',
-        shortName: awayDbTeam?.short_name || (m.away_team?.team_name?.substring(0,3).toUpperCase() ?? 'AWY'),
+        id: awayDbTeam?.team_id || 'away',
+        name: m.away_team?.full_name || 'Away',
+        shortName: awayDbTeam?.short_name || (m.away_team?.full_name?.substring(0,3).toUpperCase() ?? 'AWY'),
         momentum: WorldEngine.calcMomentum(awayHistory),
         strength: WorldEngine.calcStrength(awayHistory),
         fatigue: WorldEngine.calcFatigue(awayHistory),
@@ -82,8 +91,8 @@ export async function GET() {
 
       return {
         ...m,
-        home_team_name: m.home_team_name || m.home_team?.team_name || 'Home',
-        away_team_name: m.away_team_name || m.away_team?.team_name || 'Away',
+        home_team_name: m.home_team?.full_name || 'Home',
+        away_team_name: m.away_team?.full_name || 'Away',
         home_logo: homeDbTeam?.logo_url || null,
         away_logo: awayDbTeam?.logo_url || null,
         home_short_name: homeStats.shortName,

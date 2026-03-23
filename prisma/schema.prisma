@@ -7,237 +7,106 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Leagues {
-  league_id   String  @id @default(cuid())
-  league_name String
-  sport       String
-  country     String
-  
-  teams       Teams[]
-  matches     Matches[]
+// DIRECTIVE 1.1: Strict League Enum
+enum LeagueType {
+  NBA
+  MLB
+  SOCCER
 }
 
+// DIRECTIVE 1.2: Core Units
 model Teams {
-  team_id   String  @id @default(cuid())
-  league_id String
-  team_name String
-  home_city String
-  logo_url  String? // Added for UI Logo Normalization
+  team_id     String     @id @default(cuid())
+  league_type LeagueType
+  full_name   String     @unique
+  short_name  String     // CEO Standard TLA (LAL, LAD, WHU)
+  city        String?
+  home_venue  String?
+  logo_url    String?    // Seeded from permanent CDNs
   
-  league    Leagues @relation(fields: [league_id], references: [league_id])
-  players   Players[]
-  states    TeamWorldState[]
-  homeMatches Matches[] @relation("HomeMatches")
-  awayMatches Matches[] @relation("AwayMatches")
+  rosters     Roster[]
+  matches_home Matches[] @relation("HomeMatches")
+  matches_away Matches[] @relation("AwayMatches")
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
 }
 
-model Players {
-  player_id   String @id @default(cuid())
-  team_id     String
-  player_name String
-  positions   String[] // Array for multi-role support (e.g. ["P", "DH"])
-  number      String? // Jersey Number
-  stats       Json?   // Multi-role stats (e.g. stats.P, stats.DH)
+// DIRECTIVE 1.3: Identity & Professional Roster
+model Player {
+  player_id     String    @id @default(cuid())
+  first_name    String
+  last_name     String
+  display_name  String
+  nationality   String?
+  position_main String
+  active_status Boolean   @default(true)
   
-  team        Teams  @relation(fields: [team_id], references: [team_id])
+  rosters      Roster[]
+  stats_nba    Stats_NBA?
+  stats_mlb    Stats_MLB?
+  stats_soccer Stats_Soccer?
+  created_at    DateTime  @default(now())
 }
 
+model Roster {
+  id            String   @id @default(cuid())
+  player_id     String
+  team_id       String
+  season_year   Int
+  jersey_number String?
+  
+  player        Player   @relation(fields: [player_id], references: [player_id])
+  team          Teams    @relation(fields: [team_id], references: [team_id])
+
+  @@unique([player_id, team_id, season_year])
+}
+
+// DIRECTIVE 1.4: Separated Data Streams
+model Stats_NBA {
+  player_id   String  @id
+  pts         Float?
+  reb         Float?
+  ast         Float?
+  player      Player  @relation(fields: [player_id], references: [player_id])
+}
+
+model Stats_MLB {
+  player_id   String  @id
+  avg         Float?
+  hr          Int?
+  rbi         Int?
+  player      Player  @relation(fields: [player_id], references: [player_id])
+}
+
+model Stats_Soccer {
+  player_id   String  @id
+  goals       Int?
+  assists     Int?
+  saves       Int?
+  player      Player  @relation(fields: [player_id], references: [player_id])
+}
+
+// Operational Matches
 model Matches {
-  match_id     String   @id @default(cuid())
-  league_id    String
-  home_team_id String
-  away_team_id String
-  match_date   DateTime
-  status       String   // scheduled, live, finished
-  home_team_name String?  // Denormalized for TLA logic
-  away_team_name String?  // Denormalized for TLA logic
-  home_score   Int?
-  away_score   Int?
-  final_signal_snapshot Json? // Snapshot of pre-match analysis at T-10m
+  match_id       String   @id @default(cuid())
+  home_team_id   String
+  away_team_id   String
+  match_date     DateTime
+  status         String   // scheduled, live, finished
+  home_score     Int?
+  away_score     Int?
   
-  // Story Engine Data Layer
-  narrative      String?
-  narrative_type String?  // e.g. fatigue, scandal, comeback
-  signal_pick    String?  // HOME or AWAY
-  signal_conf    Float?
-  signal_edge    Float?
+  home_team      Teams    @relation("HomeMatches", fields: [home_team_id], references: [team_id])
+  away_team      Teams    @relation("AwayMatches", fields: [away_team_id], references: [team_id])
   
-  league       Leagues  @relation(fields: [league_id], references: [league_id])
-  home_team    Teams    @relation("HomeMatches", fields: [home_team_id], references: [team_id])
-  away_team    Teams    @relation("AwayMatches", fields: [away_team_id], references: [team_id])
-  
-  stats        MatchStats?
-  market       MarketProbabilities[]
-  signals      Signals[]
-  snapshots    EventSnapshot[]
-  experiences  Experience[]
+  created_at     DateTime @default(now())
 }
 
-model MatchStats {
-  match_id   String  @id
-  home_score Int
-  away_score Int
-  raw_stats  Json    // Must use GIN index
-  
-  match      Matches @relation(fields: [match_id], references: [match_id])
-}
-
-model TeamWorldState {
-  team_id          String   @id
-  team_strength    Float    @default(50.0)
-  momentum         Float    @default(0.5)
-  fatigue          Float    @default(0.0)
-  lineup_stability Float    @default(1.0)
-  home_advantage   Float    @default(1.0)
-  updated_at       DateTime @updatedAt
-  
-  team             Teams    @relation(fields: [team_id], references: [team_id])
-}
-
-model Events {
-  event_id     String   @id @default(cuid())
-  team_id      String
-  match_id     String?
-  event_type   String   // injury, transfer, suspension, weather, coach_change, news
-  impact_score Float
-  event_payload Json?
-  created_at   DateTime @default(now())
-}
-
-model MarketProbabilities {
-  id                      String  @id @default(cuid())
-  match_id                String
-  market_probability_home Float
-  market_probability_away Float
-  source                  String  // global_market_average
-  
-  match                   Matches @relation(fields: [match_id], references: [match_id])
-}
-
-model Signals {
-  id                      String   @id @default(cuid())
-  match_id                String
-  model_probability_home  Float
-  market_probability_home Float
-  edge                    Float
-  snr                     Float
-  signal_type             String   // true_signal, high_noise
-  created_at              DateTime @default(now())
-  
-  match                   Matches  @relation(fields: [match_id], references: [match_id])
-}
-
-model DeadLetterQueue {
-  id         String   @id @default(cuid())
-  source     String
-  payload    Json
-  error      String
-  created_at DateTime @default(now())
-}
-
-model MatchesHistory {
-  id                   String   @id @default(cuid())
-  original_match_id    String   @unique
-  league_id            String
-  home_team_id         String
-  away_team_id         String
-  match_date           DateTime
-  final_home_score     Int
-  final_away_score     Int
-  final_signal_snapshot Json?
-  archived_at          DateTime @default(now())
-}
-
-model SignalsHistory {
-  id                      String   @id @default(cuid())
-  original_signal_id      String   @unique
-  match_id                String
-  model_probability_home  Float
-  market_probability_home Float
-  edge                    Float
-  snr                     Float
-  signal_type             String
-  created_at              DateTime
-  archived_at             DateTime @default(now())
-}
-
-model ModelPerformance {
-  report_month           String   @id // Format: YYYY-MM
-  matches_analyzed       Int
-  model_accuracy         Float
-  average_edge           Float
-  signals_generated      Int
-  hypothetical_model_roi Float
-  created_at             DateTime @default(now())
-}
-
+// Analytics Layers
 model EventSnapshot {
   snapshot_id   String   @id @default(uuid()) @db.Uuid
   match_id      String
   snapshot_type String   // T-24h / T-6h / T-1h / T-10min
-  snapshot_time DateTime
   state_json    Json
-  feature_json  Json
-  version       Int      @default(1)
   created_at    DateTime @default(now())
-
-  match         Matches  @relation(fields: [match_id], references: [match_id], onDelete: Restrict)
-
-  @@index([match_id])
-  @@unique([match_id, snapshot_type])
-  @@map("event_snapshots")
-}
-
-model Experience {
-  experience_id String   @id @default(uuid()) @db.Uuid
-  match_id      String
-  snapshot_type String   // T-24h / T-6h / T-1h / T-10min
-
-  feature_json  Json
-  feature_vector Float[]   // ⭐ 新增: 固定特徵陣列
-
-  label         Int
-  label_type    String     // ⭐ 新增: "HOME_WIN" / "OVER_2_5"
-
-  created_at    DateTime @default(now())
-
-  // 設定與 Matches 之間的關聯，確保外鍵安全
-  match         Matches  @relation(fields: [match_id], references: [match_id], onDelete: Restrict)
-
-  @@index([match_id])
-  @@index([snapshot_type])
-  @@unique([match_id, snapshot_type])
-  @@map("experiences")
-}
-
-model ModelRegistry {
-  model_id     String   @id @default(uuid())
-  model_type   String   // "T-24h" / "T-6h" / "T-1h" / "T-10min"
-  model_json   Json
-  metrics_json Json
-  created_at   DateTime @default(now())
-
-  @@map("model_registry")
-}
-
-// ==========================================
-// Mosport 1.5: Team Cold Database
-// ==========================================
-model Team {
-  id         String   @id @default(cuid())
-  team_name  String   @unique
-  short_name String?  // e.g., "LAL", "GSW"
-  logo_url   String?
-  league     String?
-  updatedAt  DateTime @updatedAt
-}
-
-model MatchHistory {
-  id            String   @id @default(cuid())
-  team_id       String
-  opponent      String
-  result        String   // "W", "L", "D"
-  score_for     Int
-  score_against Int
-  date          DateTime
 }

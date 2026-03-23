@@ -96,17 +96,21 @@ function getProfessionalStats(sport: string, positions: string[]): Record<string
   return stats;
 }
 
-// League Normalization for the Vault Filter
-const normalizeLeagueTag = (leagueName: string, sport: string): string => {
-  const l = (leagueName || "").toLowerCase();
-  const s = (sport || "").toLowerCase();
+// DIRECTIVE 2: Strict Whitelist League Routing
+const normalizeLeagueTag = (leagueName: string, sport: string): "NBA" | "MLB" | "SOCCER" | null => {
+  const l = (leagueName || "").toUpperCase();
+  const s = (sport || "").toUpperCase();
   
-  if (l.includes("nba") || s.includes("nba") || s.includes("basketball")) return "NBA";
-  if (l.includes("mlb") || s.includes("mlb") || s.includes("baseball")) return "MLB";
-  if (l.includes("premier") || l.includes("epl") || s.includes("epl") || (s.includes("soccer") && (l.includes("premier") || !l.includes("champions")))) return "EPL";
-  if (l.includes("champions") || l.includes("ucl") || l.includes("uefa")) return "UCL";
+  if (l === "NBA" || s === "BASKETBALL_NBA" || l.includes("NATIONAL BASKETBALL ASSOCIATION")) return "NBA";
+  if (l === "MLB" || s === "BASEBALL_MLB" || l.includes("MAJOR LEAGUE BASEBALL")) return "MLB";
   
-  return "NBA"; 
+  const isSoccer = s.includes("SOCCER");
+  const isEliteSoccer = l.includes("PREMIER") || l.includes("EPL") || l.includes("CHAMPIONS") || l.includes("UCL") || l.includes("LALIGA");
+  
+  if (isSoccer && isEliteSoccer) return "SOCCER";
+  
+  // ⚡ GENESIS OVERRIDE: Dropping NCAA, CFL, etc.
+  return null; 
 };
 
 // ==============
@@ -389,25 +393,28 @@ export async function GET() {
       )
     );
 
-    // Sync to Vault Team (singular) table
+    // DIRECTIVE 1 & 4: Sync to Unified Teams table with Metadata Lock
     await Promise.all(
-      Array.from(teamsMap.values()).map(t =>
-        prisma.team.upsert({
-          where: { team_name: t.team_name },
+      Array.from(teamsMap.values()).map(async (t) => {
+        const leagueType = normalizeLeagueTag(t.league_name, t.sport);
+        // DIRECTIVE 2: Sync Guard
+        if (!leagueType) return;
+
+        await prisma.teams.upsert({
+          where: { full_name: t.team_name },
           update: {
-            short_name: getShortName(t.team_name),
-            // CEO SAFETY: Only update logo if truthy
-            ...(t.logo_url ? { logo_url: t.logo_url } : {}),
-            league: normalizeLeagueTag(t.league_name, t.sport)
+            // DIRECTIVE 4: Metadata Lock (Do NOT update logo_url or short_name)
+            // Only updating updated_at timestamp or other non-locked fields if necessary
           },
           create: {
-            team_name: t.team_name,
+            full_name: t.team_name,
             short_name: getShortName(t.team_name),
             logo_url: t.logo_url,
-            league: normalizeLeagueTag(t.league_name, t.sport)
+            league_type: leagueType,
+            city: t.home_city
           }
-        })
-      )
+        });
+      })
     );
 
     // Matches & Players 必須序列寫入
