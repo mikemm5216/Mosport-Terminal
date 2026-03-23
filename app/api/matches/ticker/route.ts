@@ -25,7 +25,7 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ success: true, data: matches });
+    return NextResponse.json({ success: true, matches: matches || [] });
   } catch (error: any) {
     console.error("[TICKER API ERROR]", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

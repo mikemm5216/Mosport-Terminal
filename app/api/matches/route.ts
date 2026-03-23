@@ -17,8 +17,17 @@ export async function GET() {
       take: 20
     });
 
-    return NextResponse.json({ success: true, upcoming });
+    return NextResponse.json({ 
+      success: true, 
+      upcoming: upcoming || [],
+      matches: upcoming || [] 
+    });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message,
+      upcoming: [],
+      matches: []
+    }, { status: 500 });
   }
 }
