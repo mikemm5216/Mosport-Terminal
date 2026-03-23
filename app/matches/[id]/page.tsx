@@ -167,7 +167,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
               </div>
               <span className="text-lg md:text-xl font-black text-red-500">{aPercent}%</span>
            </div>
-           <div className="w-full h-2 bg-slate-950 rounded-full border border-slate-800/50 flex overflow-hidden p-0.5 shadow-inner">
+           <div className="w-full h-6 md:h-8 bg-slate-950 rounded-full border border-slate-800/50 flex overflow-hidden p-1 shadow-inner">
               <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)]" style={{ width: `${hPercent}%` }} />
               <div className="h-full bg-red-600 rounded-full ml-auto" style={{ width: `${aPercent}%` }} />
            </div>
