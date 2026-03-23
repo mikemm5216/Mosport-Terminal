@@ -12,5 +12,5 @@ jobs:
     steps:
       - name: Call Snapshot Scheduler API
         run: |
-          curl -X POST https://www.mosport.app/api/scheduler/run \
+          curl -f -X POST https://www.mosport.app/api/scheduler/run \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

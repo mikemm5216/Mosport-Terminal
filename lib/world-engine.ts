@@ -46,20 +46,27 @@ export const WorldEngine = {
     return { type, count };
   },
 
-  generateMarketSentiment(home: TeamStats, away: TeamStats, predictedWinner: 'home' | 'away'): string {
+  generateMarketSentiment(home: TeamStats, away: TeamStats, predictedWinner: 'home' | 'away'): { expert: string; money: string; social: string } {
     const winner = predictedWinner === 'home' ? home : away;
     const loser = predictedWinner === 'home' ? away : home;
     
     const buzzwords = ["perimeter efficiency", "defensive keywords", "market volume", "sharp money", "injury volatility", "line movement"];
     const buzz = buzzwords[Math.floor(Math.random() * buzzwords.length)];
 
+    let expert = "";
     if (predictedWinner === 'away' && winner.momentum > 0.8) {
-      return `Market analysts are heavily focusing on ${winner.shortName}'s ${buzz}, warning that ${loser.shortName}'s recent form makes them a risky fade tonight.`;
+      expert = `Market analysts are heavily focusing on ${winner.shortName}'s ${buzz}, warning that ${loser.shortName}'s recent form makes them a risky fade tonight.`;
+    } else if (predictedWinner === 'home' && loser.fatigue > 0.7) {
+      expert = `Expert consensus highlights a significant energy gap; ${loser.shortName}'s road exhaustion is driving heavy sentiment toward a ${home.shortName} home cover.`;
+    } else {
+      expert = `Aggregated intelligence indicates ${winner.shortName} is gaining traction among high-volume models due to ${buzz} advantages over ${loser.shortName}.`;
     }
-    if (predictedWinner === 'home' && loser.fatigue > 0.7) {
-      return `Expert consensus highlights a significant energy gap; ${loser.shortName}'s road exhaustion is driving heavy sentiment toward a ${home.shortName} home cover.`;
-    }
-    return `Aggregated intelligence indicates ${winner.shortName} is gaining traction among high-volume models due to ${buzz} advantages over ${loser.shortName}.`;
+
+    return {
+      expert,
+      money: `Sharp Money Trend: High-volume position detected on ${winner.shortName} ${predictedWinner === 'home' ? 'spread' : 'moneyline'}.`,
+      social: `Fan Sentiment / Social Heat: Viral trend favoring ${winner.shortName} across major sports betting forums.`
+    };
   },
 
   runMatchSimulation(home: TeamStats, away: TeamStats, forcedWinner?: 'home' | 'away') {
