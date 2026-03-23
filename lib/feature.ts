@@ -6,7 +6,7 @@ export const FEATURE_ORDER = [
   "goal_avg_diff",
   "form_strength_home",
   "form_strength_away",
-  "bio_battery_home",  // 升級：從 fatigue 改為 Bio-Battery
+  "bio_battery_home",  // ?��?：�? fatigue ?�為 Bio-Battery
   "bio_battery_away",
 ];
 
@@ -17,15 +17,14 @@ export async function buildFeatureVector(
   current_match_date: Date,
   current_venue: string
 ): Promise<number[]> {
-  // 取主隊的 home_city 用於 Road Trip 判斷
+  // ?�主?��? home_city ?�於 Road Trip ?�斷
   const homeTeam = await prisma.teams.findUnique({ where: { team_id: home_team_id } }).catch(() => null);
   const awayTeam = await prisma.teams.findUnique({ where: { team_id: away_team_id } }).catch(() => null);
 
   const homeCity = homeTeam?.home_city || "Unknown";
   const awayCity = awayTeam?.home_city || "Unknown";
 
-  // Bio-Battery 計算：包含賽程密度 + 客場壓力 + 旅途疲勞
-  const [homeBio, awayBio] = await Promise.all([
+  // Bio-Battery 計�?：�??�賽程�?�?+ 客場壓�? + ?�途疲??  const [homeBio, awayBio] = await Promise.all([
     PhysicsEngine.getBioBattery(home_team_id, current_match_date, current_venue, homeCity),
     PhysicsEngine.getBioBattery(away_team_id, current_match_date, current_venue, awayCity),
   ]);
@@ -46,6 +45,6 @@ export async function buildFeatureVector(
 
   const v = [elo, goal, formH, formA, homeBio.bio_battery, awayBio.bio_battery];
 
-  // 極度重要防呆：確保送出的 6 維向量無 NaN / null / undefined
+  // 極度?��??��?：確保送出??6 維�??�無 NaN / null / undefined
   return v.map(n => (typeof n === 'number' && !isNaN(n)) ? n : 0.0);
 }

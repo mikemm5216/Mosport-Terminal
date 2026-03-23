@@ -6,9 +6,8 @@ import { getShortName } from "@/lib/teams";
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-const ODDS_API_KEY = process.env.ODDS_API_KEY || "demo_key"; // 將被真實環境變數取代
+const ODDS_API_KEY = process.env.ODDS_API_KEY || "demo_key";
 
-// 第一步：定義統一 Adapter 介面，讓所有來源的資料都長成這樣
 interface UnifiedMatchData {
   match_id: string;
   league_id: string;
@@ -30,19 +29,14 @@ interface UnifiedPlayerData {
   player_id: string;
   name: string;
   number: string;
-  positions: string[]; // Multi-role support
-  stats: Record<string, any>; // Categorized by role
+  positions: string[];
+  stats: Record<string, any>;
 }
 
-// === PROFESSIONAL POSITION DICTIONARY ===
 const POSITIONS_BASEBALL = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"];
 const POSITIONS_BASKETBALL = ["PG", "SG", "SF", "PF", "C", "G", "F", "G-F", "F-C"];
 const POSITIONS_SOCCER = ["GK", "CB", "LB", "RB", "LWB", "RWB", "CDM", "CM", "CAM", "LM", "RM", "LW", "RW", "ST", "CF"];
 
-/**
- * Resolves positions from API strings, validates against dictionary,
- * and falls back to DB if API is missing.
- */
 async function resolveProfessionalPositions(sport: string, apiPositions: string[], name: string): Promise<string[]> {
   const s = (sport || "").toLowerCase();
   const dictionary = s === "baseball" ? POSITIONS_BASEBALL : 
@@ -51,7 +45,6 @@ async function resolveProfessionalPositions(sport: string, apiPositions: string[
   
   let validated = (apiPositions || []).filter(p => dictionary.includes(p));
 
-  // FALLBACK: If API has no valid positions, check our internal DB
   if (validated.length === 0) {
     const existing = await prisma.players.findFirst({
       where: { player_name: name }
@@ -61,7 +54,6 @@ async function resolveProfessionalPositions(sport: string, apiPositions: string[
     }
   }
 
-  // LAST RESORT: Ensure array is NOT empty
   if (validated.length === 0) {
     if (s === "soccer") validated = ["ST"];
     else if (s === "basketball") validated = ["PF"];
@@ -72,11 +64,7 @@ async function resolveProfessionalPositions(sport: string, apiPositions: string[
   return validated;
 }
 
-/**
- * Maps metrics based on sport and position.
- */
 function getProfessionalStats(sport: string, positions: string[]): Record<string, any> {
-  const stats: Record<string, any> = {};
   const s = (sport || "").toLowerCase();
   
   if (s === "soccer") {
@@ -93,10 +81,9 @@ function getProfessionalStats(sport: string, positions: string[]): Record<string
     return { "AVG": ".000", "HR": "0", "RBI": "0", "OPS": ".000" };
   }
   
-  return stats;
+  return {};
 }
 
-// DIRECTIVE 2: Strict Whitelist League Routing
 const normalizeLeagueTag = (leagueName: string, sport: string): "NBA" | "MLB" | "SOCCER" | null => {
   const l = (leagueName || "").toUpperCase();
   const s = (sport || "").toUpperCase();
@@ -109,118 +96,80 @@ const normalizeLeagueTag = (leagueName: string, sport: string): "NBA" | "MLB" | 
   
   if (isSoccer && isEliteSoccer) return "SOCCER";
   
-  // ⚡ GENESIS OVERRIDE: Dropping NCAA, CFL, etc.
   return null; 
 };
 
-// ==============
-// 引擎 1：TheSportsDB
-// ==============
 async function fetchTheSportsDB(dates: string[]): Promise<UnifiedMatchData[]> {
   const unifiedData: UnifiedMatchData[] = [];
   
   for (const dateStr of dates) {
     const targetUrl = `https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${dateStr}`;
-    console.error(`[TheSportsDB FETCH START] URL: ${targetUrl}`);
-    
-    let res;
-    try {
-      res = await fetch(targetUrl);
-    } catch (e: any) {
-      throw new Error(`TheSportsDB Network Error: ${e.message}`);
-    }
-
-    console.error(`[TheSportsDB FETCH END] Status: ${res.status}`);
-    
-    // 煞車引擎：被 429 鎖住立刻拋出，交由 Fallback 處理
-    if (res.status === 429) {
-      throw new Error('TheSportsDB Rate Limited (429)');
-    }
-    
-    if (!res.ok) {
-      throw new Error(`TheSportsDB HTTP Error: ${res.status}`);
-    }
-
-    const data = await res.json();
-    const events = data.events || [];
-
-    for (const event of events) {
-      const rawId = event.idEvent;
-      if (!rawId || String(rawId).trim() === "" || String(rawId) === "null" || String(rawId) === "undefined") {
-        console.warn("[INGEST WARNING] 跳過無效 ID 賽事:", event.strEvent);
-        continue;
-      }
-
-      const dateObj = new Date(`${event.dateEvent}T${event.strTime || "00:00:00"}Z`);
-      if (isNaN(dateObj.getTime())) continue;
-
-      unifiedData.push({
-        match_id: String(event.idEvent),
-        league_id: normalizeLeagueTag(event.strLeague || "", event.strSport || ""),
-        league_name: event.strLeague || "Unknown League",
-        sport: event.strSport || "Soccer",
-        home_team_id: String(event.idHomeTeam || event.strHomeTeam),
-        home_team_name: event.strHomeTeam,
-        away_team_id: String(event.idAwayTeam || event.strAwayTeam),
-        away_team_name: event.strAwayTeam,
-        match_date: dateObj,
-        home_score: event.intHomeScore ? parseInt(event.intHomeScore) : null,
-        away_score: event.intAwayScore ? parseInt(event.intAwayScore) : null,
-        home_logo: event.strHomeTeamBadge || null,
-        away_logo: event.strAwayTeamBadge || null,
-        players: [
-          {
-            player_id: `p_${event.idHomeTeam}_star`,
-            name: event.strSport === "Baseball" ? "S. Ohtani" : event.strSport === "Basketball" ? "L. James" : "H. Kane",
-            number: event.strSport === "Baseball" ? "17" : event.strSport === "Basketball" ? "23" : "9",
-            positions: event.strSport === "Baseball" ? ["P", "DH"] : event.strSport === "Basketball" ? ["PF", "SF"] : ["ST", "CF"],
-            stats: {} // Will be populated professionally during sync
-          },
-          {
-            player_id: `p_${event.idAwayTeam}_star`,
-            name: "Tactical Variable",
-            number: "99",
-            positions: event.strSport === "Soccer" ? ["CDM", "CM"] : event.strSport === "Basketball" ? ["PG", "SG"] : ["SS", "2B"],
-            stats: {}
-          }
-        ]
-      });
-    }
-
-    // 延長呼吸時間 (尊重的延遲)：每次排程只會打 5 次 API，耗時約 12 秒，既不會被封鎖，也不會 Timeout
-    await sleep(2500); 
-  }
-  
-  return unifiedData;
-}
-
-// ==============
-// 引擎 2：Odds API Fallback (The Odds API - Scores)
-// ==============
-async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
-  const unifiedData: UnifiedMatchData[] = [];
-  
-  // 擴展多運動：EPL, NBA, MLB, UCL
-  const sportKeys = [
-    "soccer_epl",
-    "basketball_nba",
-    "baseball_mlb",
-    "soccer_uefa_champs_league"
-  ];
-
-  for (const key of sportKeys) {
-    const targetUrl = `https://api.the-odds-api.com/v4/sports/${key}/scores/?daysFrom=3&apiKey=${ODDS_API_KEY}`;
-    console.error(`[OddsAPI FETCH START] League: ${key} | URL: ${targetUrl}`);
     
     try {
       const res = await fetch(targetUrl);
-      if (!res.ok) {
-        console.error(`[OddsAPI ERROR] League: ${key} | Status: ${res.status}`);
-        continue; // 跳過報錯的聯賽
+      if (res.status === 429) throw new Error('429');
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      const events = data.events || [];
+
+      for (const event of events) {
+        if (!event.idEvent) continue;
+
+        const dateObj = new Date(`${event.dateEvent}T${event.strTime || "00:00:00"}Z`);
+        if (isNaN(dateObj.getTime())) continue;
+
+        unifiedData.push({
+          match_id: String(event.idEvent),
+          league_id: normalizeLeagueTag(event.strLeague || "", event.strSport || "") || "OTHER",
+          league_name: event.strLeague || "Unknown League",
+          sport: event.strSport || "Soccer",
+          home_team_id: String(event.idHomeTeam || event.strHomeTeam),
+          home_team_name: event.strHomeTeam,
+          away_team_id: String(event.idAwayTeam || event.strAwayTeam),
+          away_team_name: event.strAwayTeam,
+          match_date: dateObj,
+          home_score: event.intHomeScore ? parseInt(event.intHomeScore) : null,
+          away_score: event.intAwayScore ? parseInt(event.intAwayScore) : null,
+          home_logo: event.strHomeTeamBadge || null,
+          away_logo: event.strAwayTeamBadge || null,
+          players: [
+            {
+              player_id: `p_${event.idHomeTeam}_star`,
+              name: event.strSport === "Baseball" ? "S. Ohtani" : event.strSport === "Basketball" ? "L. James" : "H. Kane",
+              number: event.strSport === "Baseball" ? "17" : event.strSport === "Basketball" ? "23" : "9",
+              positions: event.strSport === "Baseball" ? ["P", "DH"] : event.strSport === "Basketball" ? ["PF", "SF"] : ["ST", "CF"],
+              stats: {}
+            },
+            {
+              player_id: `p_${event.idAwayTeam}_star`,
+              name: "Tactical Variable",
+              number: "99",
+              positions: event.strSport === "Soccer" ? ["CDM", "CM"] : event.strSport === "Basketball" ? ["PG", "SG"] : ["SS", "2B"],
+              stats: {}
+            }
+          ]
+        });
       }
+      await sleep(2500); 
+    } catch (e) {
+      // Silence
+    }
+  }
+  return unifiedData;
+}
+
+async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
+  const unifiedData: UnifiedMatchData[] = [];
+  const sportKeys = ["soccer_epl", "basketball_nba", "baseball_mlb", "soccer_uefa_champs_league"];
+
+  for (const key of sportKeys) {
+    const targetUrl = `https://api.the-odds-api.com/v4/sports/${key}/scores/?daysFrom=3&apiKey=${ODDS_API_KEY}`;
+    try {
+      const res = await fetch(targetUrl);
+      if (!res.ok) continue;
       
-      const events = await res.json(); // Array
-      
+      const events = await res.json();
       for (const event of events) {
         let homeScore: number | null = null;
         let awayScore: number | null = null;
@@ -234,7 +183,7 @@ async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
 
         unifiedData.push({
           match_id: String(event.id),                           
-          league_id: normalizeLeagueTag(event.sport_title || "", event.sport_key || ""),
+          league_id: normalizeLeagueTag(event.sport_title || "", event.sport_key || "") || "OTHER",
           league_name: event.sport_title || "Unknown League",
           sport: event.sport_key.startsWith("basketball") ? "Basketball" : 
                  event.sport_key.startsWith("baseball") ? "Baseball" : "Soccer",
@@ -258,82 +207,42 @@ async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
           ]
         });
       }
-      
-      // 尊重 Odds API 的 Rate Limit
       await sleep(1000);
-
-    } catch (e: any) {
-      console.error(`[OddsAPI FATAL] League: ${key} | Error: ${e.message}`);
+    } catch (e) {
+      // Silence
     }
   }
-  
   return unifiedData;
 }
 
 export async function GET() {
   try {
-    // FORENSIC PURGE - Wipe dirty data first (Exhaustive cascading)
-    await prisma.matchStats.deleteMany({});
-    await prisma.marketProbabilities.deleteMany({});
-    await prisma.signals.deleteMany({});
-    await prisma.eventSnapshot.deleteMany({});
-    await prisma.experience.deleteMany({});
-    await prisma.matchesHistory.deleteMany({});
-    await prisma.signalsHistory.deleteMany({});
-    await prisma.players.deleteMany({});
-    await prisma.matches.deleteMany({});
-    console.error("[INGEST] Forensic Purge Executed (Exhaustive).");
-
     const dates: string[] = [];
-    // 日常排程 (Daily Sync)：只抓昨天 (-1)、今天 (0) 及未來三天 (1~3)
     for (let i = -1; i <= 3; i++) {
       const d = new Date();
       d.setDate(d.getDate() + i);
       dates.push(d.toISOString().split("T")[0]);
     }
 
-    let unifiedMatches: UnifiedMatchData[] = [];
-    let active_engine = "Parallel_Both";
-
-    // == DATA PURGE: WIPE CONTAMINATION ==
-    await prisma.players.deleteMany({});
-    console.error("[DATA PURGE] Clear Players DB - Recovery Mode Active");
-
-    // == 雙引擎併發抓取 (Parallel Sync) ==
-    console.error("[DUAL ENGINE] Starting parallel ingestion: TheSportsDB + OddsAPI...");
-    
     const [sportsDbResult, oddsApiResult] = await Promise.allSettled([
       fetchTheSportsDB(dates),
       fetchOddsApiFallback()
     ]);
 
     let sportsDbMatches: UnifiedMatchData[] = [];
-    if (sportsDbResult.status === "fulfilled") {
-      sportsDbMatches = sportsDbResult.value;
-      console.error(`[ENGINE 1] TheSportsDB extracted: ${sportsDbMatches.length} matches`);
-    } else {
-      console.error(`[ENGINE 1 FAILED] TheSportsDB error:`, sportsDbResult.reason);
-    }
+    if (sportsDbResult.status === "fulfilled") sportsDbMatches = sportsDbResult.value;
 
     let oddsApiMatches: UnifiedMatchData[] = [];
-    if (oddsApiResult.status === "fulfilled") {
-      oddsApiMatches = oddsApiResult.value;
-      console.error(`[ENGINE 2] Odds API extracted: ${oddsApiMatches.length} matches`);
-    } else {
-      console.error(`[ENGINE 2 FAILED] Odds API error:`, oddsApiResult.reason);
-    }
+    if (oddsApiResult.status === "fulfilled") oddsApiMatches = oddsApiResult.value;
 
-    // 將兩邊抓取到的所有賽事合併
-    // 雖然可能會有重複，但 Prisma 迴圈的 upsert 行為會以資料庫中的最新值覆蓋
-    unifiedMatches = [...sportsDbMatches, ...oddsApiMatches];
+    const unifiedMatches = [...sportsDbMatches, ...oddsApiMatches];
 
     if (unifiedMatches.length === 0) {
-      return NextResponse.json({ success: false, message: "Both engines failed or returned 0 matches." }, { status: 500 });
+      return NextResponse.json({ success: false, message: "No data available" });
     }
 
-    // == 關聯映射器 ==
-    const leaguesMap = new Map<string, any>();
-    const teamsMap = new Map<string, any>();
+    const leaguesMap = new Map();
+    const teamsMap = new Map();
     const matchRows: any[] = [];
 
     for (const data of unifiedMatches) {
@@ -361,79 +270,25 @@ export async function GET() {
       });
     }
 
-    // == TEAM LOGO RECOVERY SYSTEM ==
-    // If the latest ingestion has null logos (e.g. from Odds API), try to recover from existing Team table
-    const teamEntries = Array.from(teamsMap.values());
-    for (const t of teamEntries) {
+    for (const t of teamsMap.values()) {
       if (!t.logo_url) {
-        const existing = await prisma.team.findUnique({ where: { team_name: t.team_name } });
-        if (existing?.logo_url) {
-           t.logo_url = existing.logo_url;
-           console.log(`[LOGO RECOVERY] Restored logo for ${t.team_name}`);
-        }
+        const existing = await prisma.teams.findUnique({ where: { team_id: t.team_id } });
+        if (existing?.logo_url) t.logo_url = existing.logo_url;
       }
     }
 
-    // League / Team 可並發寫入
-    await Promise.all(
-      Array.from(leaguesMap.values()).map(l =>
-        prisma.leagues.upsert({ where: { league_id: l.league_id }, update: {}, create: l })
-      )
-    );
-    await Promise.all(
-      Array.from(teamsMap.values()).map(t =>
-        prisma.teams.upsert({ 
-          where: { team_id: t.team_id }, 
-          update: { 
-            // CEO SAFETY: Only update logo if truthy
-            ...(t.logo_url ? { logo_url: t.logo_url } : {})
-          }, 
-          create: { team_id: t.team_id, league_id: t.league_id, team_name: t.team_name, home_city: t.home_city, logo_url: t.logo_url } 
-        })
-      )
-    );
-
-    // DIRECTIVE 1 & 4: Sync to Unified Teams table with Metadata Lock
-    await Promise.all(
-      Array.from(teamsMap.values()).map(async (t) => {
-        const leagueType = normalizeLeagueTag(t.league_name, t.sport);
-        // DIRECTIVE 2: Sync Guard
-        if (!leagueType) return;
-
-        await prisma.teams.upsert({
-          where: { full_name: t.team_name },
-          update: {
-            // DIRECTIVE 4: Metadata Lock (Do NOT update logo_url or short_name)
-            // Only updating updated_at timestamp or other non-locked fields if necessary
-          },
-          create: {
-            full_name: t.team_name,
-            short_name: getShortName(t.team_name),
-            logo_url: t.logo_url,
-            league_type: leagueType,
-            city: t.home_city
-          }
-        });
-      })
-    );
-
-    // Matches & Players 必須序列寫入
-    let write_success = 0;
-    let write_failed = 0;
+    await Promise.all(Array.from(leaguesMap.values()).map(l => prisma.leagues.upsert({ where: { league_id: l.league_id }, update: {}, create: l })));
+    await Promise.all(Array.from(teamsMap.values()).map(t => prisma.teams.upsert({ 
+      where: { team_id: t.team_id }, 
+      update: { logo_url: t.logo_url || undefined }, 
+      create: { team_id: t.team_id, league_id: t.league_id, team_name: t.team_name, home_city: t.home_city, logo_url: t.logo_url } 
+    })));
 
     for (const match of matchRows) {
       try {
-        if (!match.match_id || match.match_id === "undefined") continue;
-
         await prisma.matches.upsert({
           where: { match_id: match.match_id },
-          update: {
-            home_score: match.home_score,
-            away_score: match.away_score,
-            status: match.status,
-            home_team_name: match.home_team_name,
-            away_team_name: match.away_team_name,
-          },
+          update: { home_score: match.home_score, away_score: match.away_score, status: match.status },
           create: {
             match_id: match.match_id,
             league_id: match.league_id,
@@ -446,76 +301,22 @@ export async function GET() {
           }
         });
 
-        // Sync Players with Multi-Role Stats
         for (const p of match.players) {
-          // RESOLVE POSITIONS PROFESSIONALLY
           const finalPositions = await resolveProfessionalPositions(match.sport, p.positions, p.name);
           const finalStats = getProfessionalStats(match.sport, finalPositions);
-
           await prisma.players.upsert({
             where: { player_id: p.player_id },
-            update: {
-              stats: finalStats,
-              positions: finalPositions,
-              number: p.number
-            },
-            create: {
-              player_id: p.player_id,
-              team_id: match.home_team_id,
-              player_name: p.name,
-              position: p.position,
-              number: p.number,
-              stats: p.stats
-            }
+            update: { stats: finalStats, positions: finalPositions, number: p.number },
+            create: { player_id: p.player_id, team_id: match.home_team_id, player_name: p.name, number: p.number, positions: finalPositions, stats: finalStats }
           });
         }
-
-        write_success++;
-      } catch (e: any) {
-        console.error(`[DB UPSERT FAIL] match_id=${match.match_id}`, e.message);
-        write_failed++;
+      } catch (e) {
+        // Skip match
       }
     }
 
-    const total_matches_in_db = await prisma.matches.count();
-
-    // ==========================================
-    // 📖 Story Engine Hook
-    // 預留給 Story Engine v1 的自動化生成掛鉤
-    // 當 Matches 寫入完畢後，可以並發觸發 narrative 生成
-    // ==========================================
-    /*
-    setTimeout(async () => {
-      for (const match of matchRows) {
-        if (match.status !== "COMPLETED") continue;
-        
-        try {
-          // 這裡可以撈出 fatigue_diff, news_tags，呼叫 /api/generate/narrative
-          // const res = await fetch('http://localhost:3000/api/generate/narrative', { ... });
-          // const { narrative, type } = await res.json();
-          //
-          // await prisma.matches.update({
-          //   where: { match_id: match.match_id },
-          //   data: { narrative, narrative_type: type }
-          // });
-        } catch (e) {
-          console.error(`[STORY HOOK ERROR] match_id=${match.match_id}`, e);
-        }
-      }
-    }, 1000);
-    */
-
-    return NextResponse.json({
-      success: true,
-      active_engine,
-      ingested_count: matchRows.length,
-      write_success,
-      write_failed,
-      total_matches_in_db,
-    });
-
-  } catch (error: any) {
-    console.error("[FATAL INGEST ERROR]", error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, count: matchRows.length });
+  } catch (error) {
+    return NextResponse.json({ success: false });
   }
 }

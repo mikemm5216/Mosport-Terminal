@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { QuantEngine } from "@/lib/quant";
 
@@ -11,10 +11,9 @@ const FEATURE_ORDER = [
   "bio_battery_away",
 ];
 
-// Bio-Battery 三階层門檣
-const BIO_LOW_EDGE    = 12;  // ⚡ 輕微優勢
-const BIO_MEDIUM_EDGE = 18;  // ⚡⚡ 顯著優勢
-const BIO_HIGH_EDGE   = 25;  // 🔥 絕對優勢
+// Bio-Battery 三�?层�?�?const BIO_LOW_EDGE    = 12;  // ??輕微?�勢
+const BIO_MEDIUM_EDGE = 18;  // ?�⚡ 顯�??�勢
+const BIO_HIGH_EDGE   = 25;  // ?�� 絕�??�勢
 const PREDICT_API = process.env.PREDICT_API_URL || "http://localhost:8000/predict";
 
 export async function GET() {
@@ -69,18 +68,16 @@ export async function GET() {
         const data = await res.json();
         probability = data.probability;
       } catch (err) {
-        console.error("Inference fetch error:", err);
         continue;
       }
 
       if (probability <= 0) continue;
 
-      const odds = 2.0; // TODO: 接市場即時賠率
-      const implied = QuantEngine.getImpliedProbability(odds);
+      const odds = 2.0; // TODO: ?��??�即?��???      const implied = QuantEngine.getImpliedProbability(odds);
       const edge = QuantEngine.getEdge(probability, implied);
       const kelly = QuantEngine.getKellySuggest(probability, odds);
 
-      // Bio-Battery 警告判斷
+      // Bio-Battery 警�??�斷
       const bio_battery_home = featureJson?.bio_battery_home ?? null;
       const bio_battery_away = featureJson?.bio_battery_away ?? null;
       let bio_advantage_alert: string | null = null;
@@ -91,11 +88,11 @@ export async function GET() {
         const winner = gap > 0 ? "HOME" : "AWAY";
 
         if (absGap >= BIO_HIGH_EDGE) {
-          bio_advantage_alert = `\uD83D\uDD25 ${winner} 絕對優勢 (High Edge ${absGap.toFixed(1)}%)`;
+          bio_advantage_alert = `\uD83D\uDD25 ${winner} 絕�??�勢 (High Edge ${absGap.toFixed(1)}%)`;
         } else if (absGap >= BIO_MEDIUM_EDGE) {
-          bio_advantage_alert = `⚡⚡ ${winner} 顯著優勢 (Medium Edge ${absGap.toFixed(1)}%)`;
+          bio_advantage_alert = `?�⚡ ${winner} 顯�??�勢 (Medium Edge ${absGap.toFixed(1)}%)`;
         } else if (absGap >= BIO_LOW_EDGE) {
-          bio_advantage_alert = `⚡ ${winner} 輕微優勢 (Low Edge ${absGap.toFixed(1)}%)`;
+          bio_advantage_alert = `??${winner} 輕微?�勢 (Low Edge ${absGap.toFixed(1)}%)`;
         }
       }
 
@@ -112,8 +109,7 @@ export async function GET() {
         kelly,
         bio_battery: { home: bio_battery_home, away: bio_battery_away },
         bio_advantage_alert,
-        // 電量差 > 25% 時觸發極高信心加權
-        confidence_boost: bio_advantage_alert !== null ? Math.min(1.0, Math.abs((bio_battery_home ?? 0) - (bio_battery_away ?? 0)) / 100) : 0,
+        // ?��?�?> 25% ?�觸?�極高信心�?�?        confidence_boost: bio_advantage_alert !== null ? Math.min(1.0, Math.abs((bio_battery_home ?? 0) - (bio_battery_away ?? 0)) / 100) : 0,
       });
     }
 
@@ -125,7 +121,6 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error("Edge API Error:", error);
-    return NextResponse.json({ success: false }, { status: 500 });
+    return NextResponse.json({ success: false, data: [] });
   }
 }

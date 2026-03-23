@@ -6,7 +6,6 @@ import { db } from "../lib/db";
  * Computes momentum and fatigue based on match history.
  */
 export async function updateWorldModel() {
-  console.log("[World Model] Updating dynamic competitive states for all teams...");
 
   const teams = await db.teams.findMany();
 

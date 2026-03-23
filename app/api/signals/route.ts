@@ -89,7 +89,7 @@ export async function GET() {
       const homeStats: TeamStats = {
         id: homeDbTeam?.team_id || 'home',
         name: m.home_team?.full_name || 'Home',
-        shortName: homeDbTeam?.short_name || (m.home_team?.full_name?.substring(0,3).toUpperCase() ?? 'HOM'),
+        shortName: homeDbTeam?.short_name || (m.home_team?.full_name || 'HOM').substring(0,3).toUpperCase(),
         momentum: WorldEngine.calcMomentum(homeHistory),
         strength: WorldEngine.calcStrength(homeHistory),
         fatigue: WorldEngine.calcFatigue(homeHistory),
@@ -99,7 +99,7 @@ export async function GET() {
       const awayStats: TeamStats = {
         id: awayDbTeam?.team_id || 'away',
         name: m.away_team?.full_name || 'Away',
-        shortName: awayDbTeam?.short_name || (m.away_team?.full_name?.substring(0,3).toUpperCase() ?? 'AWY'),
+        shortName: awayDbTeam?.short_name || (m.away_team?.full_name || 'AWY').substring(0,3).toUpperCase(),
         momentum: WorldEngine.calcMomentum(awayHistory),
         strength: WorldEngine.calcStrength(awayHistory),
         fatigue: WorldEngine.calcFatigue(awayHistory),
@@ -138,13 +138,11 @@ export async function GET() {
       data: mappedMatches     // For home page support
     });
   } catch (error: any) {
-    console.error("[SIGNALS API ERROR]", error);
     return NextResponse.json({ 
       success: false, 
-      error: error.message,
       matches: [],
       signals: [],
       data: []
-    }, { status: 500 });
+    });
   }
 }

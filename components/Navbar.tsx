@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Radar, Shield, TrendingUp, Bell } from 'lucide-react';
+import { Radar, Shield, TrendingUp } from 'lucide-react';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -11,7 +11,6 @@ export default function Navbar() {
     { label: 'RADAR', path: '/', icon: Radar },
     { label: 'TEAMS', path: '/teams', icon: Shield },
     { label: 'REPORTS', path: '/reports', icon: TrendingUp },
-    { label: 'ALERTS', path: '/alerts', icon: Bell },
   ];
 
   return (

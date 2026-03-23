@@ -3,7 +3,6 @@ import { ScheduleSchema, sendToDeadLetterQueue } from "../lib/validator";
 
 // Tier 1 - Schedule Crawler (Mock logic for representation)
 export async function runScheduleCrawler() {
-  console.log("[Schedule Crawler] Fetching Tier 1 Reality Data...");
   
   // MOCK API FETCH
   const rawData = [

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 const TYPE_TO_MS = {
@@ -12,19 +12,18 @@ const BATCH_SIZE = 5;
 
 export async function POST(request: Request) {
   try {
-    // ⚔️ SECURITY AUDIT: Robust Authorization Check
+    // ?��? SECURITY AUDIT: Robust Authorization Check
     const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
     const expectedAuth = `Bearer ${process.env.CRON_SECRET}`.trim();
     
     if (!authHeader || authHeader.trim() !== expectedAuth) {
-      console.error(`[SCHEDULER 403] Unauthorized access. Header: ${authHeader ? 'Present' : 'Missing'}, Mismatch: ${authHeader?.trim() !== expectedAuth}`);
-      return NextResponse.json({ error: "Forbidden", details: "Credential mismatch" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden" });
     }
 
     const now = new Date();
     const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    // 1. 保留 prisma 查詢 (加入了使用者要求的 take: 100 + orderBy)
+    // 1. 保�? prisma ?�詢 (?�入了使?�者�?求�? take: 100 + orderBy)
     const upcomingMatches = await prisma.matches.findMany({
       where: {
         match_date: {
@@ -48,7 +47,7 @@ export async function POST(request: Request) {
       throw new Error("BASE_URL is not defined in environment variables.");
     }
 
-    // 2. 將完全同步改為小批次併發 (BATCH_SIZE = 5)
+    // 2. 將�??��?步改?��??�次併發 (BATCH_SIZE = 5)
     for (let i = 0; i < upcomingMatches.length; i += BATCH_SIZE) {
       const batch = upcomingMatches.slice(i, i + BATCH_SIZE);
 
@@ -60,10 +59,10 @@ export async function POST(request: Request) {
             // snapshot 觸發條件
             if (now.getTime() >= targetSnapshotTime.getTime()) {
               
-              // 3. 節流機制：避免瞬間 burst 打爆 API
+              // 3. 節流�??��??��??��? burst ?��? API
               await new Promise((res) => setTimeout(res, 100));
 
-              // 4. 為 fetch 加入 timeout (防止卡死)
+              // 4. ??fetch ?�入 timeout (?�止?�死)
               const controller = new AbortController();
               const timeout = setTimeout(() => controller.abort(), 5000);
 
@@ -81,14 +80,13 @@ export async function POST(request: Request) {
                   signal: controller.signal,
                 });
 
-                // 記錄結果
+                // 記�?結�?
                 results.push({
                   match_id: match.match_id,
                   snapshot_type: snapshotType,
                   status: res.status,
                 });
               } catch (fetchError: any) {
-                console.error(`Failed to trigger API for ${match.match_id} / ${snapshotType}:`, fetchError.message);
                 results.push({
                   match_id: match.match_id,
                   snapshot_type: snapshotType,
@@ -111,7 +109,6 @@ export async function POST(request: Request) {
     }, { status: 200 });
 
   } catch (error: any) {
-    console.error("Scheduler Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ success: false, message: "Scheduler run failed" });
   }
 }

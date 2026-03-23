@@ -9,7 +9,6 @@ const OddsSchema = z.object({
 });
 
 export async function runOddsCrawler(mockData?: any[]) {
-  console.log("[OddsCrawler] Fetching market odds...");
 
   const data = mockData || [];
 
@@ -41,5 +40,4 @@ export async function runOddsCrawler(mockData?: any[]) {
     });
   }
 
-  console.log("[OddsCrawler] Completed.");
 }

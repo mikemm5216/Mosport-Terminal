@@ -70,9 +70,9 @@ export default async function TeamsAnalyticsPage({
           </div>
           
           <div className="flex gap-4 flex-wrap">
-            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="⚽" />
-            <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} icon="🏀" />
-            <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} icon="⚾" />
+            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="?? />
+            <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} icon="??" />
+            <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} icon="?? />
           </div>
         </div>
       </div>
@@ -141,7 +141,7 @@ export default async function TeamsAnalyticsPage({
                 {/* Footer (Dynamic League) */}
                 <div className="mt-6 pt-4 border-t border-slate-800/40 flex justify-between items-center text-[9px] font-black text-slate-500 tracking-[0.2em] uppercase">
                   <span className="flex items-center gap-2">
-                    {isNBA ? '🏀' : isMLB ? '⚾' : '⚽'} {team.league_type} PRO
+                    {isNBA ? '??' : isMLB ? '?? : '??} {team.league_type} PRO
                   </span>
                   <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800">{history.length} OPS</span>
                 </div>

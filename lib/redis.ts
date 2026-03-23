@@ -5,7 +5,6 @@ const getRedisUrl = () => {
   if (process.env.REDIS_URL) {
     return process.env.REDIS_URL;
   }
-  console.warn('[Redis] No REDIS_URL found, defaulting to localhost:6379');
   return 'redis://localhost:6379';
 };
 

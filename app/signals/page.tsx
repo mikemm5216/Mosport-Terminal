@@ -21,7 +21,6 @@ export default function SignalsPage() {
           }
         }
       } catch (e) {
-        console.error("Failed to fetch signals", e);
       } finally {
         setLoading(false);
       }
