@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getShortName } from "@/lib/teams";
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -379,7 +380,10 @@ export async function GET() {
       Array.from(teamsMap.values()).map(t =>
         prisma.teams.upsert({ 
           where: { team_id: t.team_id }, 
-          update: { logo_url: t.logo_url }, 
+          update: { 
+            // CEO SAFETY: Only update logo if truthy
+            ...(t.logo_url ? { logo_url: t.logo_url } : {})
+          }, 
           create: { team_id: t.team_id, league_id: t.league_id, team_name: t.team_name, home_city: t.home_city, logo_url: t.logo_url } 
         })
       )
@@ -391,13 +395,14 @@ export async function GET() {
         prisma.team.upsert({
           where: { team_name: t.team_name },
           update: {
-            short_name: t.team_name.substring(0, 3).toUpperCase(),
-            logo_url: t.logo_url,
+            short_name: getShortName(t.team_name),
+            // CEO SAFETY: Only update logo if truthy
+            ...(t.logo_url ? { logo_url: t.logo_url } : {}),
             league: normalizeLeagueTag(t.league_name, t.sport)
           },
           create: {
             team_name: t.team_name,
-            short_name: t.team_name.substring(0, 3).toUpperCase(),
+            short_name: getShortName(t.team_name),
             logo_url: t.logo_url,
             league: normalizeLeagueTag(t.league_name, t.sport)
           }
