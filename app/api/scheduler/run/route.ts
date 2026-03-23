@@ -12,11 +12,13 @@ const BATCH_SIZE = 5;
 
 export async function POST(request: Request) {
   try {
-    // ⚔️ SECURITY AUDIT: Explicit Authorization Check (Fixes 403 Forbidden)
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      console.error("[SCHEDULER 403] Unauthorized access attempt.");
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // ⚔️ SECURITY AUDIT: Robust Authorization Check
+    const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
+    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`.trim();
+    
+    if (!authHeader || authHeader.trim() !== expectedAuth) {
+      console.error(`[SCHEDULER 403] Unauthorized access. Header: ${authHeader ? 'Present' : 'Missing'}, Mismatch: ${authHeader?.trim() !== expectedAuth}`);
+      return NextResponse.json({ error: "Forbidden", details: "Credential mismatch" }, { status: 403 });
     }
 
     const now = new Date();
