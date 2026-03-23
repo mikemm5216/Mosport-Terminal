@@ -7,10 +7,9 @@ export async function GET(request: Request) {
     const type = searchParams.get('type');
 
     if (!type) {
-      return NextResponse.json({ error: "Missing type query parameter (e.g. ?type=T-10min)" }, { status: 400 });
+      return NextResponse.json({ error: "Missing type query parameter" }, { status: 400 });
     }
 
-    // ?èËºØ: ËÆÄ?ñ‰∏¶?ûÂÇ≥?Ä?∞Á? ModelRegistry
     const latestModel = await prisma.modelRegistry.findFirst({
       where: { model_type: type },
       orderBy: { created_at: 'desc' },
@@ -18,7 +17,7 @@ export async function GET(request: Request) {
     });
 
     if (!latestModel) {
-      return NextResponse.json({ error: "No model found for this type" }, { status: 404 });
+      return NextResponse.json({ error: "No model found" }, { status: 404 });
     }
 
     return NextResponse.json({
