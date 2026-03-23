@@ -90,6 +90,7 @@ export async function GET() {
         away_short_name: awayStats.shortName,
         // Narrative Props
         primaryTag: simulation.primaryTag,
+        tagTarget: simulation.tagTarget,
         marketSentiment: simulation.marketSentiment,
         standardAnalysis: simulation.standardAnalysis,
         predictedWinner: simulation.predictedWinner,

@@ -98,12 +98,7 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
                  </span>
                )}
              </span>
-             {match.primaryTag && (
-               <div className="flex items-center gap-2 bg-cyan-500/5 border border-cyan-500/10 px-3 py-1 rounded-full group-hover:border-cyan-500/30 transition-colors max-w-[200px] truncate">
-                 <span className="text-[9px] md:text-xs font-black text-white tracking-[0.1em] uppercase truncate">{match.primaryTag}</span>
-               </div>
-             )}
-           </div>
+            </div>
            <div className="flex items-center gap-3 shrink-0">
              <span className="text-[10px] md:text-sm text-slate-500 font-mono tracking-widest font-bold">
                 {formatLocalTime(match.match_date)}
@@ -117,7 +112,12 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
 
         {/* STRICT SYMMETRICAL GRID - TLA NORMALIZATION */}
         <div className="grid grid-cols-[1fr_60px_1fr] md:grid-cols-[1fr_100px_1fr] items-center gap-4 md:gap-10 w-full px-4 md:px-6">
-          <div className="flex items-center justify-end gap-3 md:gap-8 text-right">
+          <div className="flex items-center justify-end gap-3 md:gap-8 text-right relative">
+            {match.tagTarget === "home" && match.primaryTag && (
+              <div className="absolute -top-8 right-12 md:right-20 z-10 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(6,182,212,0.2)] whitespace-nowrap">
+                <span className="text-[8px] md:text-[10px] font-black text-cyan-400 uppercase tracking-tighter">{match.primaryTag}</span>
+              </div>
+            )}
             <span className="text-white font-black text-3xl md:text-5xl tracking-tighter uppercase leading-none">
               {toTLA(match.home_team_name || match.home_team?.team_name || match.home_short_name || 'HOM')}
             </span>
@@ -128,7 +128,12 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
 
           <div className="text-slate-800 font-black text-sm md:text-xl text-center italic tracking-widest opacity-40">VS</div>
 
-          <div className="flex items-center justify-start gap-3 md:gap-8 text-left">
+          <div className="flex items-center justify-start gap-3 md:gap-8 text-left relative">
+            {match.tagTarget === "away" && match.primaryTag && (
+              <div className="absolute -top-8 left-12 md:left-20 z-10 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(6,182,212,0.2)] whitespace-nowrap">
+                <span className="text-[8px] md:text-[10px] font-black text-cyan-400 uppercase tracking-tighter">{match.primaryTag}</span>
+              </div>
+            )}
             <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)]">
                {match.away_logo ? <img src={match.away_logo} alt="" className="w-full h-full object-contain p-1.5" /> : <Zap className="text-slate-800" size={20} />}
             </div>
@@ -150,20 +155,20 @@ function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: bool
                    <span className="text-[10px] font-black tracking-[0.2em] uppercase text-purple-400">Market Sentiment Intelligence</span>
                  </div>
                </div>
-               <ul className="space-y-2 text-sm text-slate-300">
-                  <li className="flex items-start gap-2">
-                    <span className="text-purple-500 mt-1">•</span>
-                    <span>Expert Model Analysis: {match.marketSentiment?.expert || "Aggregating keywords..."}</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-purple-500 mt-1">•</span>
-                    <span>Sharp Money Trend: {match.marketSentiment?.money || "High-volume position detected."}</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-purple-500 mt-1">•</span>
-                    <span>Fan Sentiment / Social Heat: {match.marketSentiment?.social || "Mixed outlook across major platforms."}</span>
-                  </li>
-               </ul>
+                <ul className="space-y-4 text-sm text-slate-300">
+                   <li className="flex flex-col gap-1">
+                     <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">Expert Analysis</span>
+                     <span className="leading-relaxed">{match.marketSentiment?.expert || "Aggregating keywords..."}</span>
+                   </li>
+                   <li className="flex flex-col gap-1">
+                     <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">Sharp Money</span>
+                     <span className="leading-relaxed text-cyan-400 font-medium">{match.marketSentiment?.money || "High-volume position detected."}</span>
+                   </li>
+                   <li className="flex flex-col gap-1">
+                     <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">Social Heat</span>
+                     <span className="leading-relaxed">{match.marketSentiment?.social || "Mixed outlook across major platforms."}</span>
+                   </li>
+                </ul>
             </div>
 
             <div className="flex justify-between items-center border-t border-slate-800/50 pt-6">

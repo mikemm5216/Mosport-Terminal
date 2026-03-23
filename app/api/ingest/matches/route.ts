@@ -364,7 +364,11 @@ export async function GET() {
     );
     await Promise.all(
       Array.from(teamsMap.values()).map(t =>
-        prisma.teams.upsert({ where: { team_id: t.team_id }, update: {}, create: { team_id: t.team_id, league_id: t.league_id, team_name: t.team_name, home_city: t.home_city, logo_url: t.logo_url } })
+        prisma.teams.upsert({ 
+          where: { team_id: t.team_id }, 
+          update: { logo_url: t.logo_url }, 
+          create: { team_id: t.team_id, league_id: t.league_id, team_name: t.team_name, home_city: t.home_city, logo_url: t.logo_url } 
+        })
       )
     );
 
