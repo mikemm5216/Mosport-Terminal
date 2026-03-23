@@ -356,6 +356,19 @@ export async function GET() {
       });
     }
 
+    // == TEAM LOGO RECOVERY SYSTEM ==
+    // If the latest ingestion has null logos (e.g. from Odds API), try to recover from existing Team table
+    const teamEntries = Array.from(teamsMap.values());
+    for (const t of teamEntries) {
+      if (!t.logo_url) {
+        const existing = await prisma.team.findUnique({ where: { team_name: t.team_name } });
+        if (existing?.logo_url) {
+           t.logo_url = existing.logo_url;
+           console.log(`[LOGO RECOVERY] Restored logo for ${t.team_name}`);
+        }
+      }
+    }
+
     // League / Team 可並發寫入
     await Promise.all(
       Array.from(leaguesMap.values()).map(l =>
