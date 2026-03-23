@@ -118,7 +118,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   const aFiltered = Object.entries(awayPlayerStats).filter(([k]) => allowedMetrics.includes(k)).slice(0, 4);
 
   return (
-    <div className="h-[calc(100vh-80px)] overflow-hidden bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30">
+    <div className="min-h-screen pb-12 bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30">
       <nav className="w-full border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-4">
         <div className="max-w-7xl mx-auto h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
@@ -129,7 +129,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 py-4 h-full flex flex-col">
+      <main className="max-w-7xl mx-auto px-4 py-4 flex flex-col">
         {/* HERO SECTION */}
         <header className="flex flex-row flex-nowrap items-center justify-between gap-4 md:gap-12 mb-3">
           <div className="text-center md:text-right flex-1 shrink-0 flex flex-col md:flex-row-reverse items-center md:items-end justify-center md:justify-start gap-2">
@@ -173,7 +173,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
            </div>
         </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start flex-1 overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start">
            {/* ANALYSIS */}
            <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-4 md:p-6 relative overflow-hidden h-full">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500 shadow-[4px_0_15px_rgba(6,182,212,0.4)]" />
