@@ -79,11 +79,11 @@ async function processMatch(match: any): Promise<{ processed: number; results: a
 export async function POST(request: Request) {
   try {
     let body: { match_id?: string } = {};
-    try { body = await request.json(); } catch { /* ç©?body æ­?¸¸ï¼Œé€²å…¥?¹é?æ¨¡å? */ }
+    try { body = await request.json(); } catch { /* Ignore body error */ }
 
     const { match_id } = body;
 
-    // ?®å ´æ¨¡å?
+    // Direct match processing
     if (match_id) {
       const match = await prisma.matches.findUnique({
         where: { match_id },
@@ -97,7 +97,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, processed_count: processed, results }, { status: 201 });
     }
 
-    // ?¹é??ªå??ƒæ?æ¨¡å?ï¼šæ‰¾?€?‰å·²å®Œè³½ä½†å??ªç???experience ?„æ?è³?    const completedMatches = await prisma.matches.findMany({
+    // Auto-discovery: find matches with results but no experience records
+    const completedMatches = await prisma.matches.findMany({
       where: {
         home_score: { not: null },
         experiences: { none: {} }
