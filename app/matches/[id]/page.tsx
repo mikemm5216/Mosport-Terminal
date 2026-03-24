@@ -65,53 +65,43 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   const hPercent = total > 0 ? Math.round((hb/total)*100) : 50;
   const aPercent = 100 - hPercent;
 
-  // Extract Key Players for Battle Mode
-  const sport = (match.sport || "Soccer");
-  const priorityRole = sport === "Baseball" ? "P" : sport === "Basketball" ? "PF" : "ST";
-  
-  let homeStar = match.home_team?.players?.find(p => p.positions.includes(priorityRole)) || match.home_team?.players?.[0];
-  let awayStar = match.away_team?.players?.find(p => p.positions.includes(priorityRole)) || match.away_team?.players?.[0];
+  // 4. Tactical Showdown Intelligence (Real Roster Mapping)
+  const getStar = async (teamId: string) => {
+    const roster = await prisma.roster.findFirst({
+      where: { team_id: teamId, season_year: 2026 },
+      include: { player: true }
+    });
+    if (!roster) return null;
+    
+    // Recovery of stats - handle both flat and nested
+    const sport = (match.sport || "Soccer");
+    const activeRole = roster.player.position_main;
+    const rawStats = (roster.player.stats_nba || roster.player.stats_mlb || roster.player.stats_soccer || {}) as any;
+    
+    return {
+      player_name: roster.player.display_name,
+      number: roster.jersey_number,
+      positions: [activeRole],
+      stats: rawStats
+    };
+  };
 
-  // DEMO FALLBACK
-  if (!homeStar) {
-    homeStar = {
-       player_id: "demo_home_star",
-       player_name: sport === "Baseball" ? "S. Ohtani" : sport === "Basketball" ? "L. James" : "H. Kane",
-       number: sport === "Baseball" ? "17" : sport === "Basketball" ? "23" : "9",
-       positions: sport === "Baseball" ? ["P", "DH"] : sport === "Basketball" ? ["PF", "SF"] : ["ST", "CF"],
-       stats: sport === "Baseball" ? { "P": { ERA: "2.52", K: "186" } } : { "ST": { G: "32", A: "12" } }
-    } as any;
-  }
-  
-  if (!awayStar) {
-    awayStar = {
-       player_id: "demo_away_star",
-       player_name: "Tactic Variable",
-       number: "99",
-       positions: sport === "Soccer" ? ["CDM", "CM"] : sport === "Basketball" ? ["PG", "SG"] : ["SS", "2B"],
-       stats: sport === "Soccer" ? { "CDM": { G: "1", A: "4" } } : { "SS": { AVG: ".285", OPS: ".880" } }
-    } as any;
-  }
+  const homeStar = await getStar(match.home_team_id);
+  const awayStar = await getStar(match.away_team_id);
 
-  // Active Role determination
-  const homeActiveRole = (homeStar?.positions?.includes(priorityRole) ? priorityRole : homeStar?.positions?.[0]) || "ST";
-  const awayActiveRole = (awayStar?.positions?.includes(priorityRole) ? priorityRole : awayStar?.positions?.[0]) || "ST";
-
-  // DATA RECOVERY: Handle both flat and nested structures
-  const hRaw = (homeStar?.stats as Record<string, any>) || {};
-  const aRaw = (awayStar?.stats as Record<string, any>) || {};
-  const homePlayerStats = hRaw[homeActiveRole] || hRaw;
-  const awayPlayerStats = aRaw[awayActiveRole] || aRaw;
+  // Fallback Roles
+  const homeActiveRole = homeStar?.positions?.[0] || (match.sport === 'Basketball' ? 'G' : 'P');
+  const awayActiveRole = awayStar?.positions?.[0] || (match.sport === 'Basketball' ? 'F' : 'DH');
 
   // CEO SAFETY: Strict Metric Whitelists
-  const SOCCER_METRICS = ["G", "A", "SPG", "PAS%", "TCK", "CS", "SV"];
-  const NBA_METRICS = ["PPG", "RPG", "APG", "FG%", "3P%"];
-  const MLB_METRICS = ["AVG", "HR", "RBI", "OPS", "ERA", "K", "WHIP", "BAA"];
-  const allowedMetrics = sport === "Soccer" ? SOCCER_METRICS : 
-                       sport === "Basketball" ? NBA_METRICS : MLB_METRICS;
+  const SOCCER_METRICS = ["goals", "assists", "saves"];
+  const NBA_METRICS = ["pts", "reb", "ast"];
+  const MLB_METRICS = ["avg", "hr", "rbi"];
+  const allowedMetrics = match.sport === "Soccer" ? SOCCER_METRICS : 
+                       match.sport === "Basketball" ? NBA_METRICS : MLB_METRICS;
 
-  const hFiltered = Object.entries(homePlayerStats).filter(([k]) => allowedMetrics.includes(k)).slice(0, 4);
-  const aFiltered = Object.entries(awayPlayerStats).filter(([k]) => allowedMetrics.includes(k)).slice(0, 4);
+  const hFiltered = Object.entries(homeStar?.stats || {}).filter(([k]) => allowedMetrics.includes(k)).slice(0, 4);
+  const aFiltered = Object.entries(awayStar?.stats || {}).filter(([k]) => allowedMetrics.includes(k)).slice(0, 4);
 
   return (
     <div className="min-h-screen pb-12 bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30">
@@ -255,7 +245,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
               <div className="mt-4 p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">Tactical Engine Log</span>
                  <p className="text-[10px] text-slate-400 leading-relaxed uppercase">
-                    Dictionary v2.0 Active. Position metrics mapped for {sport}. Accuracy optimization confirmed.
+                    Dictionary v2.0 Active. Position metrics mapped for {match.sport || "Soccer"}. Accuracy optimization confirmed.
                  </p>
               </div>
            </section>
