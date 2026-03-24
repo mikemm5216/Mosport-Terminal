@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 // Narrative theme types for dynamic coloring
 export type NarrativeTheme = 'energy' | 'drama' | 'record' | 'standard';
@@ -39,6 +39,9 @@ function getTeamInitials(name: string) {
 }
 
 export default function MatchCard({ match }: { match: any }) {
+  const [homeError, setHomeError] = useState(false);
+  const [awayError, setAwayError] = useState(false);
+
   // 解析 JSON feature 取出電量
   const { homeBattery, awayBattery } = useMemo(() => {
     let hb = 50;
@@ -64,8 +67,8 @@ export default function MatchCard({ match }: { match: any }) {
     return { homeBattery: 50, awayBattery: 50 };
   }, [match]);
 
-  const homeTeamName = match?.home_team?.team_name || match?.home_team_id || "Home Team";
-  const awayTeamName = match?.away_team?.team_name || match?.away_team_id || "Away Team";
+  const homeTeamName = match?.home_team?.team_name || match?.home_team?.full_name || match?.home_team_id || "Home Team";
+  const awayTeamName = match?.away_team?.team_name || match?.away_team?.full_name || match?.away_team_id || "Away Team";
   
   const homeCity = match?.home_team?.home_city || "City";
   const awayCity = match?.away_team?.home_city || "City";
@@ -82,6 +85,31 @@ export default function MatchCard({ match }: { match: any }) {
   const narrativeText = match?.narrative || "System evaluating pre-match intelligence and physical factors...";
   const narrativeType = match?.narrative_type || "standard";
   const theme = narrativeThemes[narrativeType] || narrativeThemes.standard;
+
+  const homeLogo = homeError ? null : match?.home_team?.logo_url;
+  const awayLogo = awayError ? null : match?.away_team?.logo_url;
+
+  const renderLogo = (url: string | null, initials: string, isHome: boolean) => {
+    if (url) {
+      return (
+        <img 
+          src={url} 
+          alt="" 
+          className="w-full h-full object-contain" 
+          onError={() => isHome ? setHomeError(true) : setAwayError(true)} 
+        />
+      );
+    }
+    const bgColor = match?.league?.league_name?.includes("NBA") ? "#1D428A" : "#002D72";
+    return (
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        <rect width="100" height="100" fill={bgColor} />
+        <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fill="white" fontSize="40" fontWeight="bold">
+          {initials}
+        </text>
+      </svg>
+    );
+  };
 
   return (
     <div className="w-full max-w-[90vw] sm:max-w-md md:max-w-lg lg:max-w-xl relative group">
@@ -126,11 +154,7 @@ export default function MatchCard({ match }: { match: any }) {
           {/* Left Team */}
           <div className="flex flex-col items-center flex-1 w-0">
             <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mb-2 shadow-lg overflow-hidden bg-slate-800 border-2 border-slate-700/50 text-slate-300 font-extrabold text-xl">
-              {match?.home_team?.logo_url ? (
-                <img src={match.home_team.logo_url} alt={homeTeamName} className="w-full h-full object-contain" />
-              ) : (
-                homeInitials
-              )}
+              {renderLogo(homeLogo, homeInitials, true)}
             </div>
             <span className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white truncate w-full text-center">
               {homeTeamName}
@@ -148,11 +172,7 @@ export default function MatchCard({ match }: { match: any }) {
           {/* Right Team */}
           <div className="flex flex-col items-center flex-1 w-0">
             <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mb-2 shadow-lg overflow-hidden bg-slate-800 border-2 border-slate-700/50 text-slate-300 font-extrabold text-xl">
-              {match?.away_team?.logo_url ? (
-                <img src={match.away_team.logo_url} alt={awayTeamName} className="w-full h-full object-contain" />
-              ) : (
-                awayInitials
-              )}
+              {renderLogo(awayLogo, awayInitials, false)}
             </div>
             <span className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white truncate w-full text-center">
               {awayTeamName}
