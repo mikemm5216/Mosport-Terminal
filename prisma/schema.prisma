@@ -127,3 +127,16 @@ model MatchHistory {
   
   team      Teams    @relation(fields: [team_id], references: [team_id])
 }
+
+model ExternalMatchMap {
+  id           String   @id @default(cuid())
+  external_id  String   @unique
+  internal_id  String
+  provider     String   // e.g., "TheOddsAPI"
+  match_date   DateTime
+  home_team    String
+  away_team    String
+  created_at   DateTime @default(now())
+
+  @@index([match_date])
+}
