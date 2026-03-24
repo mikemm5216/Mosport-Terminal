@@ -6,7 +6,7 @@ export const PhysicsEngine = {
     const coordsA = VENUE_COORDS[venueA];
     const coordsB = VENUE_COORDS[venueB];
     if (!coordsA || !coordsB) return 0;
-    const R = 6371;
+    const R = 6371; // Earth radius in km
     const dLat = (coordsB.lat - coordsA.lat) * Math.PI / 180;
     const dLng = (coordsB.lng - coordsA.lng) * Math.PI / 180;
     const a =
@@ -24,32 +24,36 @@ export const PhysicsEngine = {
 
   /**
    * Bio-Battery 2.0
-   * Ëº∏ÂÖ•ÔºöÁ??äÈ???10 Â§©Á?Ë≥ΩÁ?Á¥Ä??   * Ëº∏Âá∫Ôº?-100 ?ÑÂ??ãÁ??ÜÈõª??   *
-   * ????èËºØÔº?   *   - Ë≥ΩÁ??≤ÁΩ∞ÔºöÈ???7 Â§©Ê?Â§ö‰???-15%
-   *   - ÊµÅÊµ™?≤ÁΩ∞ÔºöÈÄ??ÂÆ¢Â†¥ÊØèÈÄ??Â§?-5%ÔºõË???3 ?¥Â? -10%
-   * ?†Â??èËºØÔº?   *   - ‰ºëÊÅØ?†Ê?ÔºöË?‰∏äÂ†¥ > 48h ??+10%Ôºà‰???100Ôº?   */
+   * Penalty per game in last 7 days: -15
+   * Penalty per consecutive away game: -5
+   * Additional penalty if more than 3 consecutive away games: -10
+   * Recovery if more than 48 hours since last match: +10
+   */
   calculateBioBattery: (params: {
-    matches_last_7d: number;       // ?éÂéª 7 Â§©Âá∫Ë≥ΩÂ†¥Ê¨?    consecutive_away: number;      // ?æÂú®???ÂÆ¢Â†¥?¥Ê¨°
-    hours_since_last_match: number; // Ë∑ù‰?‰∏Ä?¥Á?Â∞èÊ??∏Ô??°‰??¥Á??ÑÂÇ≥ 999Ôº?  }): number => {
+    matches_last_7d: number;
+    consecutive_away: number;
+    hours_since_last_match: number;
+  }): number => {
     const { matches_last_7d, consecutive_away, hours_since_last_match } = params;
 
     let battery = 100;
 
-    // Ë≥ΩÁ??≤ÁΩ∞
+    // Game density penalty
     battery -= matches_last_7d * 15;
 
-    // ÊµÅÊµ™?≤ÁΩ∞ÔºöÊ????‰∏Ä?¥ÂÆ¢?¥Êâ£ 5%
+    // Road trip stress penalty
     battery -= consecutive_away * 5;
-    if (consecutive_away > 3) battery -= 10; // Ë∂ÖÈ? 3 ?¥È?Â§ñÊâ£
+    if (consecutive_away > 3) battery -= 10;
 
-    // ‰ºëÊÅØ?†Ê?
+    // Rest recovery
     if (hours_since_last_match > 48) battery += 10;
 
     return Math.max(0, Math.min(100, battery));
   },
 
   /**
-   * getBioBatteryÔºöDB ?àÊú¨ÔºåËá™?ïÂ?Ë≥áÊ?Â∫´Ê??ñË≥ΩÁ®ãË?ÁÆ?   */
+   * Fetches data from DB and calculates Bio-Battery metrics
+   */
   getBioBattery: async (
     team_id: string,
     current_match_date: Date,
@@ -65,13 +69,12 @@ export const PhysicsEngine = {
           match_date: { gte: sevenDaysAgo, lt: current_match_date },
         },
         orderBy: { match_date: 'desc' },
-        include: { home_team: true },
         take: 10,
       });
 
       const game_density = recentMatches.length;
 
-      // ???ÂÆ¢Â†¥Ë®àÁ?
+      // Calculate consecutive away games
       let consecutive_away = 0;
       for (const m of recentMatches) {
         if (m.away_team_id === team_id) consecutive_away++;
@@ -79,7 +82,7 @@ export const PhysicsEngine = {
       }
       const road_trip_stress = consecutive_away >= 3;
 
-      // Ë∑ù‰??¥Â??ÇÊï∏
+      // Hours since last match
       const prevMatch = recentMatches[0] ?? null;
       const hours_since_last_match = prevMatch
         ? (current_match_date.getTime() - prevMatch.match_date.getTime()) / (1000 * 60 * 60)
@@ -93,6 +96,7 @@ export const PhysicsEngine = {
 
       return { bio_battery, game_density, road_trip_stress };
     } catch (err) {
+      // Fail-safe default
       return { bio_battery: 75, game_density: 0, road_trip_stress: false };
     }
   }
