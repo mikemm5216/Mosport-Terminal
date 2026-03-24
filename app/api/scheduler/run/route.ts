@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateCronAuth } from "@/lib/auth";
 
 const TYPE_TO_MS = {
   "T-24h": 24 * 60 * 60 * 1000,
@@ -12,26 +13,8 @@ const BATCH_SIZE = 5;
 
 export async function POST(request: Request) {
   try {
-    // 🛡️ SECURITY AUDIT: Total Lockdown Comparison (Alphanumeric ONLY)
-    const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-    
-    const authHeader = (request.headers.get('authorization') || '').trim();
-    const cronSecret = (process.env.CRON_SECRET || '').trim();
-    const expected = `Bearer ${cronSecret}`;
-
-    // 🔍 FORENSIC AUDIT: Map every character to its code to catch hidden bytes
-    console.log("CRON_SECRET Chars:", cronSecret.split('').map(c => `${c}:${c.charCodeAt(0)}`).join(','));
-
-    if (sanitize(authHeader) !== sanitize(expected)) {
-      console.log(`[AUTH_FAIL] ExpectedLen: ${expected.length}, ReceivedLen: ${authHeader.length}`);
-      return NextResponse.json({ 
-        error: "Forbidden", 
-        eLen: expected.length, 
-        hLen: authHeader.length,
-        receivedSanitizedLen: sanitize(authHeader).length,
-        expectedSanitizedLen: sanitize(expected).length
-      }, { status: 403 });
-    }
+    const error = await validateCronAuth(request.clone());
+    if (error) return error;
 
     const now = new Date();
     const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -83,12 +66,12 @@ export async function POST(request: Request) {
                 const res = await fetch(`${baseUrl}/api/snapshot/generate`, {
                   method: "POST",
                   headers: { 
-                    "Content-Type": "application/json",
-                    "authorization": `Bearer ${process.env.CRON_SECRET}` 
+                    "Content-Type": "application/json"
                   },
                   body: JSON.stringify({
                     match_id: match.match_id,
                     snapshot_type: snapshotType,
+                    secret: process.env.CRON_SECRET
                   }),
                   signal: controller.signal,
                 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 // Force rebuild: 2026-03-24T14:58:00Z
 import { prisma } from "@/lib/prisma";
 import { buildFeatureVector } from "@/lib/feature";
+import { validateCronAuth } from "@/lib/auth";
 
 const TYPE_TO_MS = {
   "T-24h": 24 * 60 * 60 * 1000,
@@ -72,6 +73,9 @@ async function upsertSnapshotForMatch(
 
 export async function POST(request: Request) {
   try {
+    const error = await validateCronAuth(request.clone());
+    if (error) return error;
+
     let body: { match_id?: string; snapshot_type?: string; rebuild?: boolean } = {};
     try { body = await request.json(); } catch { /* Ignore body parse error */ }
 

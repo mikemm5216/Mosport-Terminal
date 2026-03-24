@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { validateCronAuth } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
+    const error = await validateCronAuth(req.clone());
+    if (error) return error;
+
     const body = await req.json();
     
     // Pick and confidence defaults

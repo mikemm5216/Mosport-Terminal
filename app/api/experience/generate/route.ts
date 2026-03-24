@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateCronAuth } from "@/lib/auth";
 
 const FEATURE_ORDER = [
   "elo_diff",
@@ -78,6 +79,9 @@ async function processMatch(match: any): Promise<{ processed: number; results: a
 
 export async function POST(request: Request) {
   try {
+    const error = await validateCronAuth(request.clone());
+    if (error) return error;
+
     let body: { match_id?: string } = {};
     try { body = await request.json(); } catch { /* Ignore malformed body */ }
 

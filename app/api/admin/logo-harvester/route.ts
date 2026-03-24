@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateCronAuth } from "@/lib/auth";
 import fs from "fs";
 import path from "path";
 
@@ -11,6 +12,9 @@ import path from "path";
  */
 export async function POST(request: Request) {
   try {
+    const error = await validateCronAuth(request.clone());
+    if (error) return error;
+
     const teams = await prisma.teams.findMany();
     const results = [];
 
