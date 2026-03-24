@@ -1,9 +1,6 @@
-import { prisma } from "@/lib/prisma";
-import { WorldEngine } from "@/lib/world-engine";
-import { Shield } from 'lucide-react';
 import Link from 'next/link';
-
-export const dynamic = 'force-dynamic';
+import { prisma } from "@/lib/prisma";
+import { WorldEngine } from "@/lib/world";
 
 function getResultColor(result: string): string {
   if (result === 'W') return 'bg-emerald-500';
@@ -22,7 +19,6 @@ export default async function TeamsAnalyticsPage({
     orderBy: { full_name: 'asc' }
   });
 
-  // Strict sport/league mapping using LeagueType Enum
   const teams = allTeams.filter(t => {
     if (sport === 'NBA') return t.league_type === 'NBA';
     if (sport === 'MLB') return t.league_type === 'MLB';
@@ -30,7 +26,6 @@ export default async function TeamsAnalyticsPage({
     return false;
   });
 
-  // Fetch match history for all teams
   const allHistory = await prisma.matchHistory.findMany({
     orderBy: { date: 'desc' }
   });
@@ -57,7 +52,6 @@ export default async function TeamsAnalyticsPage({
 
   return (
     <div className="flex flex-col items-center px-4 py-8 min-h-screen bg-slate-950 text-slate-200">
-      {/* HEADER & FILTERS */}
       <div className="w-full max-w-7xl mb-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-slate-800/80 pb-8">
           <div>
@@ -70,9 +64,9 @@ export default async function TeamsAnalyticsPage({
           </div>
           
           <div className="flex gap-4 flex-wrap">
-            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="?? />
-            <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} icon="??" />
-            <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} icon="?? />
+            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="" />
+            <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} icon="" />
+            <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} icon="" />
           </div>
         </div>
       </div>
@@ -100,7 +94,6 @@ export default async function TeamsAnalyticsPage({
               >
                 <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/5 rounded-bl-full -mr-8 -mt-8 blur-xl group-hover:bg-cyan-500/10 transition-colors" />
 
-                {/* Header: Logo + Names */}
                 <div className="flex items-center gap-5 mb-6 border-b border-slate-800/40 pb-5">
                   {team.logo_url ? (
                     <img src={team.logo_url} alt={team.full_name} className="w-16 h-16 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-500" />
@@ -116,7 +109,6 @@ export default async function TeamsAnalyticsPage({
                     <span className="text-[9px] text-slate-500 font-bold truncate tracking-widest uppercase mt-0.5">
                       {team.full_name}
                     </span>
-                    {/* LAST 5 Form dots */}
                     <div className="flex gap-1.5 mt-2">
                       {hasData ? last5.map((h, i) => (
                         <div
@@ -131,17 +123,15 @@ export default async function TeamsAnalyticsPage({
                   </div>
                 </div>
 
-                {/* Real Metrics */}
                 <div className="space-y-4">
                   <MetricBar label="Momentum" value={momentum} color="cyan" hasData={hasData} />
                   <MetricBar label="Strength Ratio" value={strength} color="amber" hasData={hasData} />
                   <MetricBar label="Fatigue Load" value={fatigue} color="rose" hasData={hasData} />
                 </div>
 
-                {/* Footer (Dynamic League) */}
                 <div className="mt-6 pt-4 border-t border-slate-800/40 flex justify-between items-center text-[9px] font-black text-slate-500 tracking-[0.2em] uppercase">
                   <span className="flex items-center gap-2">
-                    {isNBA ? '??' : isMLB ? '?? : '??} {team.league_type} PRO
+                    {isNBA ? 'HOOPS' : isMLB ? 'DIAMOND' : 'PITCH'} {team.league_type} PRO
                   </span>
                   <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800">{history.length} OPS</span>
                 </div>
@@ -166,7 +156,7 @@ function MetricBar({ label, value, color, hasData }: { label: string, value: num
     <div className="flex flex-col gap-1.5">
       <div className="flex justify-between items-end">
         <span className="text-[10px] text-slate-500 font-black tracking-widest uppercase">{label}</span>
-        <span className={`text-[10px] font-black font-mono ${textClass}`}>{hasData ? `${Math.round(value * 100)}%` : '??'}</span>
+        <span className={`text-[10px] font-black font-mono ${textClass}`}>{hasData ? `${Math.round(value * 100)}%` : 'N/A'}</span>
       </div>
       <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-900">
         <div className={`h-full ${bgClass} rounded-full transition-all duration-1000`} style={{ width: hasData ? `${value * 100}%` : '0%' }} />
