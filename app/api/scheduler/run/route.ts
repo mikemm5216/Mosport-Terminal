@@ -12,17 +12,24 @@ const BATCH_SIZE = 5;
 
 export async function POST(request: Request) {
   try {
-    // 🛡️ SECURITY AUDIT: Secret Weapon Comparison (Remove ALL spaces)
+    // 🛡️ SECURITY AUDIT: Total Lockdown Comparison (Alphanumeric ONLY)
+    const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    
     const authHeader = (request.headers.get('authorization') || '').trim();
     const cronSecret = (process.env.CRON_SECRET || '').trim();
     const expected = `Bearer ${cronSecret}`;
 
-    if (authHeader.replace(/\s/g, '') !== expected.replace(/\s/g, '')) {
+    // 🔍 FORENSIC AUDIT: Map every character to its code to catch hidden bytes
+    console.log("CRON_SECRET Chars:", cronSecret.split('').map(c => `${c}:${c.charCodeAt(0)}`).join(','));
+
+    if (sanitize(authHeader) !== sanitize(expected)) {
       console.log(`[AUTH_FAIL] ExpectedLen: ${expected.length}, ReceivedLen: ${authHeader.length}`);
       return NextResponse.json({ 
         error: "Forbidden", 
         eLen: expected.length, 
-        hLen: authHeader.length 
+        hLen: authHeader.length,
+        receivedSanitizedLen: sanitize(authHeader).length,
+        expectedSanitizedLen: sanitize(expected).length
       }, { status: 403 });
     }
 
