@@ -70,7 +70,6 @@ export const WorldEngine = {
   },
 
   runMatchSimulation(home: TeamStats, away: TeamStats, forcedWinner?: 'home' | 'away') {
-    // PHASE 1: THE SECRET PREDICTION
     const homeScore = (home.strength * 0.5) + (home.momentum * 0.3) - (home.fatigue * 0.2);
     const awayScore = (away.strength * 0.5) + (away.momentum * 0.3) - (away.fatigue * 0.2);
 
@@ -78,7 +77,6 @@ export const WorldEngine = {
     const isUpset = (predictedWinner === 'home' && home.strength < away.strength) || 
                     (predictedWinner === 'away' && away.strength < home.strength);
 
-    // PHASE 2: THE NARRATIVE SPIN
     let primaryTag = "";
     let tagTarget: "home" | "away" = "home";
     let standardAnalysis = "";
@@ -91,16 +89,16 @@ export const WorldEngine = {
       const loserStreak = this.getStreakCount(loser.history);
 
       if (winnerStreak.type === 'W' && winnerStreak.count >= 2) {
-        primaryTag = `?”¥ ${winnerStreak.count}W STREAK: RIDING MOMENTUM`;
+        primaryTag = `${winnerStreak.count}W STREAK: RIDING MOMENTUM`;
         tagTarget = "away";
       } else if (loserStreak.type === 'L' && loserStreak.count >= 2) {
-        primaryTag = `?? L${loserStreak.count}: STRUGGLING FORM`;
+        primaryTag = `L${loserStreak.count}: STRUGGLING FORM`;
         tagTarget = "home";
       } else if (winner.strength > loser.strength + 0.2) {
-        primaryTag = `?Ž¯ DOMINANT: SUPERIOR CLASS`;
+        primaryTag = `DOMINANT: SUPERIOR CLASS`;
         tagTarget = "away";
       } else {
-        primaryTag = `?? PROJECTED: VALUE PLAY`;
+        primaryTag = `PROJECTED: VALUE PLAY`;
         tagTarget = "away";
       }
       
@@ -111,16 +109,16 @@ export const WorldEngine = {
       const winnerStreak = this.getStreakCount(winner.history);
 
       if (loser.fatigue > 0.6) {
-        primaryTag = `? ï? FATIGUE ALERT: ROAD EXHAUSTION`;
+        primaryTag = `FATIGUE ALERT: ROAD EXHAUSTION`;
         tagTarget = "away";
       } else if (winnerStreak.type === 'L' && winner.strength > 0.4) {
-        primaryTag = `?š¨ DUE FOR A BOUNCE BACK`;
+        primaryTag = `DUE FOR A BOUNCE BACK`;
         tagTarget = "home";
       } else if (winner.momentum > loser.momentum) {
-        primaryTag = `?”¥ PROTECTING HOME TURF`;
+        primaryTag = `PROTECTING HOME TURF`;
         tagTarget = "home";
       } else {
-        primaryTag = `??ï¸?HOME ADVANTAGE FAVORED`;
+        primaryTag = `HOME ADVANTAGE FAVORED`;
         tagTarget = "home";
       }
 
