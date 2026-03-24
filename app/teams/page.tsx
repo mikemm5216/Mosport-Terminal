@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
-import { WorldEngine } from "@/lib/world";
+import { WorldEngine } from "@/lib/world-engine";
 
 function getResultColor(result: string): string {
   if (result === 'W') return 'bg-emerald-500';
