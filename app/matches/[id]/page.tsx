@@ -90,15 +90,15 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   const awayStar = await getStar(match.away_team_id);
 
   // Fallback Roles
-  const homeActiveRole = homeStar?.positions?.[0] || (match.sport === 'Basketball' ? 'G' : 'P');
-  const awayActiveRole = awayStar?.positions?.[0] || (match.sport === 'Basketball' ? 'F' : 'DH');
+  const homeActiveRole = homeStar?.positions?.[0] || (match.home_team?.league_type === 'NBA' ? 'G' : 'P');
+  const awayActiveRole = awayStar?.positions?.[0] || (match.away_team?.league_type === 'NBA' ? 'F' : 'DH');
 
   // CEO SAFETY: Strict Metric Whitelists
   const SOCCER_METRICS = ["goals", "assists", "saves"];
   const NBA_METRICS = ["pts", "reb", "ast"];
   const MLB_METRICS = ["avg", "hr", "rbi"];
-  const allowedMetrics = match.sport === "Soccer" ? SOCCER_METRICS : 
-                       match.sport === "Basketball" ? NBA_METRICS : MLB_METRICS;
+  const allowedMetrics = match.home_team?.league_type === "SOCCER" ? SOCCER_METRICS : 
+                       match.home_team?.league_type === "NBA" ? NBA_METRICS : MLB_METRICS;
 
   const hFiltered = Object.entries(homeStar?.stats || {}).filter(([k]) => allowedMetrics.includes(k)).slice(0, 4);
   const aFiltered = Object.entries(awayStar?.stats || {}).filter(([k]) => allowedMetrics.includes(k)).slice(0, 4);
@@ -245,7 +245,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
               <div className="mt-4 p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">Tactical Engine Log</span>
                  <p className="text-[10px] text-slate-400 leading-relaxed uppercase">
-                    Dictionary v2.0 Active. Position metrics mapped for {match.sport || "Soccer"}. Accuracy optimization confirmed.
+                    Dictionary v2.0 Active. Position metrics mapped for {match.home_team?.league_type || "SOCCER"}. Accuracy optimization confirmed.
                  </p>
               </div>
            </section>
