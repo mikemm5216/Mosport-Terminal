@@ -78,7 +78,7 @@ export default async function TeamsAnalyticsPage({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 w-full max-w-7xl">
           {teams.map(team => {
-            const history = historyByTeamId.get(team.id) || [];
+            const history = historyByTeamId.get(team.team_id) || [];
             const momentum = WorldEngine.calcMomentum(history);
             const strength = WorldEngine.calcStrength(history);
             const fatigue = WorldEngine.calcFatigue(history);
@@ -89,7 +89,7 @@ export default async function TeamsAnalyticsPage({
 
             return (
               <div
-                key={team.id}
+                key={team.team_id}
                 className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 hover:border-cyan-500/50 hover:bg-slate-900/60 transition-all group backdrop-blur-md relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/5 rounded-bl-full -mr-8 -mt-8 blur-xl group-hover:bg-cyan-500/10 transition-colors" />
@@ -133,7 +133,7 @@ export default async function TeamsAnalyticsPage({
                   <span className="flex items-center gap-2">
                     {isNBA ? 'HOOPS' : isMLB ? 'DIAMOND' : 'PITCH'} {team.league_type} PRO
                   </span>
-                  <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800">{history.length} OPS</span>
+                  <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800">{history.length} MATCHES</span>
                 </div>
               </div>
             );
