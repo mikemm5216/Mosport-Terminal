@@ -89,6 +89,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
     const rawStats = (roster.player.stats_nba || roster.player.stats_mlb || roster.player.stats_soccer || {}) as any;
     
     return {
+      id: roster.player.player_id,
       player_name: roster.player.display_name,
       number: roster.jersey_number,
       positions: [activeRole],
@@ -219,7 +220,9 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                     />
                     <div className="flex flex-col gap-2 md:gap-4 flex-1 items-end min-w-0">
                        <div className="text-right">
-                          <h4 className="text-white font-black text-xs md:text-sm uppercase tracking-tight truncate max-w-[100px] md:max-w-[120px]">{homeStar?.player_name || "Unknown Star"}</h4>
+                          <Link href={`/players/${homeStar?.id}`}>
+                             <h4 className="text-white font-black text-xs md:text-sm uppercase tracking-tight truncate max-w-[100px] md:max-w-[120px] hover:text-cyan-400 transition-colors cursor-pointer">{homeStar?.player_name || "Unknown Star"}</h4>
+                          </Link>
                           <span className="text-[8px] md:text-[9px] text-indigo-400 font-mono tracking-widest uppercase">{homeStats.shortName} [{homeStar?.positions?.join('/') || homeActiveRole}]</span>
                        </div>
                        <div className="grid grid-cols-2 gap-x-4 md:gap-x-6 gap-y-1 md:gap-y-2">
@@ -234,7 +237,9 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                  <div className="flex items-center gap-4 md:gap-6 justify-between bg-slate-950/50 p-4 md:p-6 rounded-2xl border border-slate-800/80 transition-all duration-300">
                     <div className="flex flex-col gap-2 md:gap-4 flex-1 items-start min-w-0">
                        <div className="text-left">
-                          <h4 className="text-white font-black text-xs md:text-sm uppercase tracking-tight truncate max-w-[100px] md:max-w-[120px]">{awayStar?.player_name || "Unknown Star"}</h4>
+                          <Link href={`/players/${awayStar?.id}`}>
+                             <h4 className="text-white font-black text-xs md:text-sm uppercase tracking-tight truncate max-w-[100px] md:max-w-[120px] hover:text-orange-400 transition-colors cursor-pointer">{awayStar?.player_name || "Unknown Star"}</h4>
+                          </Link>
                           <span className="text-[8px] md:text-[9px] text-orange-400 font-mono tracking-widest uppercase">{awayStats.shortName} [{awayStar?.positions?.join('/') || awayActiveRole}]</span>
                        </div>
                        <div className="grid grid-cols-2 gap-x-4 md:gap-x-6 gap-y-1 md:gap-y-2">
