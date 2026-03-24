@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+// Force rebuild: 2026-03-24T14:58:00Z
 import { prisma } from "@/lib/prisma";
 import { buildFeatureVector } from "@/lib/feature";
 
