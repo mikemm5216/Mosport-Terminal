@@ -12,14 +12,13 @@ const BATCH_SIZE = 5;
 
 export async function POST(request: Request) {
   try {
-    // ?? SECURITY AUDIT: Robust Authorization Check
-    const authHeader = request.headers.get('authorization') || '';
-    const cronSecret = (process.env.CRON_SECRET || '').trim();
-    const expectedAuth = `Bearer ${cronSecret}`;
+    // 🛡️ SECURITY AUDIT: Robust Authorization Check
+    const authHeader = (request.headers.get('authorization') || '').trim();
+    const expected = `Bearer ${(process.env.CRON_SECRET || '').trim()}`;
     
-    console.log(`[AUTH_AUDIT] ExpectedLen: ${expectedAuth.length}, HeaderLen: ${authHeader.length}`);
-
-    if (authHeader !== expectedAuth) {
+    // Case-insensitive and whitespace-robust check
+    if (authHeader.toLowerCase().replace(/\s/g, '') !== expected.toLowerCase().replace(/\s/g, '')) {
+      console.error(`[AUTH_FAIL] Received len: ${authHeader.length}, Expected len: ${expected.length}`);
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
