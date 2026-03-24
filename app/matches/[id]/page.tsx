@@ -11,8 +11,12 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   const match = await prisma.matches.findUnique({
     where: { match_id: id },
     include: {
-      home_team: { include: { players: true } },
-      away_team: { include: { players: true } }
+      home_team: true,
+      away_team: true,
+      snapshots: {
+        orderBy: { created_at: 'desc' },
+        take: 1
+      }
     }
   });
 
@@ -34,7 +38,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
 
   const homeStats: TeamStats = {
     id: homeDb?.id ?? 'home',
-    name: match.home_team?.team_name ?? 'Home',
+    name: match.home_team?.full_name ?? 'Home',
     shortName: homeDb?.short_name ?? getShortName(match.home_team?.team_name ?? 'Home'),
     momentum: WorldEngine.calcMomentum(homeHistory),
     strength: WorldEngine.calcStrength(homeHistory),
@@ -44,7 +48,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
 
   const awayStats: TeamStats = {
     id: awayDb?.id ?? 'away',
-    name: match.away_team?.team_name ?? 'Away',
+    name: match.away_team?.full_name ?? 'Away',
     shortName: awayDb?.short_name ?? getShortName(match.away_team?.team_name ?? 'Away'),
     momentum: WorldEngine.calcMomentum(awayHistory),
     strength: WorldEngine.calcStrength(awayHistory),
@@ -57,7 +61,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   // Bio-Battery logic
   let hb = 50, ab = 50;
   if (match.snapshots?.length > 0) {
-    const fd = (match.snapshots[0].feature_json as any);
+    const fd = (match.snapshots[0].state_json as any);
     hb = fd?.bio_battery_home ?? fd?.h_bio ?? fd?.home_energy ?? 50;
     ab = fd?.bio_battery_away ?? fd?.a_bio ?? fd?.away_energy ?? 50;
   }
