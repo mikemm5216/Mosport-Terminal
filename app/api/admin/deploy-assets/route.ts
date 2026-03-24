@@ -29,10 +29,23 @@ export async function POST() {
     }
 
     // ALIGN DATABASE
-    await prisma.teams.updateMany({ where: { short_name: 'LAD' }, data: { logo_url: '/lad.png' } });
-    await prisma.teams.updateMany({ where: { short_name: 'SDP' }, data: { logo_url: '/sd.png' } });
-    await prisma.teams.updateMany({ where: { short_name: 'BKN' }, data: { logo_url: '/bkn.png' } });
-    await prisma.teams.updateMany({ where: { short_name: 'NYK' }, data: { logo_url: '/ny.png' } });
+    const teamMappings = [
+      { short: 'LAD', path: '/lad.png' },
+      { short: 'SDP', path: '/sd.png' },
+      { short: 'BKN', path: '/bkn.png' },
+      { short: 'NYK', path: '/ny.png' },
+      { short: 'SFG', path: '/sf.png' },
+      { short: 'SEA', path: '/sea.png' },
+      { short: 'TEX', path: '/tex.png' },
+      { short: 'CHW', path: '/chw.png' }
+    ];
+
+    for (const mapping of teamMappings) {
+      await prisma.teams.updateMany({
+        where: { short_name: mapping.short },
+        data: { logo_url: mapping.path }
+      });
+    }
 
     return NextResponse.json({
       success: true,
