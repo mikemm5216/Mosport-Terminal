@@ -122,6 +122,11 @@ export async function POST(request: Request) {
     }, { status: 200 });
 
   } catch (error: any) {
-    return NextResponse.json({ success: false, message: "Scheduler run failed" });
+    console.error("[SCHEDULER_CRASH]", error);
+    return NextResponse.json({ 
+      success: false, 
+      message: "Scheduler run failed",
+      errorDetail: error.message || String(error)
+    }, { status: 500 });
   }
 }
