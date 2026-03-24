@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateCronAuth } from "@/lib/auth";
 
 const BATCH_SIZE = 5;
 
 export async function POST(request: Request) {
   try {
+    const error = await validateCronAuth(request.clone());
+    if (error) return error;
+
     const now = new Date();
-    // ?�出?�去 24 小�??��?結�??��?�?    const past24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const past24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     const finishedMatches = await prisma.matches.findMany({
       where: {
@@ -18,7 +22,7 @@ export async function POST(request: Request) {
         away_score: { not: null },
       },
       select: { match_id: true },
-      take: 100, // 安全上�?
+      take: 100,
     });
 
     const results: any[] = [];
@@ -30,7 +34,7 @@ export async function POST(request: Request) {
       
       await Promise.all(
         batch.map(async (m) => {
-          // 節�?          await new Promise(r => setTimeout(r, 100)); 
+          await new Promise(r => setTimeout(r, 100)); 
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 5000);
 
@@ -38,10 +42,12 @@ export async function POST(request: Request) {
             const res = await fetch(`${baseUrl}/api/experience/generate`, {
               method: "POST",
               headers: { 
-                "Content-Type": "application/json",
-                "authorization": `Bearer ${process.env.CRON_SECRET}` 
+                "Content-Type": "application/json"
               },
-              body: JSON.stringify({ match_id: m.match_id }),
+              body: JSON.stringify({ 
+                match_id: m.match_id,
+                secret: process.env.CRON_SECRET
+              }),
               signal: controller.signal
             });
             results.push({ match_id: m.match_id, status: res.status });
@@ -57,6 +63,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, processed: finishedMatches.length, results }, { status: 200 });
 
   } catch (error: any) {
-    return NextResponse.json({ success: false, processed: 0, results: [] });
+    console.error("[SCHEDULER_EXPERIENCE_CRASH]", error);
+    return NextResponse.json({ success: false, processed: 0, results: [] }, { status: 500 });
   }
 }
