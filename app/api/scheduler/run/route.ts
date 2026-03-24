@@ -14,10 +14,13 @@ export async function POST(request: Request) {
   try {
     // 🛡️ SECURITY AUDIT: Robust Authorization Check
     const authHeader = (request.headers.get('authorization') || '').trim();
-    const expected = `Bearer ${(process.env.CRON_SECRET || '').trim()}`;
+    const secret = (process.env.CRON_SECRET || '').trim();
+    const expected = `Bearer ${secret}`;
     
+    console.log("ExpectedLen:", expected.length, "ReceivedLen:", authHeader.length);
+
     // Case-insensitive and whitespace-robust check
-    if (authHeader.toLowerCase().replace(/\s/g, '') !== expected.toLowerCase().replace(/\s/g, '')) {
+    if (authHeader.replace(/\s/g, '') !== expected.replace(/\s/g, '')) {
       console.error(`[AUTH_FAIL] Received len: ${authHeader.length}, Expected len: ${expected.length}`);
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
