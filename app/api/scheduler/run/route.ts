@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateCronAuth } from "@/lib/auth";
+import { runMatchCrawler } from "@/crawler/matchCrawler";
+import { runOddsCrawler } from "@/crawler/oddsCrawler";
+import { runStatsCrawler } from "@/crawler/statsCrawler";
 
 const TYPE_TO_MS = {
   "T-24h": 24 * 60 * 60 * 1000,
@@ -17,10 +20,16 @@ export async function POST(request: Request) {
     const error = await validateCronAuth(request.clone());
     if (error) return error;
 
+    // 1. 執行長指令：依序呼叫爬蟲
+    const matchCount = await runMatchCrawler();
+    const oddsCount = await runOddsCrawler();
+    const statsCount = await runStatsCrawler();
+    const totalNewJobs = matchCount + oddsCount + statsCount;
+
     const now = new Date();
     const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    // 1. 保? prisma ?詢 (?入了使?者?求? take: 100 + orderBy)
+    // 2. 原有邏輯：觸發 Snapshot
     const upcomingMatches = await prisma.matches.findMany({
       where: {
         match_date: {
@@ -44,7 +53,6 @@ export async function POST(request: Request) {
       throw new Error("BASE_URL is not defined in environment variables.");
     }
 
-    // 2. 將???步改???次併發 (BATCH_SIZE = 5)
     for (let i = 0; i < upcomingMatches.length; i += BATCH_SIZE) {
       const batch = upcomingMatches.slice(i, i + BATCH_SIZE);
 
@@ -53,13 +61,9 @@ export async function POST(request: Request) {
           for (const [snapshotType, offsetMs] of Object.entries(TYPE_TO_MS)) {
             const targetSnapshotTime = new Date(match.match_date.getTime() - offsetMs);
 
-            // snapshot 觸發條件
             if (now.getTime() >= targetSnapshotTime.getTime()) {
-              
-              // 3. 節流??????? burst ?? API
               await new Promise((res) => setTimeout(res, 100));
 
-              // 4. ??fetch ?入 timeout (?止?死)
               const controller = new AbortController();
               const timeout = setTimeout(() => controller.abort(), 5000);
 
@@ -77,7 +81,6 @@ export async function POST(request: Request) {
                   signal: controller.signal,
                 });
 
-                // 記?結?
                 results.push({
                   match_id: match.match_id,
                   snapshot_type: snapshotType,
@@ -102,9 +105,15 @@ export async function POST(request: Request) {
       status: "ok",
       timestamp: new Date().toISOString(),
       latency: `${Date.now() - startTime}ms`,
-      jobsRun: upcomingMatches.length,
-      diagnostic: "Mosport Pipeline completed successfully",
-      triggers: results
+      jobsRun: totalNewJobs,
+      snapshotTriggers: results.length,
+      diagnostic: "Mosport Pipeline completed successfully (Crawlers + Scheduler)",
+      details: {
+        matches: matchCount,
+        odds: oddsCount,
+        stats: statsCount,
+        triggers: results
+      }
     });
 
   } catch (error: any) {
