@@ -5,6 +5,7 @@ import { validateCronAuth } from "@/lib/auth";
 const BATCH_SIZE = 5;
 
 export async function POST(request: Request) {
+  const startTime = Date.now();
   try {
     const error = await validateCronAuth(request.clone());
     if (error) return error;
@@ -60,10 +61,23 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ success: true, processed: finishedMatches.length, results }, { status: 200 });
+    return NextResponse.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      latency: `${Date.now() - startTime}ms`,
+      data: {
+        processed: finishedMatches.length,
+        results
+      }
+    });
 
   } catch (error: any) {
     console.error("[SCHEDULER_EXPERIENCE_CRASH]", error);
-    return NextResponse.json({ success: false, processed: 0, results: [] }, { status: 500 });
+    return NextResponse.json({
+      status: "error",
+      error: error.message || String(error),
+      latency: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }

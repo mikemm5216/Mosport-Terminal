@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateCronAuth } from "@/lib/auth";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const startTime = Date.now();
   try {
+    const error = await validateCronAuth(request.clone());
+    if (error) return error;
     // 1. Repair Team Logos with Local Assets
     const updates = [
       { t: 'LAD', l: '/lad.png' },
@@ -31,12 +35,21 @@ export async function POST() {
     }
 
     return NextResponse.json({ 
-       success: true, 
-       message: "Polish Operation Successful: Logos Repaired (Local Paths), Soccer History Injected." 
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      latency: `${Date.now() - startTime}ms`,
+      data: {
+        message: "Polish Operation Successful: Logos Repaired (Local Paths), Soccer History Injected." 
+      }
     });
 
   } catch (error: any) {
     console.error(error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({
+      status: "error",
+      error: error.message,
+      latency: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }

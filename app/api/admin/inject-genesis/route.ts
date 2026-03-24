@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateCronAuth } from "@/lib/auth";
 
 export async function POST(req: Request) {
+  const startTime = Date.now();
   try {
+    const error = await validateCronAuth(req.clone());
+    if (error) return error;
     const GENESIS_PAYLOAD = {
       teams: [
         { team_id: "T_LAD_GENESIS", full_name: "Los Angeles Dodgers", short_name: "LAD", league_type: "MLB", city: "Los Angeles", logo_url: "/lad.png" },
@@ -84,18 +88,24 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ 
-      success: true, 
-      message: "Genesis Data Injected Successfully",
-      teams_count: GENESIS_PAYLOAD.teams.length,
-      matches_count: GENESIS_PAYLOAD.matches.length,
-      history_count: GENESIS_PAYLOAD.history.length
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      latency: `${Date.now() - startTime}ms`,
+      data: {
+        message: "Genesis Data Injected Successfully",
+        teams_count: GENESIS_PAYLOAD.teams.length,
+        matches_count: GENESIS_PAYLOAD.matches.length,
+        history_count: GENESIS_PAYLOAD.history.length
+      }
     });
 
   } catch (error: any) {
     console.error(error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
+    return NextResponse.json({
+      status: "error",
+      error: error.message,
+      latency: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
     }, { status: 500 });
   }
 }

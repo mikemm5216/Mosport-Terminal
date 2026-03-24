@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildFeatureVector } from "@/lib/feature";
+import { validateCronAuth } from "@/lib/auth";
 
 export async function POST(req: Request) {
+  const startTime = Date.now();
   try {
+    const error = await validateCronAuth(req.clone());
+    if (error) return error;
     // 1. Get current match counts
     const total_matches_in_db = await prisma.matches.count();
     const completed_matches_in_db = await prisma.matches.count({
@@ -25,11 +29,15 @@ export async function POST(req: Request) {
 
     if (matchesWithoutSnapshot.length === 0) {
       return NextResponse.json({ 
-        success: true, 
-        generated_count: 0, 
-        total_matches_in_db,
-        completed_matches_in_db,
-        message: "No matches need backfilling or database is empty." 
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        latency: `${Date.now() - startTime}ms`,
+        data: {
+          generated_count: 0, 
+          total_matches_in_db,
+          completed_matches_in_db,
+          message: "No matches need backfilling or database is empty." 
+        }
       });
     }
 
@@ -80,13 +88,22 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ 
-      success: true, 
-      generated_count,
-      total_matches_in_db,
-      completed_matches_in_db
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      latency: `${Date.now() - startTime}ms`,
+      data: {
+        generated_count,
+        total_matches_in_db,
+        completed_matches_in_db
+      }
     });
 
   } catch (error: any) {
-    return NextResponse.json({ success: false, generated_count: 0 });
+    return NextResponse.json({
+      status: "error",
+      error: error.message,
+      latency: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }

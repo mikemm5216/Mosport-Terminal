@@ -78,6 +78,7 @@ async function processMatch(match: any): Promise<{ processed: number; results: a
 }
 
 export async function POST(request: Request) {
+  const startTime = Date.now();
   try {
     const error = await validateCronAuth(request.clone());
     if (error) return error;
@@ -93,12 +94,29 @@ export async function POST(request: Request) {
         where: { match_id },
         include: { snapshots: true }
       });
-      if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+      if (!match) return NextResponse.json({ 
+        status: "error",
+        error: "Match not found",
+        latency: `${Date.now() - startTime}ms`
+      }, { status: 404 });
+      
       if (match.home_score === null || match.away_score === null) {
-        return NextResponse.json({ error: "Match scores missing" }, { status: 400 });
+        return NextResponse.json({ 
+          status: "error",
+          error: "Match scores missing",
+          latency: `${Date.now() - startTime}ms`
+        }, { status: 400 });
       }
       const { processed, results } = await processMatch(match);
-      return NextResponse.json({ success: true, processed_count: processed, results }, { status: 201 });
+      return NextResponse.json({
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        latency: `${Date.now() - startTime}ms`,
+        data: {
+          processed_count: processed,
+          results
+        }
+      }, { status: 201 });
     }
 
     // Auto-discovery
@@ -118,16 +136,21 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      success: true,
-      scanned_count: completedMatches.length,
-      processed_count: total_processed,
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      latency: `${Date.now() - startTime}ms`,
+      data: {
+        scanned_count: completedMatches.length,
+        processed_count: total_processed
+      }
     });
 
   } catch (error: any) {
     return NextResponse.json({
-      success: false,
-      scanned_count: 0,
-      processed_count: 0,
-    });
+      status: "error",
+      error: error.message,
+      latency: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }

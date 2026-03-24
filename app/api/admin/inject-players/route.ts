@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateCronAuth } from "@/lib/auth";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const startTime = Date.now();
   try {
+    const error = await validateCronAuth(request.clone());
+    if (error) return error;
     // 1. Fetch Real Team IDs
     const ladTeam = await prisma.teams.findFirst({ where: { short_name: 'LAD' } });
     const bknTeam = await prisma.teams.findFirst({ where: { short_name: 'BKN' } });
@@ -88,13 +92,22 @@ export async function POST() {
     });
 
     return NextResponse.json({ 
-      success: true, 
-      message: "Star Players (Ohtani & Claxton) Injected Successfully",
-      roster_year: 2026
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      latency: `${Date.now() - startTime}ms`,
+      data: {
+        message: "Star Players (Ohtani & Claxton) Injected Successfully",
+        roster_year: 2026
+      }
     });
 
   } catch (error: any) {
     console.error(error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({
+      status: "error",
+      error: error.message,
+      latency: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }

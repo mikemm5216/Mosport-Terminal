@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateCronAuth } from "@/lib/auth";
 import fs from "fs";
 import path from "path";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const startTime = Date.now();
   try {
+    const error = await validateCronAuth(request.clone());
+    if (error) return error;
+
     const assets = [
       { name: 'lad.png', url: 'https://a.espncdn.com/i/teamlogos/mlb/500/lad.png' },
       { name: 'sd.png', url: 'https://a.espncdn.com/i/teamlogos/mlb/500/sd.png' },
@@ -49,12 +54,21 @@ export async function POST() {
     }
 
     return NextResponse.json({
-      success: true,
-      message: "Binary Assets Deployed and DB Aligned.",
-      results
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      latency: `${Date.now() - startTime}ms`,
+      data: {
+        message: "Binary Assets Deployed and DB Aligned.",
+        results
+      }
     });
 
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({
+      status: "error",
+      error: error.message,
+      latency: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }

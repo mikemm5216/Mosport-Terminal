@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { validateCronAuth } from "@/lib/auth";
 
 export async function POST(req: Request) {
+  const startTime = Date.now();
   try {
     const error = await validateCronAuth(req.clone());
     if (error) return error;
@@ -61,8 +62,13 @@ Return as a pure JSON object.
       else fallbackText += " Model consistency remains stable across standard benchmarks.";
 
       return NextResponse.json({
-        narrative: fallbackText,
-        type: narrativeType
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        latency: `${Date.now() - startTime}ms`,
+        data: {
+          narrative: fallbackText,
+          type: narrativeType
+        }
       });
     }
 
@@ -91,14 +97,25 @@ Return as a pure JSON object.
     const resultObj = JSON.parse(data.choices[0].message.content);
 
     return NextResponse.json({
-      narrative: resultObj.narrative,
-      type: narrativeType
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      latency: `${Date.now() - startTime}ms`,
+      data: {
+        narrative: resultObj.narrative,
+        type: narrativeType
+      }
     });
 
   } catch (error: any) {
     return NextResponse.json({ 
-      narrative: "Dynamic narrative generation currently unavailable. Default model active.", 
-      type: "standard" 
+      status: "error",
+      error: error.message || "Dynamic narrative generation currently unavailable.",
+      latency: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString(),
+      data: {
+        narrative: "Dynamic narrative generation currently unavailable. Default model active.", 
+        type: "standard" 
+      }
     });
   }
 }
