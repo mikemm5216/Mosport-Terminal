@@ -5,10 +5,10 @@ export async function POST(req: Request) {
   try {
     const GENESIS_PAYLOAD = {
       teams: [
-        { team_id: "T_LAD_GENESIS", full_name: "Los Angeles Dodgers", short_name: "LAD", league_type: "MLB", city: "Los Angeles", logo_url: "https://b.fssta.com/wp-content/uploads/espanol/2016/04/dodgers.png" },
-        { team_id: "T_SDP_GENESIS", full_name: "San Diego Padres", short_name: "SDP", league_type: "MLB", city: "San Diego", logo_url: "https://b.fssta.com/wp-content/uploads/espanol/2016/04/padres.png" },
-        { team_id: "T_BKN_GENESIS", full_name: "Brooklyn Nets", short_name: "BKN", league_type: "NBA", city: "Brooklyn", logo_url: "https://b.fssta.com/wp-content/uploads/espanol/2016/04/nets.png" },
-        { team_id: "T_NYK_GENESIS", full_name: "New York Knicks", short_name: "NYK", league_type: "NBA", city: "New York", logo_url: "https://b.fssta.com/wp-content/uploads/espanol/2016/04/knicks.png" }
+        { team_id: "T_LAD_GENESIS", full_name: "Los Angeles Dodgers", short_name: "LAD", league_type: "MLB", city: "Los Angeles", logo_url: "/lad.png" },
+        { team_id: "T_SDP_GENESIS", full_name: "San Diego Padres", short_name: "SDP", league_type: "MLB", city: "San Diego", logo_url: "/sd.png" },
+        { team_id: "T_BKN_GENESIS", full_name: "Brooklyn Nets", short_name: "BKN", league_type: "NBA", city: "Brooklyn", logo_url: "/bkn.png" },
+        { team_id: "T_NYK_GENESIS", full_name: "New York Knicks", short_name: "NYK", league_type: "NBA", city: "New York", logo_url: "/ny.png" }
       ],
       matches: [
         {

@@ -33,11 +33,11 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   const homeDb = await prisma.teams.findFirst({ where: { team_id: match.home_team_id } });
   const awayDb = await prisma.teams.findFirst({ where: { team_id: match.away_team_id } });
 
-  const homeHistory = homeDb ? await prisma.matchHistory.findMany({ where: { team_id: homeDb.id }, orderBy: { date: 'desc' }, take: 20 }) : [];
-  const awayHistory = awayDb ? await prisma.matchHistory.findMany({ where: { team_id: awayDb.id }, orderBy: { date: 'desc' }, take: 20 }) : [];
+  const homeHistory = homeDb ? await prisma.matchHistory.findMany({ where: { team_id: homeDb.team_id }, orderBy: { date: 'desc' }, take: 20 }) : [];
+  const awayHistory = awayDb ? await prisma.matchHistory.findMany({ where: { team_id: awayDb.team_id }, orderBy: { date: 'desc' }, take: 20 }) : [];
 
   const homeStats: TeamStats = {
-    id: homeDb?.id ?? 'home',
+    id: homeDb?.team_id ?? 'home',
     name: match.home_team?.full_name ?? 'Home',
     shortName: homeDb?.short_name ?? getShortName(match.home_team?.full_name ?? 'Home'),
     momentum: WorldEngine.calcMomentum(homeHistory),
@@ -47,7 +47,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   };
 
   const awayStats: TeamStats = {
-    id: awayDb?.id ?? 'away',
+    id: awayDb?.team_id ?? 'away',
     name: match.away_team?.full_name ?? 'Away',
     shortName: awayDb?.short_name ?? getShortName(match.away_team?.full_name ?? 'Away'),
     momentum: WorldEngine.calcMomentum(awayHistory),
