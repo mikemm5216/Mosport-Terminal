@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
-import { ArrowLeft, User, Activity } from 'lucide-react';
+import { ArrowLeft, User, Activity, Battery, TrendingUp, Brain, Map } from 'lucide-react';
 
 export default async function PlayerProfilePage({ params }: { params: { id: string } }) {
   const { id } = await params;
@@ -69,6 +69,78 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
               ))}
            </div>
         </section>
+
+        {/* THE 4 HIGH-VALUE MODULES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+           {/* MODULE 1: Bio-Battery & Health */}
+           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-2xl -mr-10 -mt-10" />
+              <div className="flex items-center gap-3 mb-6">
+                 <Battery className="text-rose-400" size={20} />
+                 <h3 className="text-sm font-black text-white tracking-[0.2em] uppercase">Bio-Battery & Status</h3>
+              </div>
+              <div className="space-y-4">
+                 <div>
+                    <div className="flex justify-between text-[10px] font-mono tracking-widest uppercase mb-1">
+                       <span className="text-slate-400">Fatigue Load</span><span className="text-rose-400">24% (OPTIMAL)</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden"><div className="w-1/4 h-full bg-rose-500 rounded-full" /></div>
+                 </div>
+                 <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between">
+                    <span className="text-xs font-black text-emerald-400 tracking-widest uppercase">Medical Clearance</span>
+                    <span className="text-xs font-black text-white bg-emerald-500/20 px-2 py-0.5 rounded">ACTIVE</span>
+                 </div>
+              </div>
+           </section>
+
+           {/* MODULE 2: Momentum & Form */}
+           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-2xl -mr-10 -mt-10" />
+              <div className="flex items-center gap-3 mb-6">
+                 <TrendingUp className="text-cyan-400" size={20} />
+                 <h3 className="text-sm font-black text-white tracking-[0.2em] uppercase">Recent Momentum</h3>
+              </div>
+              <div className="flex items-end justify-between h-16 gap-2">
+                 {[40, 65, 50, 85, 95].map((val, i) => (
+                    <div key={i} className="flex-1 bg-slate-800 rounded-t-sm relative group">
+                       <div className="absolute bottom-0 w-full bg-cyan-400 rounded-t-sm transition-all duration-500 group-hover:bg-cyan-300" style={{ height: `${val}%` }} />
+                    </div>
+                 ))}
+              </div>
+              <div className="flex justify-between mt-2 text-[8px] text-slate-500 font-mono tracking-widest uppercase">
+                 <span>L5 Games</span><span>Trending Up</span>
+              </div>
+           </section>
+
+           {/* MODULE 3: Venue Mastery */}
+           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                 <Map className="text-amber-400" size={20} />
+                 <h3 className="text-sm font-black text-white tracking-[0.2em] uppercase">Venue Mastery</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[9px] text-slate-500 font-mono tracking-widest uppercase block mb-1">Home Turf</span>
+                    <span className="text-lg font-black text-amber-400">+12% EFF</span>
+                 </div>
+                 <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[9px] text-slate-500 font-mono tracking-widest uppercase block mb-1">Hostile/Away</span>
+                    <span className="text-lg font-black text-slate-300">-4% EFF</span>
+                 </div>
+              </div>
+           </section>
+
+           {/* MODULE 4: AI Narrative */}
+           <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                 <Brain className="text-indigo-400" size={20} />
+                 <h3 className="text-sm font-black text-white tracking-[0.2em] uppercase">AI Scouting Report</h3>
+              </div>
+              <p className="text-xs md:text-sm text-slate-300 leading-relaxed italic border-l-2 border-indigo-500 pl-4 py-1">
+                 "Quantitative models detect peak performance efficiency. Player exhibits high resistance to away-game fatigue. High probability of exceeding market projections in upcoming matchups."
+              </p>
+           </section>
+        </div>
       </main>
     </div>
   );
