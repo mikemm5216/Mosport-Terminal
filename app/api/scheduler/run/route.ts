@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 const TYPE_TO_MS = {
@@ -16,6 +16,8 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
     const expectedAuth = `Bearer ${process.env.CRON_SECRET}`.trim();
     
+    console.log(`Auth Audit: expected=${expectedAuth.length}, header=${authHeader?.length || 0}`);
+
     if (!authHeader || authHeader.trim() !== expectedAuth) {
       return NextResponse.json({ error: "Forbidden" });
     }

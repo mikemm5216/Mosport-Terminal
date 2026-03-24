@@ -1,6 +1,10 @@
 import { VENUE_COORDS } from './venues';
 import { prisma } from './prisma';
 
+/**
+ * Pure ASCII Physics Engine for Mosport Terminal
+ * Handles spatial calculations, fatigue, and Bio-Battery metrics.
+ */
 export const PhysicsEngine = {
   haversineDistance: (venueA: string, venueB: string): number => {
     const coordsA = VENUE_COORDS[venueA];
@@ -23,7 +27,7 @@ export const PhysicsEngine = {
   },
 
   /**
-   * Bio-Battery 2.0
+   * Bio-Battery 2.0 Calculation Logic
    * Penalty per game in last 7 days: -15
    * Penalty per consecutive away game: -5
    * Additional penalty if more than 3 consecutive away games: -10
