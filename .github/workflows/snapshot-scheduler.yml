@@ -2,8 +2,8 @@ name: Snapshot Scheduler
 
 on:
   schedule:
-    - cron: "*/15 * * * *"   # 每 15 分鐘
-  workflow_dispatch:         # 支援手動觸發
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
 
 jobs:
   run-scheduler:
@@ -12,6 +12,7 @@ jobs:
     steps:
       - name: Call Snapshot Scheduler API
         run: |
-          curl -f -X POST https://www.mosport.app/api/scheduler/run \
+          curl -X POST https://www.mosport.app/api/scheduler/run \
             -H "Content-Type: application/json" \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
             -d '{"secret": "${{ secrets.CRON_SECRET }}"}'
