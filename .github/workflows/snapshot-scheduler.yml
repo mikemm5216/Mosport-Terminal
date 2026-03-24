@@ -13,4 +13,6 @@ jobs:
       - name: Call Snapshot Scheduler API
         run: |
           curl -f -X POST https://www.mosport.app/api/scheduler/run \
-            -H "Authorization: Bearer Mosport_War_Room"
+            -H "Authorization: Bearer Mosport_War_Room" \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
+            -H "Content-Type: application/json"
