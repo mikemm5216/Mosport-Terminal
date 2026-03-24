@@ -102,11 +102,9 @@ export async function POST(request: Request) {
       status: "ok",
       timestamp: new Date().toISOString(),
       latency: `${Date.now() - startTime}ms`,
-      data: {
-        message: "Scheduler run completed",
-        processed_count: upcomingMatches.length,
-        triggers: results
-      }
+      jobsRun: upcomingMatches.length,
+      diagnostic: "Mosport Pipeline completed successfully",
+      triggers: results
     });
 
   } catch (error: any) {
