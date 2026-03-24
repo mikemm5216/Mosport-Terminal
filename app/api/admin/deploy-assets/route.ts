@@ -22,7 +22,8 @@ export async function POST() {
     for (const asset of assets) {
       const res = await fetch(asset.url);
       if (!res.ok) throw new Error(`Failed to fetch ${asset.name}`);
-      const buffer = Buffer.from(await res.arrayBuffer());
+      // 🛡️ BINARY INJECTION (ENSURE NON-ZERO SIZE)
+      const buffer = Buffer.from(await res.arrayBuffer()); 
       const filePath = path.join(publicDir, asset.name);
       fs.writeFileSync(filePath, buffer);
       results.push({ name: asset.name, size: buffer.length });

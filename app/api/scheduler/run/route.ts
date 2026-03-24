@@ -12,17 +12,18 @@ const BATCH_SIZE = 5;
 
 export async function POST(request: Request) {
   try {
-    // 🛡️ SECURITY AUDIT: Robust Authorization Check
+    // 🛡️ SECURITY AUDIT: Secret Weapon Comparison (Remove ALL spaces)
     const authHeader = (request.headers.get('authorization') || '').trim();
-    const secret = (process.env.CRON_SECRET || '').trim();
-    const expected = `Bearer ${secret}`;
-    
-    console.log("ExpectedLen:", expected.length, "ReceivedLen:", authHeader.length);
+    const cronSecret = (process.env.CRON_SECRET || '').trim();
+    const expected = `Bearer ${cronSecret}`;
 
-    // Case-insensitive and whitespace-robust check
     if (authHeader.replace(/\s/g, '') !== expected.replace(/\s/g, '')) {
-      console.error(`[AUTH_FAIL] Received len: ${authHeader.length}, Expected len: ${expected.length}`);
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      console.log(`[AUTH_FAIL] ExpectedLen: ${expected.length}, ReceivedLen: ${authHeader.length}`);
+      return NextResponse.json({ 
+        error: "Forbidden", 
+        eLen: expected.length, 
+        hLen: authHeader.length 
+      }, { status: 403 });
     }
 
     const now = new Date();
