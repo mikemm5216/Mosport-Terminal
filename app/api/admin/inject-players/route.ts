@@ -18,14 +18,23 @@ export async function POST() {
         first_name: "Shohei",
         last_name: "Ohtani",
         display_name: "Shohei Ohtani",
-        position_main: "DH"
+        position_main: "DH",
+        stats_mlb: {
+          upsert: {
+            create: { avg: 0.310, hr: 54, rbi: 130 },
+            update: { avg: 0.310, hr: 54, rbi: 130 }
+          }
+        }
       },
       create: {
         player_id: 'P_OHTANI_GENESIS',
         first_name: "Shohei",
         last_name: "Ohtani",
         display_name: "Shohei Ohtani",
-        position_main: "DH"
+        position_main: "DH",
+        stats_mlb: {
+          create: { avg: 0.310, hr: 54, rbi: 130 }
+        }
       }
     });
 
@@ -47,14 +56,23 @@ export async function POST() {
         first_name: "Nic",
         last_name: "Claxton",
         display_name: "Nic Claxton",
-        position_main: "C"
+        position_main: "C",
+        stats_nba: {
+          upsert: {
+            create: { pts: 11.8, reb: 7.1, ast: 3.8 },
+            update: { pts: 11.8, reb: 7.1, ast: 3.8 }
+          }
+        }
       },
       create: {
         player_id: 'P_CLAXTON_GENESIS',
         first_name: "Nic",
         last_name: "Claxton",
         display_name: "Nic Claxton",
-        position_main: "C"
+        position_main: "C",
+        stats_nba: {
+          create: { pts: 11.8, reb: 7.1, ast: 3.8 }
+        }
       }
     });
 
