@@ -107,7 +107,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   // CEO SAFETY: Strict Metric Whitelists
   const SOCCER_METRICS = ["goals", "assists", "saves"];
   const NBA_METRICS = ["pts", "reb", "ast"];
-  const MLB_METRICS = ["avg", "hr", "rbi"];
+  const MLB_METRICS = ["avg", "hr", "rbi", "era", "w", "so"];
   const allowedMetrics = match.home_team?.league_type === "SOCCER" ? SOCCER_METRICS : 
                        match.home_team?.league_type === "NBA" ? NBA_METRICS : MLB_METRICS;
 

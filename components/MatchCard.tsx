@@ -126,7 +126,11 @@ export default function MatchCard({ match }: { match: any }) {
           {/* Left Team */}
           <div className="flex flex-col items-center flex-1 w-0">
             <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mb-2 shadow-lg overflow-hidden bg-slate-800 border-2 border-slate-700/50 text-slate-300 font-extrabold text-xl">
-              {homeInitials}
+              {match?.home_team?.logo_url ? (
+                <img src={match.home_team.logo_url} alt={homeTeamName} className="w-full h-full object-contain" />
+              ) : (
+                homeInitials
+              )}
             </div>
             <span className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white truncate w-full text-center">
               {homeTeamName}
@@ -144,7 +148,11 @@ export default function MatchCard({ match }: { match: any }) {
           {/* Right Team */}
           <div className="flex flex-col items-center flex-1 w-0">
             <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mb-2 shadow-lg overflow-hidden bg-slate-800 border-2 border-slate-700/50 text-slate-300 font-extrabold text-xl">
-              {awayInitials}
+              {match?.away_team?.logo_url ? (
+                <img src={match.away_team.logo_url} alt={awayTeamName} className="w-full h-full object-contain" />
+              ) : (
+                awayInitials
+              )}
             </div>
             <span className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white truncate w-full text-center">
               {awayTeamName}
