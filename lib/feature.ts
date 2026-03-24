@@ -6,7 +6,7 @@ export const FEATURE_ORDER = [
   "goal_avg_diff",
   "form_strength_home",
   "form_strength_away",
-  "bio_battery_home",  // ?‡ç?ï¼šå? fatigue ?¹ç‚º Bio-Battery
+  "bio_battery_home",
   "bio_battery_away",
 ];
 
@@ -17,14 +17,13 @@ export async function buildFeatureVector(
   current_match_date: Date,
   current_venue: string
 ): Promise<number[]> {
-  // ?–ä¸»?Šç? home_city ?¨æ–¼ Road Trip ?¤æ–·
   const homeTeam = await prisma.teams.findUnique({ where: { team_id: home_team_id } }).catch(() => null);
   const awayTeam = await prisma.teams.findUnique({ where: { team_id: away_team_id } }).catch(() => null);
 
   const homeCity = homeTeam?.home_city || "Unknown";
   const awayCity = awayTeam?.home_city || "Unknown";
 
-  // Bio-Battery è¨ˆç?ï¼šå??«è³½ç¨‹å?åº?+ å®¢å ´å£“å? + ?…é€”ç–²??  const [homeBio, awayBio] = await Promise.all([
+  const [homeBio, awayBio] = await Promise.all([
     PhysicsEngine.getBioBattery(home_team_id, current_match_date, current_venue, homeCity),
     PhysicsEngine.getBioBattery(away_team_id, current_match_date, current_venue, awayCity),
   ]);
@@ -45,6 +44,5 @@ export async function buildFeatureVector(
 
   const v = [elo, goal, formH, formA, homeBio.bio_battery, awayBio.bio_battery];
 
-  // æ¥µåº¦?è??²å?ï¼šç¢ºä¿é€å‡º??6 ç¶­å??ç„¡ NaN / null / undefined
   return v.map(n => (typeof n === 'number' && !isNaN(n)) ? n : 0.0);
 }
