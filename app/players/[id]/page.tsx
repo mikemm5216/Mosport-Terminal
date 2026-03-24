@@ -54,17 +54,32 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
            </div>
         </header>
 
-        <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 md:p-8">
-           <div className="flex items-center gap-3 mb-8">
-              <Activity className="text-emerald-400" />
-              <h2 className="text-xl font-black text-white tracking-[0.2em] uppercase">Performance Metrics (2026)</h2>
+        {/* TACTICAL OUTPUT GRID */}
+        <section className="relative">
+           <div className="flex items-center gap-3 mb-6 px-2">
+              <Activity className="text-emerald-400" size={20} />
+              <h2 className="text-lg md:text-xl font-black text-white tracking-[0.2em] uppercase">Tactical Output [{currentRoster?.season_year || "2026"}]</h2>
            </div>
            
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {displayStats.map(([key, value]) => (
-                <div key={key} className="bg-slate-950 p-4 rounded-xl border border-slate-800/50 flex flex-col items-center justify-center">
-                   <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase mb-2">{key.toUpperCase()}</span>
-                   <span className="text-3xl font-black text-emerald-400">{String(value)}</span>
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {Object.entries(player.stats_mlb || {}).filter(([k]) => k !== 'player_id').map(([key, value]) => (
+                <div key={`mlb-${key}`} className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-6 flex flex-col items-center justify-center hover:border-cyan-500/50 hover:bg-slate-900/80 transition-all group">
+                   <span className="text-xs text-slate-500 font-mono tracking-[0.3em] uppercase mb-2 group-hover:text-cyan-400 transition-colors z-10">{key}</span>
+                   <span className="text-3xl md:text-5xl font-black text-white tracking-tighter z-10">{String(value)}</span>
+                </div>
+              ))}
+              
+              {Object.entries(player.stats_nba || {}).filter(([k]) => k !== 'player_id').map(([key, value]) => (
+                <div key={`nba-${key}`} className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-6 flex flex-col items-center justify-center hover:border-orange-500/50 hover:bg-slate-900/80 transition-all group">
+                   <span className="text-xs text-slate-500 font-mono tracking-[0.3em] uppercase mb-2 group-hover:text-orange-400 transition-colors z-10">NBA {key}</span>
+                   <span className="text-3xl md:text-5xl font-black text-white tracking-tighter z-10">{String(value)}</span>
+                </div>
+              ))}
+
+              {Object.entries(player.stats_soccer || {}).filter(([k]) => k !== 'player_id').map(([key, value]) => (
+                <div key={`soccer-${key}`} className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-6 flex flex-col items-center justify-center hover:border-emerald-500/50 hover:bg-slate-900/80 transition-all group">
+                   <span className="text-xs text-slate-500 font-mono tracking-[0.3em] uppercase mb-2 group-hover:text-emerald-400 transition-colors z-10">SOCCER {key}</span>
+                   <span className="text-3xl md:text-5xl font-black text-white tracking-tighter z-10">{String(value)}</span>
                 </div>
               ))}
            </div>

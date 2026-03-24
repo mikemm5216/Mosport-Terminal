@@ -76,6 +76,9 @@ model Stats_MLB {
   avg         Float?
   hr          Int?
   rbi         Int?
+  era         Float?  // Pitching: Earned Run Average
+  w           Int?    // Pitching: Wins
+  so          Int?    // Pitching: Strikeouts
   player      Player  @relation(fields: [player_id], references: [player_id])
 }
 

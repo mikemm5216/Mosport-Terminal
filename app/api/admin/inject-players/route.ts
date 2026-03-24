@@ -18,11 +18,11 @@ export async function POST() {
         first_name: "Shohei",
         last_name: "Ohtani",
         display_name: "Shohei Ohtani",
-        position_main: "DH",
+        position_main: "SP/DH",
         stats_mlb: {
           upsert: {
-            create: { avg: 0.310, hr: 54, rbi: 130 },
-            update: { avg: 0.310, hr: 54, rbi: 130 }
+            create: { avg: 0.310, hr: 54, rbi: 130, era: 3.14, w: 15, so: 167 },
+            update: { avg: 0.310, hr: 54, rbi: 130, era: 3.14, w: 15, so: 167 }
           }
         }
       },
@@ -31,9 +31,9 @@ export async function POST() {
         first_name: "Shohei",
         last_name: "Ohtani",
         display_name: "Shohei Ohtani",
-        position_main: "DH",
+        position_main: "SP/DH",
         stats_mlb: {
-          create: { avg: 0.310, hr: 54, rbi: 130 }
+          create: { avg: 0.310, hr: 54, rbi: 130, era: 3.14, w: 15, so: 167 }
         }
       }
     });
