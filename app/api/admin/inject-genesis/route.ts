@@ -37,13 +37,24 @@ export async function POST(req: Request) {
       ]
     };
 
-    // 1. Inject Teams
+    // 0. Create ID Map
+    const idMap = new Map<string, string>();
+
+    // 1. Inject Teams (Match by full_name)
     for (const team of GENESIS_PAYLOAD.teams) {
-      await prisma.teams.upsert({
-        where: { team_id: team.team_id },
-        update: team,
-        create: team as any
+      const dbTeam = await prisma.teams.upsert({
+        where: { full_name: team.full_name },
+        update: { short_name: team.short_name, logo_url: team.logo_url, city: team.city },
+        create: {
+          league_type: team.league_type as any,
+          full_name: team.full_name,
+          short_name: team.short_name,
+          city: team.city,
+          logo_url: team.logo_url
+        }
       });
+      // Map Fake ID -> Real DB ID
+      idMap.set(team.team_id, dbTeam.team_id);
     }
 
     // 2. Inject Matches
@@ -53,18 +64,22 @@ export async function POST(req: Request) {
         update: { status: match.status },
         create: {
           match_id: match.match_id,
-          home_team_id: match.home_team_id,
-          away_team_id: match.away_team_id,
+          home_team_id: idMap.get(match.home_team_id)!,
+          away_team_id: idMap.get(match.away_team_id)!,
           match_date: match.match_date,
           status: match.status,
-        } as any
+        }
       });
     }
 
     // 3. Inject History
     for (const h of GENESIS_PAYLOAD.history) {
       await prisma.matchHistory.create({
-        data: h
+        data: {
+          team_id: idMap.get(h.team_id)!,
+          result: h.result,
+          date: h.date
+        }
       });
     }
 
