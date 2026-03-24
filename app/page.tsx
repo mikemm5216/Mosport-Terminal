@@ -1,9 +1,9 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp, ArrowRight, User, Zap, Activity } from 'lucide-react';
-import MatchTicker from '@/components/match-ticker';
+import LiveTicker from '@/components/LiveTicker';
 import { formatLocalTime } from '@/lib/timezone';
 import { getShortName } from '@/lib/teams';
 
@@ -31,7 +31,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-950 flex flex-col items-center overflow-x-hidden">
       {/* ?�� LIVE MATCH TICKER (MARQUEE) */}
-      <MatchTicker />
+      <LiveTicker />
 
       {/* HEADER */}
       <div className="w-full max-w-4xl p-6 sm:p-8 border-b border-slate-800/80 sticky top-0 bg-slate-950/90 backdrop-blur-md z-40">
