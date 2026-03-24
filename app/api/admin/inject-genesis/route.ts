@@ -57,7 +57,6 @@ export async function POST(req: Request) {
           away_team_id: match.away_team_id,
           match_date: match.match_date,
           status: match.status,
-          league_id: match.league_id
         } as any
       });
     }
