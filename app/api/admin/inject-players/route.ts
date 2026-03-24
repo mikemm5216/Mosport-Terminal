@@ -40,38 +40,38 @@ export async function POST() {
       }
     });
 
-    // 3. Inject Cam Thomas (BKN)
-    const cam = await prisma.player.upsert({
-      where: { player_id: 'P_CAM_GENESIS' },
+    // 3. Inject Nic Claxton (BKN)
+    const clax = await prisma.player.upsert({
+      where: { player_id: 'P_CLAXTON_GENESIS' },
       update: {
-        first_name: "Cam",
-        last_name: "Thomas",
-        display_name: "Cam Thomas",
-        position_main: "SG"
+        first_name: "Nic",
+        last_name: "Claxton",
+        display_name: "Nic Claxton",
+        position_main: "C"
       },
       create: {
-        player_id: 'P_CAM_GENESIS',
-        first_name: "Cam",
-        last_name: "Thomas",
-        display_name: "Cam Thomas",
-        position_main: "SG"
+        player_id: 'P_CLAXTON_GENESIS',
+        first_name: "Nic",
+        last_name: "Claxton",
+        display_name: "Nic Claxton",
+        position_main: "C"
       }
     });
 
     await prisma.roster.upsert({
-      where: { player_id_team_id_season_year: { player_id: cam.player_id, team_id: bknTeam.team_id, season_year: 2026 } },
-      update: { jersey_number: "24" },
+      where: { player_id_team_id_season_year: { player_id: clax.player_id, team_id: bknTeam.team_id, season_year: 2026 } },
+      update: { jersey_number: "33" },
       create: {
-        player_id: cam.player_id,
+        player_id: clax.player_id,
         team_id: bknTeam.team_id,
         season_year: 2026,
-        jersey_number: "24"
+        jersey_number: "33"
       }
     });
 
     return NextResponse.json({ 
       success: true, 
-      message: "Star Players (Ohtani & Cam Thomas) Injected Successfully",
+      message: "Star Players (Ohtani & Claxton) Injected Successfully",
       roster_year: 2026
     });
 
