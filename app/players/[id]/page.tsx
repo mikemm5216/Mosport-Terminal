@@ -62,21 +62,21 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
            </div>
            
            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {Object.entries(player.stats_mlb || {}).filter(([k]) => k !== 'player_id').map(([key, value]) => (
+              {Object.entries(player.stats_mlb || {}).filter(([k, v]) => k !== 'player_id' && v !== null && v !== undefined).map(([key, value]) => (
                 <div key={`mlb-${key}`} className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-6 flex flex-col items-center justify-center hover:border-cyan-500/50 hover:bg-slate-900/80 transition-all group">
                    <span className="text-xs text-slate-500 font-mono tracking-[0.3em] uppercase mb-2 group-hover:text-cyan-400 transition-colors z-10">{key}</span>
                    <span className="text-3xl md:text-5xl font-black text-white tracking-tighter z-10">{String(value)}</span>
                 </div>
               ))}
               
-              {Object.entries(player.stats_nba || {}).filter(([k]) => k !== 'player_id').map(([key, value]) => (
+              {Object.entries(player.stats_nba || {}).filter(([k, v]) => k !== 'player_id' && v !== null && v !== undefined).map(([key, value]) => (
                 <div key={`nba-${key}`} className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-6 flex flex-col items-center justify-center hover:border-orange-500/50 hover:bg-slate-900/80 transition-all group">
                    <span className="text-xs text-slate-500 font-mono tracking-[0.3em] uppercase mb-2 group-hover:text-orange-400 transition-colors z-10">NBA {key}</span>
                    <span className="text-3xl md:text-5xl font-black text-white tracking-tighter z-10">{String(value)}</span>
                 </div>
               ))}
 
-              {Object.entries(player.stats_soccer || {}).filter(([k]) => k !== 'player_id').map(([key, value]) => (
+              {Object.entries(player.stats_soccer || {}).filter(([k, v]) => k !== 'player_id' && v !== null && v !== undefined).map(([key, value]) => (
                 <div key={`soccer-${key}`} className="bg-slate-900/40 border border-slate-800/60 rounded-2xl p-6 flex flex-col items-center justify-center hover:border-emerald-500/50 hover:bg-slate-900/80 transition-all group">
                    <span className="text-xs text-slate-500 font-mono tracking-[0.3em] uppercase mb-2 group-hover:text-emerald-400 transition-colors z-10">SOCCER {key}</span>
                    <span className="text-3xl md:text-5xl font-black text-white tracking-tighter z-10">{String(value)}</span>
