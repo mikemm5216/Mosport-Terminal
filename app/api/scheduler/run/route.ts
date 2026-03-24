@@ -12,20 +12,21 @@ const BATCH_SIZE = 5;
 
 export async function POST(request: Request) {
   try {
-    // ?��? SECURITY AUDIT: Robust Authorization Check
-    const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
-    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`.trim();
+    // ?? SECURITY AUDIT: Robust Authorization Check
+    const authHeader = request.headers.get('authorization') || '';
+    const cronSecret = (process.env.CRON_SECRET || '').trim();
+    const expectedAuth = `Bearer ${cronSecret}`;
     
-    console.log(`Auth Audit: expected=${expectedAuth.length}, header=${authHeader?.length || 0}`);
+    console.log(`[AUTH_AUDIT] ExpectedLen: ${expectedAuth.length}, HeaderLen: ${authHeader.length}`);
 
-    if (!authHeader || authHeader.trim() !== expectedAuth) {
-      return NextResponse.json({ error: "Forbidden" });
+    if (authHeader !== expectedAuth) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const now = new Date();
     const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    // 1. 保�? prisma ?�詢 (?�入了使?�者�?求�? take: 100 + orderBy)
+    // 1. 保? prisma ?詢 (?入了使?者?求? take: 100 + orderBy)
     const upcomingMatches = await prisma.matches.findMany({
       where: {
         match_date: {

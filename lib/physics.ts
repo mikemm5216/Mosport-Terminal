@@ -4,6 +4,7 @@ import { prisma } from './prisma';
 /**
  * Pure ASCII Physics Engine for Mosport Terminal
  * Handles spatial calculations, fatigue, and Bio-Battery metrics.
+ * 100% UTF-8 Compatible (No Non-ASCII Characters).
  */
 export const PhysicsEngine = {
   haversineDistance: (venueA: string, venueB: string): number => {
