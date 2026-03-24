@@ -3,7 +3,7 @@ name: Snapshot Scheduler
 on:
   schedule:
     - cron: "*/15 * * * *"   # 每 15 分鐘運行一次
-  workflow_dispatch:         # 支援從 Actions 頁籤手動觸發測試
+  workflow_dispatch:         # 支援手動觸發測試
 
 jobs:
   run-scheduler:
@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Call Snapshot Scheduler API
         run: |
-          curl -L -X POST "https://mosport-terminal-git-main-michael-mos-projects.vercel.app/api/scheduler/run?x-vercel-protection-bypass=${{ secrets.VERCEL_BYPASS_TOKEN }}&x-vercel-set-bypass-cookie=true" \
+          curl -X POST https://mosport-terminal.vercel.app/api/scheduler/run \
             -H "Content-Type: application/json" \
             -d '{"secret": "${{ secrets.CRON_SECRET }}"}'
