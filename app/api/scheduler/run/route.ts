@@ -12,6 +12,7 @@ const TYPE_TO_MS = {
 const BATCH_SIZE = 5;
 
 export async function POST(request: Request) {
+  const startTime = Date.now();
   try {
     const error = await validateCronAuth(request.clone());
     if (error) return error;
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
       throw new Error("BASE_URL is not defined in environment variables.");
     }
 
-    // 2. 將�??��?步改?��??�次併發 (BATCH_SIZE = 5)
+    // 2. 將???步改???次併發 (BATCH_SIZE = 5)
     for (let i = 0; i < upcomingMatches.length; i += BATCH_SIZE) {
       const batch = upcomingMatches.slice(i, i + BATCH_SIZE);
 
@@ -55,10 +56,10 @@ export async function POST(request: Request) {
             // snapshot 觸發條件
             if (now.getTime() >= targetSnapshotTime.getTime()) {
               
-              // 3. 節流�??��??��??��? burst ?��? API
+              // 3. 節流??????? burst ?? API
               await new Promise((res) => setTimeout(res, 100));
 
-              // 4. ??fetch ?�入 timeout (?�止?�死)
+              // 4. ??fetch ?入 timeout (?止?死)
               const controller = new AbortController();
               const timeout = setTimeout(() => controller.abort(), 5000);
 
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
                   signal: controller.signal,
                 });
 
-                // 記�?結�?
+                // 記?結?
                 results.push({
                   match_id: match.match_id,
                   snapshot_type: snapshotType,
@@ -98,18 +99,23 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      success: true,
-      message: "Scheduler run completed",
-      processed_count: upcomingMatches.length,
-      triggers: results
-    }, { status: 200 });
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      latency: `${Date.now() - startTime}ms`,
+      data: {
+        message: "Scheduler run completed",
+        processed_count: upcomingMatches.length,
+        triggers: results
+      }
+    });
 
   } catch (error: any) {
     console.error("[SCHEDULER_CRASH]", error);
     return NextResponse.json({ 
-      success: false, 
-      message: "Scheduler run failed",
-      errorDetail: error.message || String(error)
+      status: "error",
+      error: error.message || String(error),
+      latency: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
     }, { status: 500 });
   }
 }

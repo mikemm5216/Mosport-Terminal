@@ -11,6 +11,7 @@ import path from "path";
  * Plan C: Dynamic SVG Placeholder
  */
 export async function POST(request: Request) {
+  const startTime = Date.now();
   try {
     const error = await validateCronAuth(request.clone());
     if (error) return error;
@@ -82,13 +83,22 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      success: true,
-      message: "Logo Harvesting Completed. Run 'git add public/logos && git commit -m \"chore: update cold data logos\"' to persist.",
-      results
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      latency: `${Date.now() - startTime}ms`,
+      data: {
+        message: "Logo Harvesting Completed. Run 'git add public/logos && git commit -m \"chore: update cold data logos\"' to persist.",
+        results
+      }
     });
 
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json({
+      status: "error",
+      error: err.message,
+      latency: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }
 

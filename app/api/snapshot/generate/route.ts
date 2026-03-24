@@ -72,6 +72,7 @@ async function upsertSnapshotForMatch(
 }
 
 export async function POST(request: Request) {
+  const startTime = Date.now();
   try {
     const error = await validateCronAuth(request.clone());
     if (error) return error;
@@ -84,18 +85,30 @@ export async function POST(request: Request) {
     // Single match processing
     if (match_id) {
       if (!snapshot_type || !(snapshot_type in TYPE_TO_MS)) {
-        return NextResponse.json({ error: "Missing or invalid snapshot_type" }, { status: 400 });
+        return NextResponse.json({ 
+          status: "error",
+          error: "Missing or invalid snapshot_type",
+          latency: `${Date.now() - startTime}ms`
+        }, { status: 400 });
       }
       const match = await prisma.matches.findUnique({
         where: { match_id },
         include: { home_team: true }
       });
-      if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+      if (!match) return NextResponse.json({ 
+        status: "error",
+        error: "Match not found",
+        latency: `${Date.now() - startTime}ms`
+      }, { status: 404 });
       const result = await upsertSnapshotForMatch(match, snapshot_type as SnapshotType);
-      return NextResponse.json({ success: true, result });
+      
+      return NextResponse.json({
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        latency: `${Date.now() - startTime}ms`,
+        data: { result }
+      });
     }
-
-    const startTime = Date.now();
 
     // Restoration: Proper destructuring for Promise.all
     const [total_matches, matches_without_any_snapshot] = await Promise.all([
@@ -123,24 +136,25 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      success: true,
-      rebuild_mode: rebuild,
-      diagnostic: { total_matches, matches_without_any_snapshot },
-      scanned_count: matches.length,
-      created_count: created,
-      updated_count: updated,
-      error_count: errors,
-      time_elapsed_ms: Date.now() - startTime,
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      latency: `${Date.now() - startTime}ms`,
+      data: {
+        rebuild_mode: rebuild,
+        diagnostic: { total_matches, matches_without_any_snapshot },
+        scanned_count: matches.length,
+        created_count: created,
+        updated_count: updated,
+        error_count: errors
+      }
     });
 
   } catch (error: any) {
     return NextResponse.json({
-      success: false,
-      rebuild_mode: false,
-      scanned_count: 0,
-      created_count: 0,
-      updated_count: 0,
-      error_count: 0,
-    });
+      status: "error",
+      error: error.message,
+      latency: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }
