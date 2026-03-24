@@ -73,12 +73,18 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   const getStar = async (teamId: string) => {
     const roster = await prisma.roster.findFirst({
       where: { team_id: teamId, season_year: 2026 },
-      include: { player: true }
+      include: { 
+        player: {
+          include: {
+            stats_nba: true,
+            stats_mlb: true,
+            stats_soccer: true
+          }
+        } 
+      }
     });
     if (!roster) return null;
     
-    // Recovery of stats - handle both flat and nested
-    const sport = (match.sport || "Soccer");
     const activeRole = roster.player.position_main;
     const rawStats = (roster.player.stats_nba || roster.player.stats_mlb || roster.player.stats_soccer || {}) as any;
     
