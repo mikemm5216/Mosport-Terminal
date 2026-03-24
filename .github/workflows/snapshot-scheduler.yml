@@ -1,18 +1,5 @@
-name: Snapshot Scheduler
-
-on:
-  schedule:
-    - cron: "*/15 * * * *"   # 每 15 分鐘
-  workflow_dispatch:         # 支援從 Actions 頁籤手動觸發測試
-
-jobs:
-  run-scheduler:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Call Snapshot Scheduler API
+- name: Call Snapshot Scheduler API
         run: |
-          curl -f -X POST https://www.mosport.app/api/scheduler/run \
-            -H "Authorization: Bearer Mosport_War_Room" \
-            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" \
-            -H "Content-Type: application/json"
+          curl -f -X POST "https://www.mosport.app/api/scheduler/run" \
+            -H "Content-Type: application/json" \
+            -d "{\"secret\": \"${{ secrets.CRON_SECRET }}\"}"
