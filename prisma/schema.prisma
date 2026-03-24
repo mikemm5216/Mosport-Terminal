@@ -27,6 +27,7 @@ model Teams {
   rosters     Roster[]
   matches_home Matches[] @relation("HomeMatches")
   matches_away Matches[] @relation("AwayMatches")
+  history      MatchHistory[]
   created_at  DateTime   @default(now())
   updated_at  DateTime   @updatedAt
 }
@@ -99,6 +100,7 @@ model Matches {
   home_team      Teams    @relation("HomeMatches", fields: [home_team_id], references: [team_id])
   away_team      Teams    @relation("AwayMatches", fields: [away_team_id], references: [team_id])
   
+  snapshots      EventSnapshot[]
   created_at     DateTime @default(now())
 }
 
@@ -109,4 +111,16 @@ model EventSnapshot {
   snapshot_type String   // T-24h / T-6h / T-1h / T-10min
   state_json    Json
   created_at    DateTime @default(now())
+  status        String   @default("DRAFT") // FINALIZED, DRAFT
+  
+  match         Matches  @relation(fields: [match_id], references: [match_id])
+}
+
+model MatchHistory {
+  id        String   @id @default(cuid())
+  team_id   String
+  result    String   // 'W', 'L', 'D'
+  date      DateTime
+  
+  team      Teams    @relation(fields: [team_id], references: [team_id])
 }
