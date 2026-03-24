@@ -12,11 +12,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
     where: { match_id: id },
     include: {
       home_team: { include: { players: true } },
-      away_team: { include: { players: true } },
-      snapshots: {
-        take: 1,
-        orderBy: { snapshot_time: 'desc' }
-      }
+      away_team: { include: { players: true } }
     }
   });
 
@@ -30,8 +26,8 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
   }
 
   // Fetch Team Data
-  const homeDb = await prisma.team.findFirst({ where: { team_name: match.home_team?.team_name ?? "" } });
-  const awayDb = await prisma.team.findFirst({ where: { team_name: match.away_team?.team_name ?? "" } });
+  const homeDb = await prisma.teams.findFirst({ where: { team_name: match.home_team?.team_name ?? "" } });
+  const awayDb = await prisma.teams.findFirst({ where: { team_name: match.away_team?.team_name ?? "" } });
 
   const homeHistory = homeDb ? await prisma.matchHistory.findMany({ where: { team_id: homeDb.id }, orderBy: { date: 'desc' }, take: 20 }) : [];
   const awayHistory = awayDb ? await prisma.matchHistory.findMany({ where: { team_id: awayDb.id }, orderBy: { date: 'desc' }, take: 20 }) : [];
