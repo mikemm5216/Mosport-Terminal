@@ -90,20 +90,25 @@ model Stats_Soccer {
   player      Player  @relation(fields: [player_id], references: [player_id])
 }
 
-// Operational Matches
+// Operational Matches (Canonical)
 model Matches {
   match_id       String   @id @default(cuid())
+  extId          String   @unique // Global unique identifier from source
   home_team_id   String
   away_team_id   String
   match_date     DateTime
   status         String   // scheduled, live, finished
   home_score     Int?
   away_score     Int?
+  league         String?
+  sport          String?
+  sourceUpdatedAt DateTime? // Track freshness from API
   
   home_team      Teams    @relation("HomeMatches", fields: [home_team_id], references: [team_id])
   away_team      Teams    @relation("AwayMatches", fields: [away_team_id], references: [team_id])
   
   snapshots      EventSnapshot[]
+  odds           Odds[]
   created_at     DateTime @default(now())
 }
 
@@ -139,4 +144,55 @@ model ExternalMatchMap {
   created_at   DateTime @default(now())
 
   @@index([match_date])
+}
+
+// COLD DATA LAYERS
+model RawEvents {
+  id          String   @id @default(cuid())
+  extId       String
+  provider    String
+  sport       String
+  league      String
+  payload     Json
+  hash        String   // For change detection
+  processed   Boolean  @default(false)
+  created_at  DateTime @default(now())
+
+  @@unique([extId, provider])
+  @@index([sport, league])
+}
+
+model Odds {
+  id          String   @id @default(cuid())
+  matchId     String
+  provider    String
+  odds_json   Json
+  fetched_at  DateTime @default(now())
+
+  match       Matches  @relation(fields: [matchId], references: [match_id])
+
+  @@index([matchId, fetched_at])
+}
+
+model IngestionState {
+  id          String   @id @default(cuid())
+  sport       String
+  league      String
+  currentPage Int      @default(1)
+  status      String   @default("pending") // pending/running/failed/done
+  lastRunAt   DateTime @default(now())
+
+  @@unique([sport, league])
+}
+
+model IngestionErrors {
+  id          String   @id @default(cuid())
+  extId       String?
+  provider    String
+  payload     Json?
+  error       String
+  stack       String?
+  severity    String   @default("CRITICAL")
+  resolved    Boolean  @default(false)
+  created_at  DateTime @default(now())
 }
