@@ -57,9 +57,8 @@ async function main() {
             }
         });
 
-        // 3. Attach Mock Odds (since historical closing odds are hard to get via free tier)
-        // In production-grade we would fetch from TheOddsAPI if possible
-        const homeOdds = 1.5 + Math.random() * 2; // Random 1.5 ~ 3.5
+        // 3. Attach Mock Odds
+        const homeOdds = 1.5 + Math.random() * 2;
         const awayOdds = 1.5 + Math.random() * 2;
         const drawOdds = 3.0 + Math.random();
 
@@ -82,55 +81,30 @@ async function main() {
 
         // 4. Compute Features (Deltas)
         // First ENSURE team state snapshots exist (Simulate WorldState)
-        const homeSnapshot = await prisma.eventSnapshot.findFirst({
-            where: { match_id: match.home_team_id, snapshot_type: "TEAM_STATE" }
+        // Use TEAM_STATE_HOME and TEAM_STATE_AWAY linked to the match_id
+        await prisma.eventSnapshot.create({
+            data: {
+                match_id: match.match_id,
+                snapshot_type: "TEAM_STATE_HOME",
+                state_json: {
+                    team_strength: 70 + Math.random() * 20,
+                    momentum: 0.4 + Math.random() * 0.4,
+                    fatigue: 0.1 + Math.random() * 0.5
+                } as any
+            }
         });
 
-        const snapshotData = {
-            match_id: match.home_team_id,
-            snapshot_type: "TEAM_STATE",
-            state_json: {
-                team_strength: 70 + Math.random() * 20,
-                momentum: 0.4 + Math.random() * 0.4,
-                fatigue: 0.1 + Math.random() * 0.5
-            } as any
-        };
-
-        if (homeSnapshot) {
-            await prisma.eventSnapshot.update({
-                where: { snapshot_id: homeSnapshot.snapshot_id },
-                data: snapshotData
-            });
-        } else {
-            await prisma.eventSnapshot.create({
-                data: snapshotData
-            });
-        }
-
-        const awaySnapshot = await prisma.eventSnapshot.findFirst({
-            where: { match_id: match.away_team_id, snapshot_type: "TEAM_STATE" }
+        await prisma.eventSnapshot.create({
+            data: {
+                match_id: match.match_id,
+                snapshot_type: "TEAM_STATE_AWAY",
+                state_json: {
+                    team_strength: 60 + Math.random() * 20,
+                    momentum: 0.3 + Math.random() * 0.5,
+                    fatigue: 0.2 + Math.random() * 0.6
+                } as any
+            }
         });
-
-        const awaySnapshotData = {
-            match_id: match.away_team_id,
-            snapshot_type: "TEAM_STATE",
-            state_json: {
-                team_strength: 60 + Math.random() * 20,
-                momentum: 0.3 + Math.random() * 0.5,
-                fatigue: 0.2 + Math.random() * 0.6
-            } as any
-        };
-
-        if (awaySnapshot) {
-            await prisma.eventSnapshot.update({
-                where: { snapshot_id: awaySnapshot.snapshot_id },
-                data: awaySnapshotData
-            });
-        } else {
-            await prisma.eventSnapshot.create({
-                data: awaySnapshotData
-            });
-        }
 
         await computeMatchFeatures(match.match_id);
     }
