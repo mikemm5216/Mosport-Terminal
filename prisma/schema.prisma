@@ -89,7 +89,7 @@ model Matches {
   away_score      Int?
   sourceUpdatedAt DateTime?
   created_at      DateTime        @default(now())
-  updated_at      DateTime        @updatedAt
+  updated_at      DateTime        @default(now()) @updatedAt
 
   home_team       Teams           @relation("HomeMatches", fields: [home_team_id], references: [team_id])
   away_team       Teams           @relation("AwayMatches", fields: [away_team_id], references: [team_id])
