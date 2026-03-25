@@ -1,79 +1,163 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { processRawEvent, fetchWithRetry } from "@/lib/ingest/core";
 import { qstashClient, INGEST_WORKER_URL } from "@/lib/ingest/qstash";
-import { IngestionJob, IngestionMetrics } from "@/lib/ingest/types";
+import { TheSportsDBAdapter } from "@/lib/ingest/adapters/thesportsdb";
+import { TheOddsAPIAdapter } from "@/lib/ingest/adapters/theoddsapi";
+import { resolveMatch } from "@/services/matchResolver";
+import crypto from "crypto";
 
-async function handler(req: Request) {
-    const body = (await req.json()) as IngestionJob;
-    const { sport, league, page, priority } = body;
+const generateHash = (payload: any) =>
+    crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 
-    const metrics: IngestionMetrics = {
-        successCount: 0,
-        failureCount: 0,
-        retryCount: 0,
-        skippedUnchangedCount: 0,
-        alignmentFailures: 0,
-    };
+/**
+ * Ingestion Worker
+ * Processes one page of data for a specific provider/league.
+ * Orchestrates: Fetch -> Raw Storage -> Resolve -> Upsert -> Recurse.
+ */
+export async function POST(req: Request) {
+    const body = await req.json();
+    const { provider, sport, league, page = 1 } = body;
 
     try {
-        // 1. Update status to 'running'
-        await prisma.ingestionState.upsert({
-            where: { sport_league: { sport, league } },
-            update: { status: "running", lastRunAt: new Date(), currentPage: page },
-            create: { sport, league, status: "running", lastRunAt: new Date(), currentPage: page },
+        // 1. Adapter Factory
+        const adapter = provider === "thesportsdb"
+            ? new TheSportsDBAdapter()
+            : new TheOddsAPIAdapter(process.env.THE_ODDS_API_KEY || "");
+
+        // 2. Fetch Page
+        const { data, nextPage, isLastPage } = await adapter.fetchPage({
+            provider, sport, league, currentPage: page
         });
 
-        // 2. Fetch External Data
-        // For now, using a placeholder endpoint. In production, this would use league-specific URLs.
-        const url = `https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=2026-03-25`;
-        const data = await fetchWithRetry(url);
-        const events = data.events || [];
+        let metrics = { processed: 0, skipped: 0, failed: 0 };
 
         // 3. Process Events
-        for (const event of events) {
+        for (const item of data) {
             try {
-                await processRawEvent({
-                    extId: String(event.idEvent),
-                    provider: "TheSportsDB",
-                    sport,
-                    league,
-                    data: event,
-                }, metrics);
-            } catch (e) {
-                console.error(`Failed to process event ${event.idEvent}:`, e);
+                const normalized = adapter.normalize(item, { provider, sport, league, currentPage: page });
+                const hash = generateHash(normalized.rawData);
+
+                // a. Raw Storage & Hash Check
+                const existingRaw = await prisma.rawEvents.findUnique({
+                    where: { extId_provider: { extId: normalized.extId, provider } }
+                });
+
+                if (existingRaw && existingRaw.hash === hash) {
+                    metrics.skipped++;
+                    continue;
+                }
+
+                await prisma.rawEvents.upsert({
+                    where: { extId_provider: { extId: normalized.extId, provider } },
+                    update: { payload: normalized.rawData, hash, processed: true },
+                    create: {
+                        extId: normalized.extId,
+                        provider,
+                        sport: normalized.sport,
+                        league: normalized.league,
+                        payload: normalized.rawData,
+                        hash,
+                        processed: true
+                    }
+                });
+
+                // b. Match Resolution (SSOT)
+                const resolution = await resolveMatch({
+                    provider,
+                    extId: normalized.extId,
+                    sport: normalized.sport,
+                    league: normalized.league,
+                    homeTeam: normalized.homeTeam,
+                    awayTeam: normalized.awayTeam,
+                    startTime: normalized.startTime
+                });
+
+                // c. Provider-Specific Upsert
+                if (provider === "thesportsdb") {
+                    // Priority source for metadata
+                    await prisma.matches.update({
+                        where: { match_id: resolution.matchId },
+                        data: {
+                            sourceUpdatedAt: new Date(),
+                            // Only overwrite if it's the primary source
+                            status: normalized.rawData.strStatus === "Match Finished" ? "finished" : "scheduled",
+                        }
+                    });
+                } else if (provider === "theoddsapi") {
+                    // Attach/Update Odds
+                    await prisma.odds.create({
+                        data: {
+                            matchId: resolution.matchId,
+                            provider,
+                            odds_json: normalized.rawData,
+                            fetched_at: new Date()
+                        }
+                    });
+                }
+
+                metrics.processed++;
+            } catch (err: any) {
+                console.error(`Error processing item ${item.id || "unknown"}:`, err);
+                metrics.failed++;
+
+                // Push to DLQ
+                await prisma.ingestionErrors.create({
+                    data: {
+                        provider,
+                        extId: item.id || null,
+                        errorMessage: err.message,
+                        payload: item
+                    }
+                });
             }
+
+            // Rate limit delay
+            await new Promise(r => setTimeout(r, 500));
         }
 
-        // 4. Handle Pagination / Next Job
-        const hasMorePages = false; // Placeholder for actual pagination logic
-        if (hasMorePages) {
+        // 4. Update IngestionState & Recurse
+        const status = isLastPage ? "done" : "running";
+        const nextP = isLastPage ? 1 : (nextPage || page + 1);
+
+        await prisma.ingestionState.update({
+            where: { provider_sport_league: { provider, sport, league } },
+            data: {
+                status,
+                currentPage: nextP,
+                lastRunAt: new Date(),
+                retryCount: 0
+            }
+        });
+
+        if (!isLastPage && qstashClient) {
             await qstashClient.publishJSON({
                 url: INGEST_WORKER_URL,
-                body: { sport, league, page: page + 1, priority },
+                body: { provider, sport, league, page: nextP }
+            });
+        }
+
+        return NextResponse.json({ provider, sport, league, metrics, nextP, status });
+
+    } catch (error: any) {
+        console.error("Worker fatal error:", error);
+
+        // Handle retries
+        const state = await prisma.ingestionState.findUnique({
+            where: { provider_sport_league: { provider, sport, league } }
+        });
+
+        if (state && state.retryCount < 3) {
+            await prisma.ingestionState.update({
+                where: { id: state.id },
+                data: { retryCount: state.retryCount + 1, status: "failed" }
             });
         } else {
             await prisma.ingestionState.update({
-                where: { sport_league: { sport, league } },
-                data: { status: "done", lastRunAt: new Date(), currentPage: 1 },
+                where: { id: state?.id },
+                data: { status: "failed" } // Mark as permanently failed until manual reset
             });
-
-            // Trigger next job (could be another league)
-            await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/ingest/trigger`, { method: "POST" });
         }
 
-        return NextResponse.json({ success: true, metrics });
-    } catch (error: any) {
-        console.error("Worker error:", error);
-
-        // Fail-safe: Mark as failed
-        await prisma.ingestionState.update({
-            where: { sport_league: { sport, league } },
-            data: { status: "failed", lastRunAt: new Date() },
-        });
-
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
-
-export const POST = handler;
