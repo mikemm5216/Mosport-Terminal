@@ -1,82 +1,90 @@
 import { prisma } from "../lib/prisma";
+import fs from "fs";
 
-// --- PHASE 2: MODEL ---
+// --- PHASE 1: LOAD MODEL ---
+let model: any = { weights: [0.5, -0.3, 0.2], bias: 0 };
+if (fs.existsSync("model_weights.json")) {
+    model = JSON.parse(fs.readFileSync("model_weights.json", "utf-8"));
+    console.log("[Backtest] Loaded model weights from model_weights.json");
+} else {
+    console.warn("[Backtest] model_weights.json not found. Using baseline weights.");
+}
+
 function sigmoid(x: number): number {
     return 1 / (1 + Math.exp(-x));
 }
 
 function predictHomeWinProbability(features: any) {
     const { xgdDiff, fatigueDiff, motivationDiff } = features;
-
-    // Baseline weights
-    const w1 = 0.5;   // world
-    const w2 = -0.3;  // fatigue
-    const w3 = 0.2;   // psychological
+    const { weights, bias } = model;
 
     const score =
-        (w1 * (xgdDiff || 0)) +
-        (w2 * (fatigueDiff || 0)) +
-        (w3 * (motivationDiff || 0));
+        (weights[0] * (xgdDiff || 0)) +
+        (weights[1] * (fatigueDiff || 0)) +
+        (weights[2] * (motivationDiff || 0)) +
+        bias;
 
-    return sigmoid(score);
+    let prob = sigmoid(score);
+
+    // Simple Calibration / Clipping (Keep in realistic bounds if extreme)
+    // Goal: 0.4 - 0.7 typical range (as requested)
+    // We don't want to over-squash, but avoid extreme 0/1
+    return Math.max(0.1, Math.min(0.9, prob));
 }
 
 // --- MAIN EXECUTION ---
 async function runBacktest() {
-    console.log("[Backtest] Starting simulation...");
+    console.log("[Backtest] Starting simulation on TEST set...");
 
-    // PHASE 1: DATASET PREPARATION
+    // 1. DATASET PREPARATION
     const matches = await prisma.matches.findMany({
         where: {
             status: "finished",
-            home_score: { not: null },
-            away_score: { not: null },
-            features: { some: { teamType: "diff" } },
+            features: { some: { featureVersion: "v1.0", teamType: "diff" } },
             odds: { some: {} }
         },
         include: {
-            features: {
-                where: { teamType: "diff" },
-                orderBy: { featureVersion: "desc" },
-                take: 1
-            },
-            odds: {
-                orderBy: { fetched_at: "desc" },
-                take: 1
-            }
-        }
+            features: { where: { featureVersion: "v1.0", teamType: "diff" } },
+            odds: { orderBy: { fetched_at: "desc" }, take: 1 }
+        },
+        orderBy: { match_date: "asc" }
     });
 
-    if (matches.length === 0) {
-        console.log("[Backtest] No matches found matching criteria.");
+    if (matches.length < 10) {
+        console.log("[Backtest] Not enough data for backtest. Please seed more matches.");
         return;
     }
+
+    // 2. Chronological Split - Take the last 30% as TEST set
+    const testStartIndex = Math.floor(matches.length * 0.7);
+    const testMatches = matches.slice(testStartIndex);
+
+    console.log(`[Backtest] Splitting: Total ${matches.length}, Test Set Size ${testMatches.length}`);
 
     let totalBets = 0;
     let totalWins = 0;
     let totalProfit = 0;
     let sumEdge = 0;
+    let maxEdge = 0;
     const bets = [];
 
-    for (const m of matches) {
-        const features = m.features[0];
+    for (const m of testMatches) {
+        const features = (m as any).features[0];
         const closingOdds: any = m.odds[0]?.odds_json;
-
-        // Assumes home_odds is in the odds_json (e.g., from theoddsapi adapter)
-        // We'll look for standard keys like 'home', 'h', or the specific team's odds
         const homeOdds = closingOdds?.home || closingOdds?.h || 0;
 
         if (homeOdds <= 0) continue;
 
-        // PHASE 3: EDGE CALCULATION
+        // 3. EDGE CALCULATION
         const model_prob = predictHomeWinProbability(features);
         const market_prob = 1 / homeOdds;
         const edge = model_prob - market_prob;
 
-        // PHASE 4: BETTING STRATEGY
-        if (edge > 0.05) {
+        // 4. REFINED BETTING STRATEGY (edge > 0.05 AND edge < 0.25)
+        if (edge > 0.05 && edge < 0.25) {
             totalBets++;
             sumEdge += edge;
+            if (edge > maxEdge) maxEdge = edge;
 
             const homeWins = (m.home_score || 0) > (m.away_score || 0);
             let profit = -1;
@@ -100,27 +108,26 @@ async function runBacktest() {
         }
     }
 
-    // PHASE 6: METRICS
+    // 5. METRICS
     const winRate = totalBets > 0 ? totalWins / totalBets : 0;
     const ROI = totalBets > 0 ? totalProfit / totalBets : 0;
     const avgEdge = totalBets > 0 ? sumEdge / totalBets : 0;
 
-    // PHASE 7: OUTPUT REPORT
+    // 6. OUTPUT REPORT
     const report = {
-        totalMatches: matches.length,
+        trainSize: testStartIndex,
+        testSize: testMatches.length,
         totalBets,
         winRate: (winRate * 100).toFixed(2) + "%",
         totalProfit: totalProfit.toFixed(2),
         ROI: (ROI * 100).toFixed(2) + "%",
         avgEdge: avgEdge.toFixed(4),
+        maxEdge: maxEdge.toFixed(4),
         sampleBets: bets.slice(0, 5)
     };
 
-    // PHASE 8: LOGGING
-    console.log(`[Backtest] Matches analyzed: ${matches.length}`);
-    console.log(`[Backtest] Bets placed: ${totalBets}`);
-    console.log(`[Backtest] ROI: ${(ROI * 100).toFixed(2)}%`);
-    console.log(`[Backtest] Avg Edge: ${avgEdge.toFixed(4)}`);
+    console.log(`[Backtest] Analysis complete.`);
+    console.log(`[Backtest] TEST ROI: ${(ROI * 100).toFixed(2)}%`);
 
     console.log("\n--- JSON REPORT ---");
     console.log(JSON.stringify(report, null, 2));
