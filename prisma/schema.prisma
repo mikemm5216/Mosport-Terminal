@@ -7,169 +7,148 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// DIRECTIVE 1.1: Strict League Enum
-enum LeagueType {
-  NBA
-  MLB
-  SOCCER
-}
-
-// DIRECTIVE 1.2: Core Units
 model Teams {
-  team_id     String     @id @default(cuid())
-  league_type LeagueType
-  full_name   String     @unique
-  short_name  String     // CEO Standard TLA (LAL, LAD, WHU)
-  city        String?
-  home_venue  String?
-  logo_url    String?    // Seeded from permanent CDNs
-  
-  rosters     Roster[]
-  matches_home Matches[] @relation("HomeMatches")
-  matches_away Matches[] @relation("AwayMatches")
+  team_id      String         @id @default(cuid())
+  league_type  LeagueType
+  full_name    String         @unique
+  short_name   String
+  city         String?
+  home_venue   String?
+  logo_url     String?
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
   history      MatchHistory[]
-  created_at  DateTime   @default(now())
-  updated_at  DateTime   @updatedAt
+  matches_away Matches[]      @relation("AwayMatches")
+  matches_home Matches[]      @relation("HomeMatches")
+  rosters      Roster[]
 }
 
-// DIRECTIVE 1.3: Identity & Professional Roster
 model Player {
-  player_id     String    @id @default(cuid())
+  player_id     String        @id @default(cuid())
   first_name    String
   last_name     String
   display_name  String
   nationality   String?
   position_main String
-  active_status Boolean   @default(true)
-  
-  rosters      Roster[]
-  stats_nba    Stats_NBA?
-  stats_mlb    Stats_MLB?
-  stats_soccer Stats_Soccer?
-  created_at    DateTime  @default(now())
+  active_status Boolean       @default(true)
+  created_at    DateTime      @default(now())
+  rosters       Roster[]
+  stats_mlb     Stats_MLB?
+  stats_nba     Stats_NBA?
+  stats_soccer  Stats_Soccer?
 }
 
 model Roster {
-  id            String   @id @default(cuid())
+  id            String  @id @default(cuid())
   player_id     String
   team_id       String
   season_year   Int
   jersey_number String?
-  
-  player        Player   @relation(fields: [player_id], references: [player_id])
-  team          Teams    @relation(fields: [team_id], references: [team_id])
+  player        Player  @relation(fields: [player_id], references: [player_id])
+  team          Teams   @relation(fields: [team_id], references: [team_id])
 
   @@unique([player_id, team_id, season_year])
 }
 
-// DIRECTIVE 1.4: Separated Data Streams
 model Stats_NBA {
-  player_id   String  @id
-  pts         Float?
-  reb         Float?
-  ast         Float?
-  player      Player  @relation(fields: [player_id], references: [player_id])
+  player_id String @id
+  pts       Float?
+  reb       Float?
+  ast       Float?
+  player    Player @relation(fields: [player_id], references: [player_id])
 }
 
 model Stats_MLB {
-  player_id   String  @id
-  avg         Float?
-  hr          Int?
-  rbi         Int?
-  era         Float?  // Pitching: Earned Run Average
-  w           Int?    // Pitching: Wins
-  so          Int?    // Pitching: Strikeouts
-  player      Player  @relation(fields: [player_id], references: [player_id])
+  player_id String @id
+  avg       Float?
+  hr        Int?
+  rbi       Int?
+  era       Float?
+  w         Int?
+  so        Int?
+  player    Player @relation(fields: [player_id], references: [player_id])
 }
 
 model Stats_Soccer {
-  player_id   String  @id
-  goals       Int?
-  assists     Int?
-  saves       Int?
-  player      Player  @relation(fields: [player_id], references: [player_id])
+  player_id String @id
+  goals     Int?
+  assists   Int?
+  saves     Int?
+  player    Player @relation(fields: [player_id], references: [player_id])
 }
 
-// Operational Matches (Canonical)
 model Matches {
-  match_id       String   @id @default(cuid())
-  extId          String   @unique // Global unique identifier from source
-  home_team_id   String
-  away_team_id   String
-  match_date     DateTime
-  status         String   // scheduled, live, finished
-  home_score     Int?
-  away_score     Int?
-  league         String?
-  sport          String?
-  sourceUpdatedAt DateTime? // Track freshness from API
-  
-  home_team      Teams    @relation("HomeMatches", fields: [home_team_id], references: [team_id])
-  away_team      Teams    @relation("AwayMatches", fields: [away_team_id], references: [team_id])
-  
-  snapshots      EventSnapshot[]
-  odds           Odds[]
-  created_at     DateTime @default(now())
+  match_id        String          @id @default(cuid())
+  extId           String          @unique
+  home_team_id    String
+  away_team_id    String
+  match_date      DateTime
+  status          String
+  home_score      Int?
+  away_score      Int?
+  league          String?
+  sport           String?
+  sourceUpdatedAt DateTime?
+  created_at      DateTime        @default(now())
+  snapshots       EventSnapshot[]
+  away_team       Teams           @relation("AwayMatches", fields: [away_team_id], references: [team_id])
+  home_team       Teams           @relation("HomeMatches", fields: [home_team_id], references: [team_id])
+  odds            Odds[]
 }
 
-// Analytics Layers
 model EventSnapshot {
   snapshot_id   String   @id @default(uuid()) @db.Uuid
   match_id      String
-  snapshot_type String   // T-24h / T-6h / T-1h / T-10min
+  snapshot_type String
   state_json    Json
   created_at    DateTime @default(now())
-  status        String   @default("DRAFT") // FINALIZED, DRAFT
-  
+  status        String   @default("DRAFT")
   match         Matches  @relation(fields: [match_id], references: [match_id])
 }
 
 model MatchHistory {
-  id        String   @id @default(cuid())
-  team_id   String
-  result    String   // 'W', 'L', 'D'
-  date      DateTime
-  
-  team      Teams    @relation(fields: [team_id], references: [team_id])
+  id      String   @id @default(cuid())
+  team_id String
+  result  String
+  date    DateTime
+  team    Teams    @relation(fields: [team_id], references: [team_id])
 }
 
 model ExternalMatchMap {
-  id           String   @id @default(cuid())
-  external_id  String   @unique
-  internal_id  String
-  provider     String   // e.g., "TheOddsAPI"
-  match_date   DateTime
-  home_team    String
-  away_team    String
-  created_at   DateTime @default(now())
+  id          String   @id @default(cuid())
+  external_id String   @unique
+  internal_id String
+  provider    String
+  match_date  DateTime
+  home_team   String
+  away_team   String
+  created_at  DateTime @default(now())
 
   @@index([match_date])
 }
 
-// COLD DATA LAYERS
 model RawEvents {
-  id          String   @id @default(cuid())
-  extId       String
-  provider    String
-  sport       String
-  league      String
-  payload     Json
-  hash        String   // For change detection
-  processed   Boolean  @default(false)
-  created_at  DateTime @default(now())
+  id         String   @id @default(cuid())
+  extId      String
+  provider   String
+  sport      String
+  league     String
+  payload    Json
+  hash       String
+  processed  Boolean  @default(false)
+  created_at DateTime @default(now())
 
   @@unique([extId, provider])
   @@index([sport, league])
 }
 
 model Odds {
-  id          String   @id @default(cuid())
-  matchId     String
-  provider    String
-  odds_json   Json
-  fetched_at  DateTime @default(now())
-
-  match       Matches  @relation(fields: [matchId], references: [match_id])
+  id         String   @id @default(cuid())
+  matchId    String
+  provider   String
+  odds_json  Json
+  fetched_at DateTime @default(now())
+  match      Matches  @relation(fields: [matchId], references: [match_id])
 
   @@index([matchId, fetched_at])
 }
@@ -179,20 +158,26 @@ model IngestionState {
   sport       String
   league      String
   currentPage Int      @default(1)
-  status      String   @default("pending") // pending/running/failed/done
+  status      String   @default("pending")
   lastRunAt   DateTime @default(now())
 
   @@unique([sport, league])
 }
 
 model IngestionErrors {
-  id          String   @id @default(cuid())
-  extId       String?
-  provider    String
-  payload     Json?
-  error       String
-  stack       String?
-  severity    String   @default("CRITICAL")
-  resolved    Boolean  @default(false)
-  created_at  DateTime @default(now())
+  id         String   @id @default(cuid())
+  extId      String?
+  provider   String
+  payload    Json?
+  error      String
+  stack      String?
+  severity   String   @default("CRITICAL")
+  resolved   Boolean  @default(false)
+  created_at DateTime @default(now())
+}
+
+enum LeagueType {
+  NBA
+  MLB
+  SOCCER
 }
