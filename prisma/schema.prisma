@@ -79,21 +79,26 @@ model Stats_Soccer {
 
 model Matches {
   match_id        String          @id @default(cuid())
-  extId           String          @unique
+  sport           String
+  league          String
   home_team_id    String
   away_team_id    String
   match_date      DateTime
-  status          String
+  status          String          @default("scheduled") // scheduled, live, finished
   home_score      Int?
   away_score      Int?
-  league          String?
-  sport           String?
   sourceUpdatedAt DateTime?
   created_at      DateTime        @default(now())
-  snapshots       EventSnapshot[]
-  away_team       Teams           @relation("AwayMatches", fields: [away_team_id], references: [team_id])
+  updated_at      DateTime        @updatedAt
+
   home_team       Teams           @relation("HomeMatches", fields: [home_team_id], references: [team_id])
+  away_team       Teams           @relation("AwayMatches", fields: [away_team_id], references: [team_id])
+  
+  snapshots       EventSnapshot[]
   odds            Odds[]
+  mappings        ExternalMatchMap[]
+
+  @@index([match_date, sport, league])
 }
 
 model EventSnapshot {
@@ -116,15 +121,18 @@ model MatchHistory {
 
 model ExternalMatchMap {
   id          String   @id @default(cuid())
-  external_id String   @unique
-  internal_id String
+  matchId     String
   provider    String
+  extId       String
   match_date  DateTime
   home_team   String
   away_team   String
   created_at  DateTime @default(now())
 
-  @@index([match_date])
+  match       Matches  @relation(fields: [matchId], references: [match_id])
+
+  @@unique([provider, extId])
+  @@index([matchId])
 }
 
 model RawEvents {
@@ -155,25 +163,39 @@ model Odds {
 
 model IngestionState {
   id          String   @id @default(cuid())
+  provider    String   @default("thesportsdb")
   sport       String
   league      String
   currentPage Int      @default(1)
-  status      String   @default("pending")
+  status      String   @default("pending") // pending, running, failed, done
+  retryCount  Int      @default(0)
   lastRunAt   DateTime @default(now())
 
-  @@unique([sport, league])
+  @@unique([provider, sport, league])
 }
 
 model IngestionErrors {
-  id         String   @id @default(cuid())
-  extId      String?
-  provider   String
-  payload    Json?
-  error      String
-  stack      String?
-  severity   String   @default("CRITICAL")
-  resolved   Boolean  @default(false)
-  created_at DateTime @default(now())
+  id           String   @id @default(cuid())
+  provider     String
+  extId        String?
+  errorMessage String
+  payload      Json?
+  createdAt    DateTime @default(now())
+}
+
+model MatchResolutionLog {
+  id               String   @id @default(cuid())
+  inputProvider    String
+  inputExtId       String
+  candidateMatchId String?
+  finalMatchId     String?
+  score            Float?
+  decision         String   // matched, created
+  factors          Json?    // teamSimilarity, timeScore, leagueScore
+  confidenceLevel  String?  // high, medium, low
+  created_at       DateTime @default(now())
+
+  @@index([inputProvider, inputExtId])
 }
 
 enum LeagueType {
