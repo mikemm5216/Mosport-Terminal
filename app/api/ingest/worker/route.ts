@@ -31,8 +31,17 @@ export async function POST(req: Request) {
 
         let metrics = { processed: 0, skipped: 0, failed: 0 };
 
-        // 3. Process Events
-        for (const item of data) {
+        const now = Date.now();
+        const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+
+        // 3. Process Events (with strict constraints)
+        const itemsToProcess = data.filter(item => {
+            const normalized = adapter.normalize(item, { provider, sport, league, currentPage: page });
+            const matchTime = new Date(normalized.startTime).getTime();
+            return Math.abs(matchTime - now) <= threeDaysMs;
+        }).slice(0, 50);
+
+        for (const item of itemsToProcess) {
             try {
                 const normalized = adapter.normalize(item, { provider, sport, league, currentPage: page });
                 const hash = generateHash(normalized.rawData);
@@ -129,12 +138,14 @@ export async function POST(req: Request) {
             }
         });
 
+        /* 
         if (!isLastPage && qstashClient) {
             await qstashClient.publishJSON({
                 url: INGEST_WORKER_URL,
                 body: { provider, sport, league, page: nextP }
             });
         }
+        */
 
         return NextResponse.json({ provider, sport, league, metrics, nextP, status });
 

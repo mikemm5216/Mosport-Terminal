@@ -35,5 +35,8 @@
     "prisma": "^6.4.1",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "prisma": {
+    "seed": "npx tsx scripts/seed-cold-start.ts"
   }
 }
