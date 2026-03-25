@@ -2,10 +2,12 @@ export type SportType = 'football' | 'basketball' | 'baseball';
 export type IngestionStatus = 'pending' | 'running' | 'failed' | 'done';
 
 export interface IngestionJob {
+  provider?: string;
   sport: SportType;
   league: string;
-  page: number;
-  priority: number;
+  page?: number;
+  currentPage?: number;
+  priority?: number;
 }
 
 export interface IngestionMetrics {

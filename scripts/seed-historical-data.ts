@@ -7,7 +7,7 @@ async function main() {
     console.log("[Seed] Starting historical data seeding...");
 
     const adapter = new TheSportsDBAdapter();
-    const sport = "Football";
+    const sport = "football";
     const league = "English Premier League";
 
     // 1. Fetch Historical Matches (Last 15 via eventslast.php as a baseline)
@@ -16,7 +16,6 @@ async function main() {
 
     // Using default job structure for adapter
     const { data } = await adapter.fetchPage({
-        provider: "thesportsdb",
         sport,
         league,
         currentPage: 1
@@ -28,7 +27,6 @@ async function main() {
         if (item.strStatus !== "Match Finished") continue;
 
         const normalized = adapter.normalize(item, {
-            provider: "thesportsdb",
             sport,
             league,
             currentPage: 1
@@ -38,7 +36,7 @@ async function main() {
         console.log(`[Seed] Processing: ${normalized.homeTeam} vs ${normalized.awayTeam} (${normalized.startTime})...`);
 
         const match = await prisma.matches.upsert({
-            where: { match_id: normalized.extId }, // Using extId as match_id for seeding simplicity or custom cuid
+            where: { extId: normalized.extId },
             update: {
                 status: "finished",
                 home_score: parseInt(item.intHomeScore),
@@ -84,35 +82,55 @@ async function main() {
 
         // 4. Compute Features (Deltas)
         // First ENSURE team state snapshots exist (Simulate WorldState)
-        await prisma.eventSnapshot.upsert({
-            where: { snapshot_id: `team-state-${match.home_team_id}` },
-            update: {},
-            create: {
-                snapshot_id: `team-state-${match.home_team_id}`,
-                match_id: match.home_team_id,
-                snapshot_type: "TEAM_STATE",
-                state_json: {
-                    team_strength: 70 + Math.random() * 20,
-                    momentum: 0.4 + Math.random() * 0.4,
-                    fatigue: 0.1 + Math.random() * 0.5
-                } as any
-            }
+        const homeSnapshot = await prisma.eventSnapshot.findFirst({
+            where: { match_id: match.home_team_id, snapshot_type: "TEAM_STATE" }
         });
 
-        await prisma.eventSnapshot.upsert({
-            where: { snapshot_id: `team-state-${match.away_team_id}` },
-            update: {},
-            create: {
-                snapshot_id: `team-state-${match.away_team_id}`,
-                match_id: match.away_team_id,
-                snapshot_type: "TEAM_STATE",
-                state_json: {
-                    team_strength: 60 + Math.random() * 20,
-                    momentum: 0.3 + Math.random() * 0.5,
-                    fatigue: 0.2 + Math.random() * 0.6
-                } as any
-            }
+        const snapshotData = {
+            match_id: match.home_team_id,
+            snapshot_type: "TEAM_STATE",
+            state_json: {
+                team_strength: 70 + Math.random() * 20,
+                momentum: 0.4 + Math.random() * 0.4,
+                fatigue: 0.1 + Math.random() * 0.5
+            } as any
+        };
+
+        if (homeSnapshot) {
+            await prisma.eventSnapshot.update({
+                where: { snapshot_id: homeSnapshot.snapshot_id },
+                data: snapshotData
+            });
+        } else {
+            await prisma.eventSnapshot.create({
+                data: snapshotData
+            });
+        }
+
+        const awaySnapshot = await prisma.eventSnapshot.findFirst({
+            where: { match_id: match.away_team_id, snapshot_type: "TEAM_STATE" }
         });
+
+        const awaySnapshotData = {
+            match_id: match.away_team_id,
+            snapshot_type: "TEAM_STATE",
+            state_json: {
+                team_strength: 60 + Math.random() * 20,
+                momentum: 0.3 + Math.random() * 0.5,
+                fatigue: 0.2 + Math.random() * 0.6
+            } as any
+        };
+
+        if (awaySnapshot) {
+            await prisma.eventSnapshot.update({
+                where: { snapshot_id: awaySnapshot.snapshot_id },
+                data: awaySnapshotData
+            });
+        } else {
+            await prisma.eventSnapshot.create({
+                data: awaySnapshotData
+            });
+        }
 
         await computeMatchFeatures(match.match_id);
     }
