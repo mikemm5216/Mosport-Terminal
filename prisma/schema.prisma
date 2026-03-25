@@ -79,6 +79,7 @@ model Stats_Soccer {
 
 model Matches {
   match_id        String          @id @default(cuid())
+  extId           String?
   sport           String
   league          String
   home_team_id    String
