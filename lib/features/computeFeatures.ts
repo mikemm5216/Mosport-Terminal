@@ -11,14 +11,14 @@ export async function computeMatchFeatures(matchId: string) {
 
     if (!match) throw new Error(`Match ${matchId} not found`);
 
-    // Fetch latest TEAM_STATE snapshots for home and away teams
+    // Fetch match-specific team state snapshots
     const [homeState, awayState] = await Promise.all([
         prisma.eventSnapshot.findFirst({
-            where: { match_id: match.home_team_id, snapshot_type: "TEAM_STATE" },
+            where: { match_id: matchId, snapshot_type: "TEAM_STATE_HOME" },
             orderBy: { created_at: "desc" }
         }),
         prisma.eventSnapshot.findFirst({
-            where: { match_id: match.away_team_id, snapshot_type: "TEAM_STATE" },
+            where: { match_id: matchId, snapshot_type: "TEAM_STATE_AWAY" },
             orderBy: { created_at: "desc" }
         })
     ]);
