@@ -98,8 +98,25 @@ model Matches {
   snapshots       EventSnapshot[]
   odds            Odds[]
   mappings        ExternalMatchMap[]
+  features        MatchFeatures[]
 
   @@index([match_date, sport, league])
+}
+
+model MatchFeatures {
+  id              String   @id @default(cuid())
+  match_id        String
+  featureVersion  String   // e.g., "v1.0"
+  teamType        String   // "home", "away", or "diff"
+  
+  // Model Features
+  xgdDiff         Float?
+  fatigueDiff     Float?
+  motivationDiff  Float?
+  
+  match           Matches  @relation(fields: [match_id], references: [match_id])
+
+  @@unique([match_id, featureVersion, teamType])
 }
 
 model EventSnapshot {
