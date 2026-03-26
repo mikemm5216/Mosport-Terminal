@@ -121,9 +121,27 @@ model Match {
 
   predictions  MatchPrediction[]
   signals      MatchSignal[]
+  nbaStats     MatchStatsNBA?
 
   @@index([sport, date])
   @@map("Matches")
+  @@schema("quant_internal")
+}
+
+model MatchStatsNBA {
+  matchId       String   @id @map("match_id")
+  homeFga       Int
+  homeFta       Int
+  homeTov       Int
+  homeOreb      Int
+  awayFga       Int
+  awayFta       Int
+  awayTov       Int
+  awayOreb      Int
+  homePlayerIds String[] // For Starter Consistency Proxy
+  awayPlayerIds String[]
+  match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
   @@schema("quant_internal")
 }
 

@@ -1,93 +1,143 @@
 import { prisma } from "../prisma";
 
-export interface NBAFeaturesRaw {
+export interface NBAFeaturesV33 {
     // World Engine
-    netRating_5: number;
-    pace_5: number;
-    ts_5: number; // True Shooting %
-    turnoverRate_5: number;
+    netRatingDiff: number;
+    tsDiff: number;
+    paceDiff: number;
 
     // Physio Engine
-    restDays: number;
-    isB2B: number;
-    rotationLoad: number;
+    restDaysDiff: number;
+    isB2BDiff: number;
+    rotationLoadDiff: number;
 
-    // Psycho Engine
-    isPlayoffRace: number;
-    isRevengeGame: number;
-    isTanking: number;
+    // Lineup
+    starterConsistency: number; // 0 or 1
 }
 
 /**
- * Calculates NBA-specific features for probability modeling.
+ * Computes hardened NBA features for V3.3 Scientific Mode.
  */
-export async function computeNBAFeatures(matchId: string) {
+export async function computeNBAFeaturesV33(matchId: string) {
     const match = await (prisma as any).match.findUnique({
         where: { id: matchId },
-        select: { id: true, extId: true, homeTeamId: true, awayTeamId: true, date: true, matchResult: true }
+        include: {
+            nbaStats: true,
+            home_team: { include: { matches_home: { take: 6, orderBy: { date: 'desc' } }, matches_away: { take: 6, orderBy: { date: 'desc' } } } },
+            away_team: { include: { matches_home: { take: 6, orderBy: { date: 'desc' } }, matches_away: { take: 6, orderBy: { date: 'desc' } } } }
+        }
     });
 
     if (!match) throw new Error(`Match ${matchId} not found.`);
 
-    let hNet = 0;
-    let hPhysio = 0.2;
-    let hPsycho = 0.5;
+    const hStats = await getTeamRollingStats(match.homeTeamId, match.date);
+    const aStats = await getTeamRollingStats(match.awayTeamId, match.date);
 
-    // Fast Proxy for Synthetic Data signal
-    if (match.extId.startsWith("bulk-nba-")) {
-        const idNum = parseInt(match.extId.split("-")[2]);
-        hNet = (idNum % 2 === 0) ? 0.3 : -0.3; // Signal source
-        hPhysio = 0.5;
-        hPsycho = Math.log(1 + (idNum % 5));
-    } else {
-        // Real logic for non-synthetic
-        // (Simplified for now to prevent hangs)
-        hNet = 0;
-    }
+    const world = {
+        netRatingDiff: hStats.netRating - aStats.netRating,
+        tsDiff: hStats.tsPct - aStats.tsPct,
+        paceDiff: hStats.pace - aStats.pace
+    };
 
-    // worldDiff = hNet - aNet
-    const worldDiff = hNet; // Single-sided proxy for synthetic signal
-    const physioDiff = 0;
-    const psychoDiff = hPsycho;
+    const physio = {
+        restDaysDiff: hStats.restDays - aStats.restDays,
+        isB2BDiff: hStats.isB2B - aStats.isB2B,
+        rotationLoadDiff: hStats.rotationLoad - aStats.rotationLoad
+    };
 
+    const starterConsistency = hStats.starterConsistency; // Simple home-side proxy or diff
+
+    // Save for training
     return (prisma as any).matchFeatures.upsert({
-        where: { matchId_sport_featureVersion: { matchId, sport: "basketball", featureVersion: "NBA_V3.1" } },
-        update: { worldDiff, physioDiff, psychoDiff },
+        where: { matchId_sport_featureVersion: { matchId, sport: "basketball", featureVersion: "NBA_V3.3" } },
+        update: {
+            worldDiff: world.netRatingDiff,
+            physioDiff: physio.restDaysDiff,
+            psychoDiff: starterConsistency,
+            // We store the full vector for the training script to find
+            homeWorld: world.tsDiff, // re-purposing for more slots
+            awayWorld: world.paceDiff,
+            homePhysio: physio.isB2BDiff,
+            awayPhysio: physio.rotationLoadDiff
+        },
         create: {
             matchId,
             sport: "basketball",
-            featureVersion: "NBA_V3.1",
-            worldDiff,
-            physioDiff,
-            psychoDiff,
-            featureTime: new Date()
+            featureVersion: "NBA_V3.3",
+            worldDiff: world.netRatingDiff,
+            physioDiff: physio.restDaysDiff,
+            psychoDiff: starterConsistency,
+            homeWorld: world.tsDiff,
+            awayWorld: world.paceDiff,
+            homePhysio: physio.isB2BDiff,
+            awayPhysio: physio.rotationLoadDiff
         }
     });
 }
 
-function calcNet(history: any[]): number {
-    if (history.length === 0) return 0;
-    return history.reduce((acc, h) => acc + (h.result === "HOME_WIN" ? 1 : -1), 0) / history.length;
-}
+async function getTeamRollingStats(teamId: string, beforeDate: Date) {
+    const history = await (prisma as any).match.findMany({
+        where: {
+            OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
+            date: { lt: beforeDate },
+            status: "finished"
+        },
+        orderBy: { date: "desc" },
+        take: 5,
+        include: { nbaStats: true }
+    });
 
-function calcPhysio(history: any[], matchDate: Date): number {
+    if (history.length === 0) {
+        return { netRating: 0, tsPct: 0.5, pace: 100, restDays: 3, isB2B: 0, rotationLoad: 0.5, starterConsistency: 0 };
+    }
+
+    let totalPoints = 0;
+    let totalOppPoints = 0;
+    let totalPossessions = 0;
+    let totalTSNumer = 0;
+    let totalTSDenom = 0;
+
+    for (const m of history) {
+        const stats = m.nbaStats;
+        if (!stats) continue;
+
+        const isHome = m.homeTeamId === teamId;
+        const pts = isHome ? m.homeScore : m.awayScore;
+        const oppPts = isHome ? m.awayScore : m.homeScore;
+        const fga = isHome ? stats.homeFga : stats.awayFga;
+        const fta = isHome ? stats.homeFta : stats.awayFta;
+        const tov = isHome ? stats.homeTov : stats.awayTov;
+        const oreb = isHome ? stats.homeOreb : stats.awayOreb;
+
+        const pos = fga + 0.44 * fta + tov - oreb;
+        totalPoints += pts;
+        totalOppPoints += oppPts;
+        totalPossessions += pos;
+        totalTSNumer += pts;
+        totalTSDenom += 2 * (fga + 0.44 * fta);
+    }
+
+    const netRating = totalPossessions > 0 ? (totalPoints - totalOppPoints) / totalPossessions * 100 : 0;
+    const tsPct = totalTSDenom > 0 ? totalTSNumer / totalTSDenom : 0.5;
+    const pace = totalPossessions / (history.length * 48 / 48) * 100; // Simplified
+
     const lastGame = history[0];
-    if (!lastGame) return 0.2; // Baseline fatigue
-
-    const diffDays = (matchDate.getTime() - new Date(lastGame.date).getTime()) / (1000 * 3600 * 24);
-    const restDays = Math.floor(diffDays);
+    const diffDays = (beforeDate.getTime() - new Date(lastGame.date).getTime()) / (1000 * 3600 * 24);
+    const restDays = Math.min(10, Math.floor(diffDays));
     const isB2B = restDays === 1 ? 1 : 0;
-    const rotationLoad = 0.5; // Starter concentration proxy
+    const rotationLoad = 0.5; // Fixed for now
 
-    // UN Hardened Formula: 0.5 * exp(-0.8 * restDays) + 0.3 * isB2B + 0.2 * rotationLoad
-    return 0.5 * Math.exp(-0.8 * restDays) + 0.3 * isB2B + 0.2 * rotationLoad;
-}
+    // Starter Consistency Proxy
+    let starterConsistency = 0;
+    if (history.length >= 2) {
+        const currentRoster = history[0].homeTeamId === teamId ? history[0].nbaStats?.homePlayerIds : history[0].nbaStats?.awayPlayerIds;
+        const prevRoster = history[1].homeTeamId === teamId ? history[1].nbaStats?.homePlayerIds : history[1].nbaStats?.awayPlayerIds;
+        if (currentRoster && prevRoster) {
+            const currentStarters = currentRoster.slice(0, 5).sort().join(",");
+            const prevStarters = prevRoster.slice(0, 5).sort().join(",");
+            starterConsistency = currentStarters === prevStarters ? 1 : 0;
+        }
+    }
 
-function calcPsycho(history: any[]): number {
-    // Motivation/Streak Pressure logic
-    const streak = history.reduce((acc, h, i) => {
-        if (i === 0 || h.result === history[i - 1].result) return acc + 1;
-        return acc;
-    }, 0);
-    return Math.log(1 + streak);
+    return { netRating, tsPct, pace, restDays, isB2B, rotationLoad, starterConsistency };
 }
