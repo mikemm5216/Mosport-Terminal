@@ -7,11 +7,12 @@ async function runBacktest(sport: string) {
     console.log(`\n[Backtest] --- ${sport.toUpperCase()} ${isNBA ? "(PROBABILITY ENGINE)" : "(STRICT BETTING)"} ---`);
 
     // 1. Load Model
-    if (!fs.existsSync("model_weights.json")) {
-        console.error("[Backtest] No model_weights.json found. Run training first.");
+    const modelFile = isNBA ? "model_nba.json" : "model_weights.json";
+    if (!fs.existsSync(modelFile)) {
+        console.warn(`[Backtest] No ${modelFile} found for ${sport}. Skipping.`);
         return;
     }
-    const allModels = JSON.parse(fs.readFileSync("model_weights.json", "utf-8"));
+    const allModels = JSON.parse(fs.readFileSync(modelFile, "utf-8"));
     const model = allModels[isNBA ? "nba" : sport];
 
     if (!model) {
@@ -61,10 +62,14 @@ async function runBacktest(sport: string) {
         if (isNBA) {
             // NBA specific pred with normalization
             const x = [f.worldDiff || 0, f.physioDiff || 0, f.psychoDiff || 0];
-            const normX = x.map((val, i) => (val - (normalization?.mean[i] || 0)) / (normalization?.std[i] || 1));
+            const stats = normalization || weights.seasonNormalization || model.seasonNormalization;
+            // Use the first season stats for synthetic demo or match actual season
+            const seasonKey = Object.keys(stats)[0];
+            const sStats = stats[seasonKey];
+            const normX = x.map((val, i) => (val - (sStats.mean[i] || 0)) / (sStats.std[i] || 1));
             const z = normX.reduce((acc, val, i) => acc + val * (weights[i] || 0), 0) + (bias || 0);
             const raw_prob = rawSigmoid(z);
-            calibrated_prob = 1 / (1 + Math.exp(calibration.A * raw_prob + calibration.B));
+            calibrated_prob = plattScale(raw_prob, calibration.A, calibration.B);
         } else {
             // Standard football/baseball logic
             const z = weights[0] * (f.worldDiff || 0) + weights[1] * (f.physioDiff || 0) + weights[2] * (f.psychoDiff || 0) + bias;
