@@ -1,44 +1,47 @@
 import { prisma } from "../lib/prisma";
 import fs from "fs";
 
-async function train() {
-    console.log("[Train] Fetching data for training...");
+async function train(sportToTrain: string) {
+    console.log(`[Train] Starting Spartan Training for: ${sportToTrain}...`);
 
-    // 1. Fetch all finished matches with features
-    const matches = await prisma.matches.findMany({
+    // 1. Fetch all finished matches with Spartan v2.0 features
+    // We only take matches where result is NOT Draw for "Option A" simplification
+    const matches = await (prisma as any).match.findMany({
         where: {
+            sport: sportToTrain,
             status: "finished",
-            features: { some: { featureVersion: "v1.0" } }
+            matchResult: { in: ["HOME_WIN", "AWAY_WIN"] }, // Option A: Exclude Draws for training
+            features: { some: { featureVersion: "v2.0" } }
         },
         include: {
-            features: { where: { featureVersion: "v1.0", teamType: "diff" } }
-        }
+            features: { where: { featureVersion: "v2.0" } }
+        },
+        orderBy: { date: "asc" }
     });
 
-    if (matches.length < 10) {
-        console.error("[Train] Not enough data. Please run seeding first.");
+    if (matches.length < 20) {
+        console.error("[Train] Not enough clean data. Please run seeding first.");
         return;
     }
 
-    console.log(`[Train] Found ${matches.length} matches.`);
+    console.log(`[Train] Found ${matches.length} training matches.`);
 
-    // 2. Prepare Dataset (X, Y)
-    const dataset = matches.map(m => {
-        const f = (m as any).features[0];
+    // 2. Prepare Dataset
+    const dataset = matches.map((m: any) => {
+        const f = m.features[0];
         return {
-            x: [f.xgdDiff || 0, f.fatigueDiff || 0, f.motivationDiff || 0],
-            y: m.home_score! > m.away_score! ? 1 : 0,
-            date: m.match_date
+            x: [f.worldDiff || 0, f.physioDiff || 0, f.psychoDiff || 0],
+            y: m.matchResult === "HOME_WIN" ? 1 : 0,
+            date: m.date
         };
     });
 
-    // Chronological Split (70/30) - Protect against data leakage
-    dataset.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // 70/30 Chronological Split
     const trainSize = Math.floor(dataset.length * 0.7);
     const trainData = dataset.slice(0, trainSize);
     const testData = dataset.slice(trainSize);
 
-    console.log(`[Train] Split (Time-based): ${trainData.length} train, ${testData.length} test (Held-out).`);
+    console.log(`[Train] Split (Time-based): ${trainData.length} train, ${testData.length} test.`);
 
     // 3. Logistic Regression (Gradient Descent)
     let weights = [0, 0, 0];
@@ -48,7 +51,7 @@ async function train() {
 
     const sigmoid = (z: number) => 1 / (1 + Math.exp(-z));
 
-    console.log("[Train] Starting Gradient Descent...");
+    console.log("[Train] Starting Gradient Descent (Spartan Build)...");
 
     for (let i = 0; i < epochs; i++) {
         let dw = [0, 0, 0];
@@ -65,11 +68,9 @@ async function train() {
             dw[2] += error * x[2];
             db += error;
 
-            // Optional: Cross-Entropy Loss
             totalLoss += - (y * Math.log(pred + 1e-15) + (1 - y) * Math.log(1 - pred + 1e-15));
         }
 
-        // Update weights
         weights[0] -= (learningRate * dw[0]) / trainData.length;
         weights[1] -= (learningRate * dw[1]) / trainData.length;
         weights[2] -= (learningRate * dw[2]) / trainData.length;
@@ -80,12 +81,9 @@ async function train() {
         }
     }
 
-    console.log("[Train] Optimization complete.");
-    console.log("[Train] Final Weights:", weights);
-    console.log("[Train] Final Bias:", bias);
-
-    // 4. Save Model
+    // 4. Save Weights
     const model = {
+        sport: sportToTrain,
         weights,
         bias,
         trainSize,
@@ -94,9 +92,12 @@ async function train() {
     };
 
     fs.writeFileSync("model_weights.json", JSON.stringify(model, null, 2));
-    console.log("[Train] Model saved to model_weights.json");
+    console.log("[Train] Spartan Weights Saved to model_weights.json");
+    console.log("[Train] Optimized Weights:", weights, "Bias:", bias);
 }
 
-train()
+// Default to football for now
+const sport = process.argv[2] || "football";
+train(sport)
     .catch(console.error)
-    .finally(() => prisma.$disconnect());
+    .finally(() => (prisma as any).$disconnect());
