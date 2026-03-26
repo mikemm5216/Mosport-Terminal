@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma-public"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Teams {
+  team_id      String         @id @default(cuid())
+  league_type  String
+  full_name    String         @unique
+  short_name   String
+  city         String?
+  home_venue   String?
+  logo_url     String?
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
+}
+
+model Player {
+  player_id     String        @id @default(cuid())
+  first_name    String
+  last_name     String
+  display_name  String
+  nationality   String?
+  position_main String
+  active_status Boolean       @default(true)
+  created_at    DateTime      @default(now())
+}
+
+model MatchPrediction {
+  id           String   @id @default(cuid())
+  matchId      String   @unique @map("match_id")
+  homeWinProb  Float    @map("home_win_prob")
+  awayWinProb  Float    @map("away_win_prob")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+}
+
+model MatchSignal {
+  id           String   @id @default(cuid())
+  matchId      String   @unique @map("match_id")
+  signalLabel  String   @map("signal_label")
+  signalScore  Float    @map("signal_score")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+}
