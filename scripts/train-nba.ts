@@ -12,8 +12,8 @@ async function main() {
 
     // 1. Fetch Ordered Data with Hardened Features
     const matches = await (prisma as any).match.findMany({
-        where: { sport: "basketball", status: "finished", features: { some: { featureVersion: "NBA_HARDENED_V3" } } },
-        include: { features: { where: { featureVersion: "NBA_HARDENED_V3" } } },
+        where: { sport: "basketball", status: "finished", features: { some: { featureVersion: "NBA_V3.3" } } },
+        include: { features: { where: { featureVersion: "NBA_V3.3" } } },
         orderBy: { date: "asc" }
     });
 
