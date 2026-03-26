@@ -3,19 +3,19 @@ import { prisma } from "../lib/prisma";
 const RAW_URL = "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_totals_2010_2024.csv";
 
 async function main() {
-    console.log("[Seed] Fetching real NBA dataset (2023-24)...");
+    console.log("[Seed] Fetching real NBA dataset (2021-2024)...");
     const res = await fetch(RAW_URL);
     if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
 
     const text = await res.text();
     const lines = text.split("\n");
-    const seasonTarget = "2023-24";
+    const seasons = ["2021-22", "2022-23", "2023-24"];
     const matchesMap = new Map<string, any>();
 
-    console.log("[Seed] Parsing...");
+    console.log("[Seed] Parsing multiple seasons...");
     for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(",");
-        if (cols[0] !== seasonTarget) continue;
+        if (!seasons.includes(cols[0])) continue;
 
         const gameId = cols[4];
         if (!gameId) continue;
@@ -31,13 +31,15 @@ async function main() {
             fta: parseInt(cols[16]) || 0,
             tov: parseInt(cols[24]) || 0,
             oreb: parseInt(cols[18]) || 0,
+            trb: parseInt(cols[20]) || 0,
+            ast: parseInt(cols[21]) || 0,
             pts: pts || 0
         };
 
         const players = cols.slice(34).filter((x: string) => x && x.trim() !== "").map((x: string) => x.trim());
 
         if (!matchesMap.has(gameId)) {
-            matchesMap.set(gameId, { gameId, date });
+            matchesMap.set(gameId, { gameId, date, season: cols[0] });
         }
 
         const game = matchesMap.get(gameId);
@@ -55,8 +57,9 @@ async function main() {
     }
 
     const data = Array.from(matchesMap.values()).filter(g => g.homeTeamName && g.awayTeamName);
-    console.log(`[Seed] Upserting ${data.length} matches with team relations...`);
+    console.log(`[Seed] Ingesting ${data.length} matches across 3 seasons...`);
 
+    let count = 0;
     for (const g of data) {
         const result = g.homeScore > g.awayScore ? "HOME_WIN" : "AWAY_WIN";
 
@@ -71,13 +74,17 @@ async function main() {
                     upsert: {
                         create: {
                             homeFga: g.homeStats.fga, homeFta: g.homeStats.fta, homeTov: g.homeStats.tov, homeOreb: g.homeStats.oreb,
+                            homeReb: g.homeStats.trb, homeAst: g.homeStats.ast,
                             awayFga: g.awayStats.fga, awayFta: g.awayStats.fta, awayTov: g.awayStats.tov, awayOreb: g.awayStats.oreb,
+                            awayReb: g.awayStats.trb, awayAst: g.awayStats.ast,
                             homePlayerIds: g.homePlayers,
                             awayPlayerIds: g.awayPlayers
                         },
                         update: {
                             homeFga: g.homeStats.fga, homeFta: g.homeStats.fta, homeTov: g.homeStats.tov, homeOreb: g.homeStats.oreb,
+                            homeReb: g.homeStats.trb, homeAst: g.homeStats.ast,
                             awayFga: g.awayStats.fga, awayFta: g.awayStats.fta, awayTov: g.awayStats.tov, awayOreb: g.awayStats.oreb,
+                            awayReb: g.awayStats.trb, awayAst: g.awayStats.ast,
                             homePlayerIds: g.homePlayers,
                             awayPlayerIds: g.awayPlayers
                         }
@@ -109,16 +116,20 @@ async function main() {
                 nbaStats: {
                     create: {
                         homeFga: g.homeStats.fga, homeFta: g.homeStats.fta, homeTov: g.homeStats.tov, homeOreb: g.homeStats.oreb,
+                        homeReb: g.homeStats.trb, homeAst: g.homeStats.ast,
                         awayFga: g.awayStats.fga, awayFta: g.awayStats.fta, awayTov: g.awayStats.tov, awayOreb: g.awayStats.oreb,
+                        awayReb: g.awayStats.trb, awayAst: g.awayStats.ast,
                         homePlayerIds: g.homePlayers,
                         awayPlayerIds: g.awayPlayers
                     }
                 }
             }
         });
+        count++;
+        if (count % 500 === 0) console.log(`[Seed] Progress: ${count}/${data.length}...`);
     }
 
-    console.log("[Seed] Real NBA Seeding (V3.3) Complete.");
+    console.log(`[Seed] Phase 3.2 Ingestion Complete (${count} matches).`);
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());
