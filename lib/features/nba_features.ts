@@ -21,7 +21,7 @@ export async function computeNBAFeaturesHardened(matchId: string) {
     // 2. Final Output Dimensions (Aggregated post-training or individually for training)
     // For now, we store them individually in dedicated slots for the GD trainer.
     return (prisma as any).matchFeatures.upsert({
-        where: { matchId_sport_featureVersion: { matchId, sport: "basketball", featureVersion: "NBA_HARDENED_V3" } },
+        where: { matchId_sport_featureVersion: { matchId, sport: "basketball", featureVersion: "NBA_V3.3" } },
         update: {
             worldDiff: hStats.netRating - aStats.netRating,
             homeWorld: hStats.tsPct - aStats.tsPct, // tsDiff
@@ -29,12 +29,12 @@ export async function computeNBAFeaturesHardened(matchId: string) {
             physioDiff: hStats.restDays - aStats.restDays,
             homePhysio: hStats.isB2B - aStats.isB2B, // b2bDiff
             psychoDiff: 0, // DROPPED
-            featureVersion: "NBA_HARDENED_V3"
+            featureVersion: "NBA_V3.3"
         },
         create: {
             matchId,
             sport: "basketball",
-            featureVersion: "NBA_HARDENED_V3",
+            featureVersion: "NBA_V3.3",
             worldDiff: hStats.netRating - aStats.netRating,
             homeWorld: hStats.tsPct - aStats.tsPct,
             awayWorld: hStats.pace - aStats.pace,
