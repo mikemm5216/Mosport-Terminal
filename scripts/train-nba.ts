@@ -1,14 +1,11 @@
 import { prisma } from "../lib/prisma";
 import fs from "fs";
+import { trainPlatt, sigmoid } from "../lib/ml/calibration";
 
 /**
  * NBA Probability Training Engine V3.1
  * Optimized for LogLoss (< 0.69) and Brier (< 0.25).
  */
-
-function sigmoid(x: number): number {
-    return 1 / (1 + Math.exp(-x));
-}
 
 // 1. PER-SEASON Z-SCORE NORMALIZATION
 function normalizeBySeason(matches: any[]) {
@@ -81,26 +78,6 @@ function trainLogistic(features: number[][], labels: number[], epochs = 1000, lr
     return { weights, bias };
 }
 
-// 3. PLATT SCALING
-function calibratePlatt(probs: number[], labels: number[]) {
-    let A = 0;
-    let B = 0;
-    const lr = 0.05;
-    for (let i = 0; i < 500; i++) {
-        let dA = 0;
-        let dB = 0;
-        for (let j = 0; j < probs.length; j++) {
-            const p = 1 / (1 + Math.exp(A * probs[j] + B));
-            const error = p - labels[j];
-            dA += error * probs[j];
-            dB += error;
-        }
-        A -= lr * (dA / probs.length);
-        B -= lr * (dB / probs.length);
-    }
-    return { A, B };
-}
-
 async function main() {
     console.log("[Train] --- NBA PROBABILITY ENGINE V3.1 ---");
 
@@ -133,10 +110,12 @@ async function main() {
     const trainY = train.map(m => m.matchResult === "HOME_WIN" ? 1 : 0);
     const { weights, bias } = trainLogistic(trainX, trainY);
 
-    // 5. Calibrate
+    // 5. Calibrate (Mandatory)
     const calProbs = cal.map(m => sigmoid(m.normX.reduce((acc, val, i) => acc + val * weights[i], 0) + bias));
     const calLabels = cal.map(m => m.matchResult === "HOME_WIN" ? 1 : 0);
-    const { A, B } = calibratePlatt(calProbs, calLabels);
+    const { A, B } = trainPlatt(calProbs, calLabels);
+
+    console.log(`[Train] Calibration Params: A=${A.toFixed(4)}, B=${B.toFixed(4)}`);
 
     // 6. Save Model
     const model = {
