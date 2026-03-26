@@ -1,81 +1,52 @@
 import { prisma } from "../prisma";
 
-export interface NBAFeaturesV33 {
-    // World Engine
-    netRatingDiff: number;
-    tsDiff: number;
-    paceDiff: number;
-
-    // Physio Engine
-    restDaysDiff: number;
-    isB2BDiff: number;
-    rotationLoadDiff: number;
-
-    // Lineup
-    starterConsistency: number; // 0 or 1
-}
-
 /**
- * Computes hardened NBA features for V3.3 Scientific Mode.
+ * Computes scientifically strict NBA features for FINAL HARDENING.
+ * 1. World: NetRating, TS%, Pace (Rolling 5)
+ * 2. Physio: Rest Days, B2B
+ * 3. Psycho: DROPPED
  */
-export async function computeNBAFeaturesV33(matchId: string) {
+export async function computeNBAFeaturesHardened(matchId: string) {
     const match = await (prisma as any).match.findUnique({
         where: { id: matchId },
-        include: {
-            nbaStats: true,
-            home_team: { include: { matches_home: { take: 6, orderBy: { date: 'desc' } }, matches_away: { take: 6, orderBy: { date: 'desc' } } } },
-            away_team: { include: { matches_home: { take: 6, orderBy: { date: 'desc' } }, matches_away: { take: 6, orderBy: { date: 'desc' } } } }
-        }
+        include: { nbaStats: true }
     });
 
     if (!match) throw new Error(`Match ${matchId} not found.`);
 
-    const hStats = await getTeamRollingStats(match.homeTeamId, match.date);
-    const aStats = await getTeamRollingStats(match.awayTeamId, match.date);
+    // 1. Get Rolling Stats (Real Data Only)
+    const hStats = await getTeamScientificStats(match.homeTeamId, match.date);
+    const aStats = await getTeamScientificStats(match.awayTeamId, match.date);
 
-    const world = {
-        netRatingDiff: hStats.netRating - aStats.netRating,
-        tsDiff: hStats.tsPct - aStats.tsPct,
-        paceDiff: hStats.pace - aStats.pace
-    };
-
-    const physio = {
-        restDaysDiff: hStats.restDays - aStats.restDays,
-        isB2BDiff: hStats.isB2B - aStats.isB2B,
-        rotationLoadDiff: hStats.rotationLoad - aStats.rotationLoad
-    };
-
-    const starterConsistency = hStats.starterConsistency; // Simple home-side proxy or diff
-
-    // Save for training
+    // 2. Final Output Dimensions (Aggregated post-training or individually for training)
+    // For now, we store them individually in dedicated slots for the GD trainer.
     return (prisma as any).matchFeatures.upsert({
-        where: { matchId_sport_featureVersion: { matchId, sport: "basketball", featureVersion: "NBA_V3.3" } },
+        where: { matchId_sport_featureVersion: { matchId, sport: "basketball", featureVersion: "NBA_HARDENED_V3" } },
         update: {
-            worldDiff: world.netRatingDiff,
-            physioDiff: physio.restDaysDiff,
-            psychoDiff: starterConsistency,
-            // We store the full vector for the training script to find
-            homeWorld: world.tsDiff, // re-purposing for more slots
-            awayWorld: world.paceDiff,
-            homePhysio: physio.isB2BDiff,
-            awayPhysio: physio.rotationLoadDiff
+            worldDiff: hStats.netRating - aStats.netRating,
+            homeWorld: hStats.tsPct - aStats.tsPct, // tsDiff
+            awayWorld: hStats.pace - aStats.pace,   // paceDiff
+            physioDiff: hStats.restDays - aStats.restDays,
+            homePhysio: hStats.isB2B - aStats.isB2B, // b2bDiff
+            psychoDiff: 0, // DROPPED
+            featureVersion: "NBA_HARDENED_V3"
         },
         create: {
             matchId,
             sport: "basketball",
-            featureVersion: "NBA_V3.3",
-            worldDiff: world.netRatingDiff,
-            physioDiff: physio.restDaysDiff,
-            psychoDiff: starterConsistency,
-            homeWorld: world.tsDiff,
-            awayWorld: world.paceDiff,
-            homePhysio: physio.isB2BDiff,
-            awayPhysio: physio.rotationLoadDiff
+            featureVersion: "NBA_HARDENED_V3",
+            worldDiff: hStats.netRating - aStats.netRating,
+            homeWorld: hStats.tsPct - aStats.tsPct,
+            awayWorld: hStats.pace - aStats.pace,
+            physioDiff: hStats.restDays - aStats.restDays,
+            homePhysio: hStats.isB2B - aStats.isB2B,
+            psychoDiff: 0,
+            featureTime: new Date()
         }
     });
 }
 
-async function getTeamRollingStats(teamId: string, beforeDate: Date) {
+async function getTeamScientificStats(teamId: string, beforeDate: Date) {
     const history = await (prisma as any).match.findMany({
         where: {
             OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
@@ -88,56 +59,38 @@ async function getTeamRollingStats(teamId: string, beforeDate: Date) {
     });
 
     if (history.length === 0) {
-        return { netRating: 0, tsPct: 0.5, pace: 100, restDays: 3, isB2B: 0, rotationLoad: 0.5, starterConsistency: 0 };
+        return { netRating: 0, tsPct: 0.5, pace: 100, restDays: 3, isB2B: 0 };
     }
 
-    let totalPoints = 0;
-    let totalOppPoints = 0;
-    let totalPossessions = 0;
-    let totalTSNumer = 0;
-    let totalTSDenom = 0;
+    let totalPts = 0, totalOppPts = 0, totalPoss = 0, totalTSNum = 0, totalTSDenom = 0;
 
     for (const m of history) {
-        const stats = m.nbaStats;
-        if (!stats) continue;
+        const s = m.nbaStats;
+        if (!s) continue;
 
         const isHome = m.homeTeamId === teamId;
         const pts = isHome ? m.homeScore : m.awayScore;
         const oppPts = isHome ? m.awayScore : m.homeScore;
-        const fga = isHome ? stats.homeFga : stats.awayFga;
-        const fta = isHome ? stats.homeFta : stats.awayFta;
-        const tov = isHome ? stats.homeTov : stats.awayTov;
-        const oreb = isHome ? stats.homeOreb : stats.awayOreb;
+        const fga = isHome ? s.homeFga : s.awayFga;
+        const fta = isHome ? s.homeFta : s.awayFta;
+        const tov = isHome ? s.homeTov : s.awayTov;
+        const oreb = isHome ? s.homeOreb : s.awayOreb;
 
         const pos = fga + 0.44 * fta + tov - oreb;
-        totalPoints += pts;
-        totalOppPoints += oppPts;
-        totalPossessions += pos;
-        totalTSNumer += pts;
+        totalPts += pts;
+        totalOppPts += oppPts;
+        totalPoss += pos;
+        totalTSNum += pts;
         totalTSDenom += 2 * (fga + 0.44 * fta);
     }
 
-    const netRating = totalPossessions > 0 ? (totalPoints - totalOppPoints) / totalPossessions * 100 : 0;
-    const tsPct = totalTSDenom > 0 ? totalTSNumer / totalTSDenom : 0.5;
-    const pace = totalPossessions / (history.length * 48 / 48) * 100; // Simplified
+    const netRating = totalPoss > 0 ? (totalPts - totalOppPts) / totalPoss * 100 : 0;
+    const tsPct = totalTSDenom > 0 ? totalTSNum / totalTSDenom : 0.5;
+    const pace = totalPoss / ((history.length * 48) / 48) * 100; // Simplified pace proxy
 
-    const lastGame = history[0];
-    const diffDays = (beforeDate.getTime() - new Date(lastGame.date).getTime()) / (1000 * 3600 * 24);
-    const restDays = Math.min(10, Math.floor(diffDays));
+    const lastDate = new Date(history[0].date);
+    const restDays = Math.min(10, Math.floor((beforeDate.getTime() - lastDate.getTime()) / (1000 * 3600 * 24)));
     const isB2B = restDays === 1 ? 1 : 0;
-    const rotationLoad = 0.5; // Fixed for now
 
-    // Starter Consistency Proxy
-    let starterConsistency = 0;
-    if (history.length >= 2) {
-        const currentRoster = history[0].homeTeamId === teamId ? history[0].nbaStats?.homePlayerIds : history[0].nbaStats?.awayPlayerIds;
-        const prevRoster = history[1].homeTeamId === teamId ? history[1].nbaStats?.homePlayerIds : history[1].nbaStats?.awayPlayerIds;
-        if (currentRoster && prevRoster) {
-            const currentStarters = currentRoster.slice(0, 5).sort().join(",");
-            const prevStarters = prevRoster.slice(0, 5).sort().join(",");
-            starterConsistency = currentStarters === prevStarters ? 1 : 0;
-        }
-    }
-
-    return { netRating, tsPct, pace, restDays, isB2B, rotationLoad, starterConsistency };
+    return { netRating, tsPct, pace, restDays, isB2B };
 }
