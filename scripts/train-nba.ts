@@ -3,57 +3,18 @@ import fs from "fs";
 import { trainPlatt, sigmoid } from "../lib/ml/calibration";
 
 /**
- * NBA Probability Training Engine V3.1
- * Optimized for LogLoss (< 0.69) and Brier (< 0.25).
+ * NBA Probability Training Engine V3.3 (Scientific Mode)
  */
 
-// 1. PER-SEASON Z-SCORE NORMALIZATION
-function normalizeBySeason(matches: any[]) {
-    // Group by season
-    const seasons: Record<string, any[]> = {};
-    matches.forEach(m => {
-        const year = new Date(m.date).getFullYear();
-        const season = year <= 2023 ? "2022-2023" : (year === 2024 ? "2023-2024" : "2024-2025");
-        if (!seasons[season]) seasons[season] = [];
-        seasons[season].push(m);
+async function getMatchesWithFeatures() {
+    return (prisma as any).match.findMany({
+        where: { sport: "basketball", status: "finished", features: { some: { featureVersion: "NBA_V3.3" } } },
+        include: { features: { where: { featureVersion: "NBA_V3.3" } } },
+        orderBy: { date: "asc" }
     });
-
-    const normalizedData: any[] = [];
-    const seasonStats: Record<string, { mean: number[], std: number[] }> = {};
-
-    for (const [season, sMatches] of Object.entries(seasons)) {
-        const featureArr = sMatches.map(m => [
-            m.features[0].worldDiff || 0,
-            m.features[0].physioDiff || 0,
-            m.features[0].psychoDiff || 0
-        ]);
-
-        const n = featureArr.length;
-        const numFeatures = featureArr[0].length;
-        const mean = new Array(numFeatures).fill(0);
-        const std = new Array(numFeatures).fill(0);
-
-        // Mean
-        featureArr.forEach(row => row.forEach((val, i) => mean[i] += val));
-        mean.forEach((_, i) => mean[i] /= n);
-
-        // Std
-        featureArr.forEach(row => row.forEach((val, i) => std[i] += Math.pow(val - mean[i], 2)));
-        std.forEach((_, i) => std[i] = Math.sqrt(std[i] / n) || 1);
-
-        seasonStats[season] = { mean, std };
-
-        sMatches.forEach((m, idx) => {
-            const normX = featureArr[idx].map((val, i) => (val - mean[i]) / std[i]);
-            normalizedData.push({ ...m, normX });
-        });
-    }
-
-    return { normalizedData, seasonStats };
 }
 
-// 2. LOGISTIC REGRESSION (LogLoss)
-function trainLogistic(features: number[][], labels: number[], epochs = 1000, lr = 0.01) {
+function trainLogistic(features: number[][], labels: number[], epochs = 2000, lr = 0.05) {
     const numFeatures = features[0].length;
     let weights = new Array(numFeatures).fill(0);
     let bias = 0;
@@ -79,58 +40,91 @@ function trainLogistic(features: number[][], labels: number[], epochs = 1000, lr
 }
 
 async function main() {
-    console.log("[Train] --- NBA PROBABILITY ENGINE V3.1 ---");
+    console.log("[Train] --- NBA SCIENTIFIC TRAINING V3.3 ---");
 
-    // 1. Fetch Ordered Data
-    const matches = await (prisma as any).match.findMany({
-        where: { sport: "basketball", status: "finished", features: { some: {} } },
-        include: { features: true },
-        orderBy: { date: "asc" }
-    });
-
-    if (matches.length < 500) {
-        console.warn(`[Train] Found ${matches.length} NBA matches. Need 1000+ for Phase 3.1. Aborting.`);
-        process.exit(0);
+    const rawMatches = await getMatchesWithFeatures();
+    if (rawMatches.length < 200) {
+        console.warn(`[Train] Found only ${rawMatches.length} matches. Need more for scientific validation.`);
+        // Note: Seeding might still be running.
+        return;
     }
 
-    // 2. Normalize per Season
-    const { normalizedData, seasonStats } = normalizeBySeason(matches);
+    // 1. Prepare X and Y
+    // X = [netRatingDiff, tsDiff, paceDiff, restDaysDiff, isB2BDiff, rotationLoadDiff, starterConsistency]
+    const data = rawMatches.map(m => {
+        const f = m.features[0];
+        return {
+            x: [
+                f.worldDiff || 0,   // netRatingDiff
+                f.homeWorld || 0,   // tsDiff (re-purposed slot)
+                f.awayWorld || 0,   // paceDiff (re-purposed slot)
+                f.physioDiff || 0,  // restDaysDiff
+                f.homePhysio || 0,  // isB2BDiff (re-purposed slot)
+                f.awayPhysio || 0,  // rotationLoadDiff (re-purposed slot)
+                f.psychoDiff || 0   // starterConsistency
+            ],
+            y: m.matchResult === "HOME_WIN" ? 1 : 0
+        };
+    });
+
+    // 2. Normalization (Z-Score)
+    const n = data.length;
+    const numFeatures = 7;
+    const means = new Array(numFeatures).fill(0);
+    const stds = new Array(numFeatures).fill(0);
+
+    data.forEach(d => d.x.forEach((v, i) => means[i] += v));
+    means.forEach((_, i) => means[i] /= n);
+    data.forEach(d => d.x.forEach((v, i) => stds[i] += Math.pow(v - means[i], 2)));
+    stds.forEach((_, i) => stds[i] = Math.sqrt(stds[i] / n) || 1);
+
+    const normData = data.map(d => ({
+        x: d.x.map((v, i) => (v - means[i]) / stds[i]),
+        y: d.y
+    }));
 
     // 3. Chronological Split (70/15/15)
-    const n = normalizedData.length;
     const trainEnd = Math.floor(n * 0.7);
     const calEnd = Math.floor(n * 0.85);
 
-    const train = normalizedData.slice(0, trainEnd);
-    const cal = normalizedData.slice(trainEnd, calEnd);
-    const test = normalizedData.slice(calEnd);
+    const trainSet = normData.slice(0, trainEnd);
+    const calSet = normData.slice(trainEnd, calEnd);
+    const testSet = normData.slice(calEnd);
 
-    // 4. Train
-    const trainX = train.map(m => m.normX);
-    const trainY = train.map(m => m.matchResult === "HOME_WIN" ? 1 : 0);
-    const { weights, bias } = trainLogistic(trainX, trainY);
+    console.log(`[Train] Split: Train=${trainSet.length}, Cal=${calSet.length}, Test=${testSet.length}`);
 
-    // 5. Calibrate (Mandatory)
-    const calProbs = cal.map(m => sigmoid(m.normX.reduce((acc, val, i) => acc + val * weights[i], 0) + bias));
-    const calLabels = cal.map(m => m.matchResult === "HOME_WIN" ? 1 : 0);
-    const { A, B } = trainPlatt(calProbs, calLabels);
+    // 4. Training
+    const { weights, bias } = trainLogistic(trainSet.map(d => d.x), trainSet.map(d => d.y));
+    console.log("[Train] Model Weights (raw):", weights.map(w => w.toFixed(4)));
 
-    console.log(`[Train] Calibration Params: A=${A.toFixed(4)}, B=${B.toFixed(4)}`);
+    // 5. Calibration (Platt)
+    const calProbs = calSet.map(d => sigmoid(d.x.reduce((acc, v, i) => acc + v * weights[i], 0) + bias));
+    const { A, B } = trainPlatt(calProbs, calSet.map(d => d.y));
+    console.log(`[Train] Platt Params: A=${A.toFixed(4)}, B=${B.toFixed(4)}`);
 
-    // 6. Save Model
+    // 6. Weight Compression (V3.3 Aggregate)
+    const worldWeights = [weights[0], weights[1], weights[2]];
+    const physioWeights = [weights[3], weights[4], weights[5]];
+    const psychoWeights = [weights[6]];
+
+    // 7. Save Model
     const model = {
-        nba: {
-            weights,
-            bias,
-            seasonNormalization: seasonStats,
-            calibration: { A, B },
-            trainedAt: new Date().toISOString(),
-            metrics: { samples: n, trainSetSize: train.length }
-        }
+        version: "V3.3-SCIENTIFIC",
+        weights,
+        bias,
+        calibration: { A, B },
+        normalization: { means, stds },
+        compression: {
+            world: worldWeights,
+            physio: physioWeights,
+            psycho: psychoWeights
+        },
+        trainedAt: new Date().toISOString(),
+        samples: n
     };
 
     fs.writeFileSync("model_nba.json", JSON.stringify(model, null, 2));
     console.log("[Train] NBA Model Saved: model_nba.json");
 }
 
-main().catch(console.error).finally(() => (prisma as any).$disconnect());
+main().catch(console.error).finally(() => prisma.$disconnect());

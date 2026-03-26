@@ -1,68 +1,124 @@
 import { prisma } from "../lib/prisma";
-import { computeNBAFeatures } from "../lib/features/nba_features";
+
+const RAW_URL = "https://raw.githubusercontent.com/NocturneBear/NBA-Data-2010-2024/main/regular_season_totals_2010_2024.csv";
 
 async function main() {
-    console.log("[Seed] Starting Concurrent NBA Scaling (Target: 1200)...");
+    console.log("[Seed] Fetching real NBA dataset (2023-24)...");
+    const res = await fetch(RAW_URL);
+    if (!res.ok) throw new Error(`Failed: ${res.statusText}`);
 
-    // 1. Teams Bulk Seed
-    const teams = [];
-    for (let i = 0; i < 30; i++) {
-        teams.push({
-            team_id: `Team_${i}`,
-            full_name: `Team_${i}`,
-            short_name: `T${i}`,
-            league_type: "NBA"
+    const text = await res.text();
+    const lines = text.split("\n");
+    const seasonTarget = "2023-24";
+    const matchesMap = new Map<string, any>();
+
+    console.log("[Seed] Parsing...");
+    for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(",");
+        if (cols[0] !== seasonTarget) continue;
+
+        const gameId = cols[4];
+        if (!gameId) continue;
+
+        const date = new Date(cols[5]);
+        const matchup = cols[6];
+        const isHome = matchup.includes("vs.");
+        const teamName = cols[3];
+        const pts = parseInt(cols[26]);
+
+        const stats = {
+            fga: parseInt(cols[10]) || 0,
+            fta: parseInt(cols[16]) || 0,
+            tov: parseInt(cols[24]) || 0,
+            oreb: parseInt(cols[18]) || 0,
+            pts: pts || 0
+        };
+
+        const players = cols.slice(34).filter((x: string) => x && x.trim() !== "").map((x: string) => x.trim());
+
+        if (!matchesMap.has(gameId)) {
+            matchesMap.set(gameId, { gameId, date });
+        }
+
+        const game = matchesMap.get(gameId);
+        if (isHome) {
+            game.homeTeamName = teamName;
+            game.homeScore = pts;
+            game.homeStats = stats;
+            game.homePlayers = players;
+        } else {
+            game.awayTeamName = teamName;
+            game.awayScore = pts;
+            game.awayStats = stats;
+            game.awayPlayers = players;
+        }
+    }
+
+    const data = Array.from(matchesMap.values()).filter(g => g.homeTeamName && g.awayTeamName);
+    console.log(`[Seed] Upserting ${data.length} matches with team relations...`);
+
+    for (const g of data) {
+        const result = g.homeScore > g.awayScore ? "HOME_WIN" : "AWAY_WIN";
+
+        // @ts-ignore
+        await prisma.match.upsert({
+            where: { extId: `nba-real-${g.gameId}` },
+            update: {
+                homeScore: g.homeScore,
+                awayScore: g.awayScore,
+                matchResult: result,
+                nbaStats: {
+                    upsert: {
+                        create: {
+                            homeFga: g.homeStats.fga, homeFta: g.homeStats.fta, homeTov: g.homeStats.tov, homeOreb: g.homeStats.oreb,
+                            awayFga: g.awayStats.fga, awayFta: g.awayStats.fta, awayTov: g.awayStats.tov, awayOreb: g.awayStats.oreb,
+                            homePlayerIds: g.homePlayers,
+                            awayPlayerIds: g.awayPlayers
+                        },
+                        update: {
+                            homeFga: g.homeStats.fga, homeFta: g.homeStats.fta, homeTov: g.homeStats.tov, homeOreb: g.homeStats.oreb,
+                            awayFga: g.awayStats.fga, awayFta: g.awayStats.fta, awayTov: g.awayStats.tov, awayOreb: g.awayStats.oreb,
+                            homePlayerIds: g.homePlayers,
+                            awayPlayerIds: g.awayPlayers
+                        }
+                    }
+                }
+            },
+            create: {
+                extId: `nba-real-${g.gameId}`,
+                sport: "basketball",
+                date: g.date,
+                homeTeamName: g.homeTeamName,
+                awayTeamName: g.awayTeamName,
+                homeScore: g.homeScore,
+                awayScore: g.awayScore,
+                matchResult: result,
+                status: "finished",
+                home_team: {
+                    connectOrCreate: {
+                        where: { full_name: g.homeTeamName },
+                        create: { full_name: g.homeTeamName, short_name: g.homeTeamName.substring(0, 3).toUpperCase(), league_type: "NBA" }
+                    }
+                },
+                away_team: {
+                    connectOrCreate: {
+                        where: { full_name: g.awayTeamName },
+                        create: { full_name: g.awayTeamName, short_name: g.awayTeamName.substring(0, 3).toUpperCase(), league_type: "NBA" }
+                    }
+                },
+                nbaStats: {
+                    create: {
+                        homeFga: g.homeStats.fga, homeFta: g.homeStats.fta, homeTov: g.homeStats.tov, homeOreb: g.homeStats.oreb,
+                        awayFga: g.awayStats.fga, awayFta: g.awayStats.fta, awayTov: g.awayStats.tov, awayOreb: g.awayStats.oreb,
+                        homePlayerIds: g.homePlayers,
+                        awayPlayerIds: g.awayPlayers
+                    }
+                }
+            }
         });
     }
-    await (prisma as any).teams.createMany({
-        data: teams,
-        skipDuplicates: true
-    });
 
-    // 2. Matches Bulk Seed
-    const matches = [];
-    const target = 1200;
-    for (let i = 0; i < target; i++) {
-        const homeProb = (i % 2 === 0) ? 0.65 : 0.35;
-        const result = Math.random() < homeProb ? "HOME_WIN" : "AWAY_WIN";
-        matches.push({
-            extId: `bulk-nba-${i}`,
-            sport: "basketball",
-            homeTeamId: `Team_${i % 30}`,
-            awayTeamId: `Team_${(i + 5) % 30}`,
-            homeTeamName: `Team_${i % 30}`,
-            awayTeamName: `Team_${(i + 5) % 30}`,
-            homeScore: result === "HOME_WIN" ? 110 : 100,
-            awayScore: result === "AWAY_WIN" ? 110 : 100,
-            matchResult: result,
-            status: "finished",
-            date: new Date(Date.now() - (target - i) * 3600 * 24 * 1000)
-        });
-    }
-
-    await (prisma as any).match.createMany({
-        data: matches,
-        skipDuplicates: true
-    });
-
-    console.log("[Seed] Bulk matches created. Fetching IDs...");
-
-    const matchRecords = await (prisma as any).match.findMany({
-        where: { extId: { startsWith: "bulk-nba-" } },
-        select: { id: true }
-    });
-
-    console.log(`[Seed] Processing ${matchRecords.length} features concurrently...`);
-
-    // 3. Concurrent Processing (Limit 50)
-    const limit = 50;
-    for (let i = 0; i < matchRecords.length; i += limit) {
-        const batch = matchRecords.slice(i, i + limit);
-        await Promise.all(batch.map(m => computeNBAFeatures(m.id)));
-        console.log(`[Seed] Progress: ${i + batch.length}/${matchRecords.length}`);
-    }
-
-    console.log(`[Seed] NBA Concurrent Scaling Complete.`);
+    console.log("[Seed] Real NBA Seeding (V3.3) Complete.");
 }
 
-main().catch(console.error).finally(() => (prisma as any).$disconnect());
+main().catch(console.error).finally(() => prisma.$disconnect());
