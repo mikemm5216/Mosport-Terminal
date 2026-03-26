@@ -78,27 +78,28 @@ model Stats_Soccer {
 }
 
 model Match {
-  id           String   @id @default(cuid())
+  id           String   @id @default(cuid()) @map("match_id")
   extId        String   @unique
-  date         DateTime
+  date         DateTime @map("match_date")
   sport        String   // "baseball" | "basketball" | "football"
 
-  homeTeamId   String
-  awayTeamId   String
+  homeTeamId   String   @map("home_team_id")
+  awayTeamId   String   @map("away_team_id")
+  
   home_team    Teams    @relation("HomeMatches", fields: [homeTeamId], references: [team_id])
   away_team    Teams    @relation("AwayMatches", fields: [awayTeamId], references: [team_id])
 
   homeTeamName String   // display only
   awayTeamName String
 
-  homeScore    Int?
-  awayScore    Int?
+  homeScore    Int?     @map("home_score")
+  awayScore    Int?     @map("away_score")
 
   matchResult  String?  // "HOME_WIN" | "AWAY_WIN" | "DRAW"
   status       String   @default("scheduled")
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   features     MatchFeatures[]
   odds         Odds[]
@@ -106,11 +107,12 @@ model Match {
   mappings     ExternalMatchMap[]
 
   @@index([sport, date])
+  @@map("Matches")
 }
 
 model MatchFeatures {
   id              String   @id @default(cuid())
-  matchId         String
+  matchId         String   @map("match_id")
   sport           String
 
   // 🌍 World Engine
@@ -142,7 +144,7 @@ model MatchFeatures {
 
 model EventSnapshot {
   snapshot_id   String   @id @default(uuid()) @db.Uuid
-  matchId       String
+  matchId       String   @map("match_id")
   snapshot_type String
   state_json    Json
   created_at    DateTime @default(now())
