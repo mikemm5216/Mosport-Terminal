@@ -18,8 +18,8 @@ model Teams {
   created_at   DateTime       @default(now())
   updated_at   DateTime       @updatedAt
   history      MatchHistory[]
-  matches_away Matches[]      @relation("AwayMatches")
-  matches_home Matches[]      @relation("HomeMatches")
+  matches_away Match[]        @relation("AwayMatches")
+  matches_home Match[]        @relation("HomeMatches")
   rosters      Roster[]
 }
 
@@ -77,57 +77,77 @@ model Stats_Soccer {
   player    Player @relation(fields: [player_id], references: [player_id])
 }
 
-model Matches {
-  match_id        String          @id @default(cuid())
-  extId           String?
-  sport           String
-  league          String
-  home_team_id    String
-  away_team_id    String
-  match_date      DateTime
-  status          String          @default("scheduled") // scheduled, live, finished
-  home_score      Int?
-  away_score      Int?
-  sourceUpdatedAt DateTime?
-  created_at      DateTime        @default(now())
-  updated_at      DateTime        @default(now()) @updatedAt
+model Match {
+  id           String   @id @default(cuid())
+  extId        String   @unique
+  date         DateTime
+  sport        String   // "baseball" | "basketball" | "football"
 
-  home_team       Teams           @relation("HomeMatches", fields: [home_team_id], references: [team_id])
-  away_team       Teams           @relation("AwayMatches", fields: [away_team_id], references: [team_id])
-  
-  snapshots       EventSnapshot[]
-  odds            Odds[]
-  mappings        ExternalMatchMap[]
-  features        MatchFeatures[]
+  homeTeamId   String
+  awayTeamId   String
+  home_team    Teams    @relation("HomeMatches", fields: [homeTeamId], references: [team_id])
+  away_team    Teams    @relation("AwayMatches", fields: [awayTeamId], references: [team_id])
 
-  @@unique([extId])
-  @@index([match_date, sport, league])
+  homeTeamName String   // display only
+  awayTeamName String
+
+  homeScore    Int?
+  awayScore    Int?
+
+  matchResult  String?  // "HOME_WIN" | "AWAY_WIN" | "DRAW"
+  status       String   @default("scheduled")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  features     MatchFeatures[]
+  odds         Odds[]
+  snapshots    EventSnapshot[]
+  mappings     ExternalMatchMap[]
+
+  @@index([sport, date])
 }
 
 model MatchFeatures {
   id              String   @id @default(cuid())
-  match_id        String
-  featureVersion  String   // e.g., "v1.0"
-  teamType        String   // "home", "away", or "diff"
-  
-  // Model Features
-  xgdDiff         Float?
-  fatigueDiff     Float?
-  motivationDiff  Float?
-  
-  match           Matches  @relation(fields: [match_id], references: [match_id])
+  matchId         String
+  sport           String
 
-  @@unique([match_id, featureVersion, teamType])
+  // 🌍 World Engine
+  homeWorld       Float?
+  awayWorld       Float?
+
+  // 🫀 Physio Engine
+  homePhysio      Float?
+  awayPhysio      Float?
+
+  // 🧠 Psycho Engine
+  homePsycho      Float?
+  awayPsycho      Float?
+
+  // Derived (useful for training)
+  worldDiff       Float?
+  physioDiff      Float?
+  psychoDiff      Float?
+
+  featureTime     DateTime @default(now())
+  featureVersion  String
+  updatedAt       DateTime @updatedAt
+
+  match           Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, sport, featureVersion])
+  @@index([matchId, sport])
 }
 
 model EventSnapshot {
   snapshot_id   String   @id @default(uuid()) @db.Uuid
-  match_id      String
+  matchId       String
   snapshot_type String
   state_json    Json
   created_at    DateTime @default(now())
   status        String   @default("DRAFT")
-  match         Matches  @relation(fields: [match_id], references: [match_id])
+  match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 }
 
 model MatchHistory {
@@ -148,7 +168,7 @@ model ExternalMatchMap {
   away_team   String
   created_at  DateTime @default(now())
 
-  match       Matches  @relation(fields: [matchId], references: [match_id])
+  match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@unique([provider, extId])
   @@index([matchId])
@@ -175,7 +195,7 @@ model Odds {
   provider   String
   odds_json  Json
   fetched_at DateTime @default(now())
-  match      Matches  @relation(fields: [matchId], references: [match_id])
+  match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@index([matchId, fetched_at])
 }

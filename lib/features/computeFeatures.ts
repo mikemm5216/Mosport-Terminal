@@ -1,59 +1,69 @@
 import { prisma } from "../prisma";
 
 export async function computeMatchFeatures(matchId: string) {
-    const match = await prisma.matches.findUnique({
-        where: { match_id: matchId },
-        include: {
-            home_team: true,
-            away_team: true
-        }
+    const match = await (prisma as any).match.findUnique({
+        where: { id: matchId }
     });
 
     if (!match) throw new Error(`Match ${matchId} not found`);
 
     // Fetch match-specific team state snapshots
     const [homeState, awayState] = await Promise.all([
-        prisma.eventSnapshot.findFirst({
-            where: { match_id: matchId, snapshot_type: "TEAM_STATE_HOME" },
+        (prisma as any).eventSnapshot.findFirst({
+            where: { matchId: matchId, snapshot_type: "TEAM_STATE_HOME" },
             orderBy: { created_at: "desc" }
         }),
-        prisma.eventSnapshot.findFirst({
-            where: { match_id: matchId, snapshot_type: "TEAM_STATE_AWAY" },
+        (prisma as any).eventSnapshot.findFirst({
+            where: { matchId: matchId, snapshot_type: "TEAM_STATE_AWAY" },
             orderBy: { created_at: "desc" }
         })
     ]);
 
+    // Fallbacks if snapshots are missing
     const h = (homeState?.state_json as any) || { team_strength: 50, fatigue: 0.5, momentum: 0.5 };
     const a = (awayState?.state_json as any) || { team_strength: 50, fatigue: 0.5, momentum: 0.5 };
 
-    // Calculate Deltas (v1.0 logic)
-    const xgdDiff = h.team_strength - a.team_strength;
-    const fatigueDiff = h.fatigue - a.fatigue;
-    const motivationDiff = h.momentum - a.momentum;
+    // 1. World Engine (Strength/Skill)
+    const homeWorld = h.team_strength || 50;
+    const awayWorld = a.team_strength || 50;
+    const worldDiff = homeWorld - awayWorld;
 
-    // Upsert MatchFeatures
-    await prisma.matchFeatures.upsert({
+    // 2. Physio Engine (Fatigue/Decay) - Normalized (Inverted fatigue)
+    const homePhysio = 1 - (h.fatigue || 0.5);
+    const awayPhysio = 1 - (a.fatigue || 0.5);
+    const physioDiff = homePhysio - awayPhysio;
+
+    // 3. Psycho Engine (Momentum/Stakes)
+    const homePsycho = h.momentum || 0.5;
+    const awayPsycho = a.momentum || 0.5;
+    const psychoDiff = homePsycho - awayPsycho;
+
+    // Upsert MatchFeatures (Spartan v2.0)
+    await (prisma as any).matchFeatures.upsert({
         where: {
-            match_id_featureVersion_teamType: {
-                match_id: matchId,
-                featureVersion: "v1.0",
-                teamType: "diff"
+            matchId_sport_featureVersion: {
+                matchId,
+                sport: match.sport,
+                featureVersion: "v2.0"
             }
         },
         update: {
-            xgdDiff,
-            fatigueDiff,
-            motivationDiff
+            homeWorld, awayWorld, worldDiff,
+            homePhysio, awayPhysio, physioDiff,
+            homePsycho, awayPsycho, psychoDiff,
+            updatedAt: new Date()
         },
         create: {
-            match_id: matchId,
-            featureVersion: "v1.0",
-            teamType: "diff",
-            xgdDiff,
-            fatigueDiff,
-            motivationDiff
+            matchId,
+            sport: match.sport,
+            homeWorld, awayWorld, worldDiff,
+            homePhysio, awayPhysio, physioDiff,
+            homePsycho, awayPsycho, psychoDiff,
+            featureVersion: "v2.0"
         }
     });
 
-    return { xgdDiff, fatigueDiff, motivationDiff };
+    console.log(`[Features] Spartan v2.0 computed for ${matchId} (${match.sport})`);
+
+    return { worldDiff, physioDiff, psychoDiff };
 }

@@ -1,10 +1,9 @@
 import { prisma } from "../lib/prisma";
 import { TheSportsDBAdapter } from "../lib/ingest/adapters/thesportsdb";
 import { computeMatchFeatures } from "../lib/features/computeFeatures";
-import { execSync } from "child_process";
 
 async function main() {
-    console.log("[Seed] Starting historical data seeding...");
+    console.log("[Seed] Starting Final Spartan Seeding...");
 
     const adapter = new TheSportsDBAdapter();
     const sport = "football";
@@ -12,80 +11,94 @@ async function main() {
     const seasons = ["2023-2024", "2024-2025"];
 
     for (const season of seasons) {
-        console.log(`[Seed] Fetching historical matches for ${league} season ${season}...`);
+        console.log(`[Seed] Fetching ${league} season ${season}...`);
 
-        // Custom URL for specific season
         const leagueId = "4328"; // EPL
         const url = `https://www.thesportsdb.com/api/v1/json/${process.env.THE_SPORTS_DB_API_KEY || "3"}/eventsseason.php?id=${leagueId}&s=${season}`;
 
         const response = await fetch(url);
-        const dataJson = await response.json();
+        const dataJson: any = await response.json();
         const data = dataJson.events || [];
 
-        console.log(`[Seed] Found ${data.length} matches in season ${season}.`);
+        console.log(`[Seed] Found ${data.length} matches.`);
 
         for (const item of data) {
             if (item.strStatus !== "Match Finished") continue;
 
-            const normalized = adapter.normalize(item, {
-                sport,
-                league,
-                currentPage: 1
+            const homeScore = parseInt(item.intHomeScore);
+            const awayScore = parseInt(item.intAwayScore);
+            let matchResult = "DRAW";
+            if (homeScore > awayScore) matchResult = "HOME_WIN";
+            else if (awayScore > homeScore) matchResult = "AWAY_WIN";
+
+            // 1. Ensure Teams Exist (Requirement for Spartan Identity)
+            await (prisma as any).teams.upsert({
+                where: { full_name: item.strHomeTeam },
+                update: {},
+                create: {
+                    team_id: item.idHomeTeam,
+                    full_name: item.strHomeTeam,
+                    short_name: item.strHomeTeam.substring(0, 3).toUpperCase(),
+                    league_type: "SOCCER"
+                }
+            });
+
+            await (prisma as any).teams.upsert({
+                where: { full_name: item.strAwayTeam },
+                update: {},
+                create: {
+                    team_id: item.idAwayTeam,
+                    full_name: item.strAwayTeam,
+                    short_name: item.strAwayTeam.substring(0, 3).toUpperCase(),
+                    league_type: "SOCCER"
+                }
             });
 
             // 2. Upsert Match
-            console.log(`[Seed] Processing: ${normalized.homeTeam} vs ${normalized.awayTeam} (${normalized.startTime})...`);
-
-            const match = await prisma.matches.upsert({
-                where: { extId: normalized.extId },
+            const match = await (prisma as any).match.upsert({
+                where: { extId: item.idEvent },
                 update: {
                     status: "finished",
-                    home_score: parseInt(item.intHomeScore),
-                    away_score: parseInt(item.intAwayScore),
-                    match_date: new Date(normalized.startTime)
+                    homeScore,
+                    awayScore,
+                    matchResult,
+                    date: new Date(item.strTimestamp || item.dateEvent)
                 },
                 create: {
-                    match_id: normalized.extId,
-                    extId: normalized.extId,
+                    extId: item.idEvent,
                     sport,
-                    league,
-                    home_team_id: item.idHomeTeam,
-                    away_team_id: item.idAwayTeam,
-                    match_date: new Date(normalized.startTime),
-                    status: "finished",
-                    home_score: parseInt(item.intHomeScore),
-                    away_score: parseInt(item.intAwayScore)
+                    date: new Date(item.strTimestamp || item.dateEvent),
+                    homeTeamId: item.idHomeTeam,
+                    awayTeamId: item.idAwayTeam,
+                    homeTeamName: item.strHomeTeam,
+                    awayTeamName: item.strAwayTeam,
+                    homeScore,
+                    awayScore,
+                    matchResult,
+                    status: "finished"
                 }
             });
 
-            // 3. Attach Mock Odds
-            const homeOdds = 1.5 + Math.random() * 2;
-            const awayOdds = 1.5 + Math.random() * 2;
-            const drawOdds = 3.0 + Math.random();
+            // 3. Attach Mock Odds (Required for Backtest)
+            const hOdds = 1.5 + Math.random() * 2;
+            const aOdds = 2.0 + Math.random() * 2;
+            const dOdds = 3.0 + Math.random();
 
-            await prisma.odds.upsert({
-                where: { id: `mock-${match.match_id}` },
+            await (prisma as any).odds.upsert({
+                where: { id: `spartan-mock-${match.id}` },
                 update: {},
                 create: {
-                    id: `mock-${match.match_id}`,
-                    matchId: match.match_id,
+                    id: `spartan-mock-${match.id}`,
+                    matchId: match.id,
                     provider: "theoddsapi",
-                    odds_json: {
-                        home: homeOdds,
-                        away: awayOdds,
-                        draw: drawOdds,
-                        market: "H2H"
-                    } as any,
-                    fetched_at: new Date()
+                    odds_json: { home: hOdds, away: aOdds, draw: dOdds } as any
                 }
             });
 
-            // 4. Compute Features (Deltas)
-            // First ENSURE team state snapshots exist (Simulate WorldState)
-            // Use TEAM_STATE_HOME and TEAM_STATE_AWAY linked to the match_id
-            await prisma.eventSnapshot.create({
+            // 4. Create World State Snapshots (Requirement for Feature Engine)
+            await (prisma as any).eventSnapshot.create({
                 data: {
-                    match_id: match.match_id,
+                    matchId: match.id,
                     snapshot_type: "TEAM_STATE_HOME",
                     state_json: {
                         team_strength: 70 + Math.random() * 20,
@@ -95,9 +108,9 @@ async function main() {
                 }
             });
 
-            await prisma.eventSnapshot.create({
+            await (prisma as any).eventSnapshot.create({
                 data: {
-                    match_id: match.match_id,
+                    matchId: match.id,
                     snapshot_type: "TEAM_STATE_AWAY",
                     state_json: {
                         team_strength: 60 + Math.random() * 20,
@@ -107,15 +120,15 @@ async function main() {
                 }
             });
 
-            await computeMatchFeatures(match.match_id);
+            // 5. Compute Features (Spartan v2.0)
+            await computeMatchFeatures(match.id);
         }
         console.log(`[Seed] Season ${season} complete.`);
     }
 
-    console.log("[Seed] All historical data seeded successfully.");
-    console.log("[Seed] Ready for Training Engine.");
+    console.log("[Seed] Spartan Seeding Complete.");
 }
 
 main()
     .catch(console.error)
-    .finally(() => prisma.$disconnect());
+    .finally(() => (prisma as any).$disconnect());
