@@ -19,7 +19,8 @@ async function main() {
         { name: "Greek SL", id: "4340" },
         { name: "Danish SL", id: "4351" },
         { name: "Swedish Allsvenskan", id: "4347" },
-        { name: "Swiss SL", id: "4358" }
+        { name: "Swiss SL", id: "4358" },
+        { name: "NBA", id: "4387" }
     ];
 
     const seasons = ["2023-2024", "2024-2025"];
@@ -46,6 +47,10 @@ async function main() {
                     if (homeScore > awayScore) result = "HOME_WIN";
                     else if (awayScore > homeScore) result = "AWAY_WIN";
 
+                    const isNBA = league.name === "NBA";
+                    const sport = isNBA ? "basketball" : "football";
+                    const leagueType = isNBA ? "NBA" : "SOCCER";
+
                     // 1. Teams
                     await (prisma as any).teams.upsert({
                         where: { team_id: item.idHomeTeam },
@@ -54,7 +59,7 @@ async function main() {
                             team_id: item.idHomeTeam,
                             full_name: item.strHomeTeam,
                             short_name: item.strHomeTeam.substring(0, 3).toUpperCase(),
-                            league_type: "SOCCER"
+                            league_type: leagueType
                         }
                     });
 
@@ -65,7 +70,7 @@ async function main() {
                             team_id: item.idAwayTeam,
                             full_name: item.strAwayTeam,
                             short_name: item.strAwayTeam.substring(0, 3).toUpperCase(),
-                            league_type: "SOCCER"
+                            league_type: leagueType
                         }
                     });
 
@@ -79,7 +84,7 @@ async function main() {
                         },
                         create: {
                             extId: item.idEvent,
-                            sport: "football",
+                            sport: sport,
                             date: new Date(item.strTimestamp || item.dateEvent),
                             homeTeamId: item.idHomeTeam,
                             awayTeamId: item.idAwayTeam,
