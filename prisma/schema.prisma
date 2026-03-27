@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["quant_internal", "public_api"]
+  schemas  = ["quant_internal", "public_api", "ghost_layer"]
 }
 
 model Teams {
@@ -355,4 +355,38 @@ enum LeagueType {
   KBO
 
   @@schema("public_api")
+}
+
+// --- V13.0 GHOST LAYER MODELS ---
+
+model UserDecisionLog {
+  id        String   @id @default(cuid())
+  userId    String
+  matchId   String
+  action    String   // VIEW, FOLLOW, IGNORE
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@schema("ghost_layer")
+}
+
+model StrategyPerformanceSnapshot {
+  id           String   @id @default(cuid())
+  strategyName String
+  metrics      Json
+  recordedAt   DateTime @default(now())
+
+  @@schema("ghost_layer")
+}
+
+model UserProfileVector {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  riskPreference    Float    @default(0.5)
+  edgePreference    Float    @default(0.03)
+  oddsPreference    Float    @default(2.0)
+  preferenceVector  Json?
+  lastBehaviorAudit DateTime @default(now())
+
+  @@schema("ghost_layer")
 }

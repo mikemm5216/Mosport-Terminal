@@ -20,6 +20,10 @@ export interface FootballPredictionV11_5 {
     clv: number | null;
     edgeDecay: number;
     tags: string[];
+    future?: {
+        recommendedStake: number | null;
+        strategyLabel: string | null;
+    };
 }
 
 export function generateFootballSignalV11_5(
@@ -73,6 +77,10 @@ export function generateFootballSignalV11_5(
         ev: valueData.ev,
         clv: temporalData.clv,
         edgeDecay: temporalData.edgeDrift,
-        tags: allTags
+        tags: allTags,
+        future: {
+            recommendedStake: null, // V13+ Personalized Alpha
+            strategyLabel: null     // V13+ Individual Matching
+        }
     };
 }

@@ -17,6 +17,10 @@ export interface BaseballPredictionV11_5 {
     ev: number;
     clv: number | null;
     tags: string[];
+    future?: {
+        recommendedStake: number | null;
+        strategyLabel: string | null;
+    };
 }
 
 export function generateBaseballSignalV11_5(
@@ -60,6 +64,10 @@ export function generateBaseballSignalV11_5(
         edge: valueData.edge,
         ev: valueData.ev,
         clv: temporalData.clv,
-        tags: [...valueData.tags, ...temporalData.tags]
+        tags: [...valueData.tags, ...temporalData.tags],
+        future: {
+            recommendedStake: null, // V13+ Personalized Alpha
+            strategyLabel: null     // V13+ Individual Matching
+        }
     };
 }
