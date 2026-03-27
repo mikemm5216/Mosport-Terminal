@@ -24,12 +24,12 @@ async function main() {
         const matchup = cols[6];
         const isHome = matchup.includes("vs.");
         const teamName = cols[3];
-        const pts = parseInt(cols[26]);
+        const pts = parseInt(cols[28]); // CORRECT: Index 28
 
         const stats = {
             fga: parseInt(cols[10]) || 0,
             fta: parseInt(cols[16]) || 0,
-            tov: parseInt(cols[24]) || 0,
+            tov: parseInt(cols[22]) || 0, // CORRECT: Index 22
             oreb: parseInt(cols[18]) || 0,
             trb: parseInt(cols[20]) || 0,
             ast: parseInt(cols[21]) || 0,

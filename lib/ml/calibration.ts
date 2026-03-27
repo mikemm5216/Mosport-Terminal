@@ -1,6 +1,6 @@
 /**
- * Spartan Calibration & Metrics Utility
- * Platt Scaling (A/B optimization), Brier Score, Log Loss, and Bucket Analysis.
+ * Spartan Calibration & Metrics Utility V1.1
+ * Platt Scaling (Logit-based), Brier Score, Log Loss, and Bucket Analysis.
  */
 
 export function sigmoid(z: number): number {
@@ -9,58 +9,50 @@ export function sigmoid(z: number): number {
 
 /**
  * Apply Platt Scaling: 
- * calibrated_prob = 1 / (1 + exp(-(A * raw_prob + B)))
+ * calibrated_prob = 1 / (1 + exp(-(A * logit + B)))
  */
-export function plattScale(rawProb: number, A: number, B: number): number {
-    return sigmoid(A * rawProb + B);
+export function plattScale(logit: number, A: number, B: number): number {
+    return sigmoid(A * logit + B);
 }
 
 /**
  * Train Platt Scaling parameters A and B using Gradient Descent.
- * rawProbs: array of uncalibrated probabilities (0-1)
+ * logits: array of raw model outputs (before sigmoid)
  * labels: array of binary outcomes (0 or 1)
  */
-export function trainPlatt(rawProbs: number[], labels: number[]) {
-    let A = -1.0; // Initial guess: negative slope to compress overconfidence
+export function trainPlatt(logits: number[], labels: number[]) {
+    let A = 1.0; // Initial guess for logit scaling
     let B = 0.0;
-    const lr = 0.1;
-    const epochs = 1000;
+    const lr = 0.5;
+    const epochs = 2000;
 
     for (let i = 0; i < epochs; i++) {
         let dA = 0;
         let dB = 0;
 
-        for (let j = 0; j < rawProbs.length; j++) {
-            const prob = rawProbs[j];
+        for (let j = 0; j < logits.length; j++) {
+            const logit = logits[j];
             const label = labels[j];
-            const pred = plattScale(prob, A, B);
+            const pred = plattScale(logit, A, B);
             const error = pred - label;
 
-            dA += error * prob;
+            dA += error * logit;
             dB += error;
         }
 
-        A -= (lr * dA) / rawProbs.length;
-        B -= (lr * dB) / rawProbs.length;
+        A -= (lr * dA) / logits.length;
+        B -= (lr * dB) / logits.length;
     }
 
     return { A, B };
 }
 
-/**
- * Brier Score: Mean Squared Error of predictions.
- * Lower is better. 0.0 is perfect, 0.25 is random/worst for binary.
- */
 export function brierScore(probs: number[], labels: number[]): number {
     if (probs.length === 0) return 0;
     const sumSqError = probs.reduce((sum, p, i) => sum + Math.pow(p - labels[i], 2), 0);
     return sumSqError / probs.length;
 }
 
-/**
- * Log Loss (Cross-Entropy).
- * Lower is better.
- */
 export function logLoss(probs: number[], labels: number[]): number {
     if (probs.length === 0) return 0;
     const sumLogLoss = probs.reduce((sum, p, i) => {
@@ -71,9 +63,6 @@ export function logLoss(probs: number[], labels: number[]): number {
     return sumLogLoss / probs.length;
 }
 
-/**
- * Bucket Analysis: Group predictions into buckets to find calibration gaps.
- */
 export function bucketAnalysis(probs: number[], labels: number[]) {
     const buckets: { predicted: number[]; actual: number[] }[] = Array.from({ length: 10 }, () => ({
         predicted: [],
