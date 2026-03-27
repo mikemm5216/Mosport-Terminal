@@ -359,11 +359,12 @@ enum LeagueType {
 
 // --- V13.0 GHOST LAYER MODELS ---
 
-model UserDecisionLog {
+model UserEventLog {
   id        String   @id @default(cuid())
   userId    String
   matchId   String
   action    String   // VIEW, FOLLOW, IGNORE
+  modelVersion String? // V13+ Model Versioning
   metadata  Json?
   createdAt DateTime @default(now())
 
@@ -387,6 +388,17 @@ model UserProfileVector {
   oddsPreference    Float    @default(2.0)
   preferenceVector  Json?
   lastBehaviorAudit DateTime @default(now())
+
+  @@schema("ghost_layer")
+}
+
+model SignalOutcome {
+  id           String   @id @default(cuid())
+  signalId     String   @unique
+  result       String   // WIN, LOSE, DRAW
+  payout       Float
+  closingOdds  Float
+  recordedAt   DateTime @default(now())
 
   @@schema("ghost_layer")
 }

@@ -1,11 +1,14 @@
 import { extractFairProbs } from "../market/anti_juice";
 import { calculateValueMetrics } from "../market/value_engine";
 import { evaluateTemporalState } from "../market/temporal_engine";
+import { generateSignalHash } from "../ghost/tracking_service";
 
 /**
  * BASEBALL SIGNAL ENGINE (V11.5 - MARKET SOVEREIGNTY)
  * Decision Layer for MLB & Asian Leagues
  */
+
+const MODEL_VERSION = "V11.5";
 
 export interface BaseballPredictionV11_5 {
     matchId: string;
@@ -16,10 +19,12 @@ export interface BaseballPredictionV11_5 {
     edge: number;
     ev: number;
     clv: number | null;
+    modelVersion: string;
     tags: string[];
     future?: {
         recommendedStake: number | null;
         strategyLabel: string | null;
+        signalId: string | null;
     };
 }
 
@@ -64,10 +69,12 @@ export function generateBaseballSignalV11_5(
         edge: valueData.edge,
         ev: valueData.ev,
         clv: temporalData.clv,
+        modelVersion: MODEL_VERSION,
         tags: [...valueData.tags, ...temporalData.tags],
         future: {
             recommendedStake: null, // V13+ Personalized Alpha
-            strategyLabel: null     // V13+ Individual Matching
+            strategyLabel: null,    // V13+ Individual Matching
+            signalId: generateSignalHash(matchId, oddsUpdatedAt.getTime(), MODEL_VERSION, maxP, marketOdds[0])
         }
     };
 }

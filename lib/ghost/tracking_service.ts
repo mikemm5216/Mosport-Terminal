@@ -11,10 +11,11 @@ const prisma = new PrismaClient();
 export function generateSignalHash(
     matchId: string,
     timestamp: number,
+    modelVersion: string,
     prob: number,
     odds: number
 ): string {
-    const data = `${matchId}|${timestamp}|${prob.toFixed(4)}|${odds.toFixed(2)}`;
+    const data = `${matchId}|${timestamp}|${modelVersion}|${prob.toFixed(4)}|${odds.toFixed(2)}`;
     return createHash("sha256").update(data).digest("hex");
 }
 
@@ -22,22 +23,25 @@ export async function trackUserDecision(
     userId: string,
     matchId: string,
     action: "VIEW" | "FOLLOW" | "IGNORE",
+    modelVersion: string,
     signalMetadata: { prob: number; odds: number; timestamp: number },
     customMetadata: any = {}
 ) {
     const signalId = generateSignalHash(
         matchId,
         signalMetadata.timestamp,
+        modelVersion,
         signalMetadata.prob,
         signalMetadata.odds
     );
 
     try {
-        await prisma.userDecisionLog.create({
+        await prisma.userEventLog.create({
             data: {
                 userId,
                 matchId,
                 action,
+                modelVersion,
                 metadata: {
                     ...customMetadata,
                     signalId,
@@ -49,6 +53,26 @@ export async function trackUserDecision(
     } catch (e) {
         console.error("[Ghost] Failed to track decision:", e);
         return { success: false };
+    }
+}
+
+export async function recordSignalOutcome(
+    signalId: string,
+    result: "WIN" | "LOSE" | "DRAW",
+    payout: number,
+    closingOdds: number
+) {
+    try {
+        await prisma.signalOutcome.create({
+            data: {
+                signalId,
+                result,
+                payout,
+                closingOdds
+            }
+        });
+    } catch (e) {
+        console.error("[Ghost] Failed to record outcome:", e);
     }
 }
 
