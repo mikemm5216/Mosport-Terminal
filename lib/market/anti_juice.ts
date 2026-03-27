@@ -12,14 +12,21 @@ export function americanToDecimal(odds: number): number {
 }
 
 export function extractFairProbs(marketOdds: number[]): number[] {
-    // Market odds should already be decimal (Step 1 handled by caller if needed)
-
-    // Step 2 & 3: Implied Probabilities and Overround
+    // 1. Implied Probabilities
     const pImplied = marketOdds.map(o => 1 / o);
     const S = pImplied.reduce((a, b) => a + b, 0);
 
-    // Step 4: Normalize
-    return pImplied.map(p => p / S);
+    // 2. Normalization with 4 decimal precision
+    const pFair = pImplied.map(p => Number((p / S).toFixed(4)));
+
+    // 3. Parity Correction (Sum must be exactly 1.0000)
+    const currentSum = pFair.reduce((a, b) => a + b, 0);
+    if (Math.abs(currentSum - 1.0) > 0.00001) {
+        const diff = Number((1.0 - currentSum).toFixed(4));
+        pFair[pFair.length - 1] = Number((pFair[pFair.length - 1] + diff).toFixed(4));
+    }
+
+    return pFair;
 }
 
 export function calculateMarketMargin(marketOdds: number[]): number {

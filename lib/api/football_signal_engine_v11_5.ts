@@ -38,11 +38,16 @@ export function generateFootballSignalV11_5(
     oddsUpdatedAt: Date,
     matchDate: Date
 ): FootballPredictionV11_5 {
-    // 1. Model Normalization
+    // 1. Model Normalization (Sum = 1.0000)
     const pSum = pModel[0] + pModel[1] + pModel[2];
-    const pw = pModel[0] / pSum;
-    const pd = pModel[1] / pSum;
-    const pl = pModel[2] / pSum;
+    let pw = Number((pModel[0] / pSum).toFixed(4));
+    let pd = Number((pModel[1] / pSum).toFixed(4));
+    let pl = Number((pModel[2] / pSum).toFixed(4));
+
+    const checkSum = pw + pd + pl;
+    if (checkSum !== 1.0) {
+        pl = Number((1.0 - pw - pd).toFixed(4));
+    }
 
     // 2. Market De-Margining
     const pFair = extractFairProbs(marketOdds);
