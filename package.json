@@ -40,6 +40,6 @@
     "typescript": "^5"
   },
   "prisma": {
-    "seed": "npx tsx scripts/seed-cold-start.ts"
+    "seed": "npx tsx prisma/seed.ts"
   }
 }
