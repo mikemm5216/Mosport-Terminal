@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronUp, ArrowRight, User, Zap, Activity } from 'lucide-react';
+import { ChevronDown, ChevronUp, ArrowRight, User, Zap, Activity, Info, Eye, CheckCircle, XCircle } from 'lucide-react';
 import LiveTicker from '@/components/LiveTicker';
 import { formatLocalTime } from '@/lib/timezone';
 import { getShortName } from '@/lib/teams';
@@ -16,7 +16,18 @@ export default function Home() {
     fetch('/api/signals')
       .then(res => res.json())
       .then(data => {
-        if (data.success) setMatches(data.data);
+        if (data.success) {
+          // V11.5 Priority Sorting
+          const getPriority = (m: any) => {
+            const tags = m.tags || [];
+            if (tags.includes('THE_GOLDEN_ALPHA')) return 0;
+            if (tags.includes('SMART_VALUE')) return 1;
+            if (tags.includes('STATISTICAL_TRAP')) return 3;
+            return 2; // NORMAL
+          };
+          const sorted = [...data.data].sort((a, b) => getPriority(a) - getPriority(b));
+          setMatches(sorted);
+        }
         setLoading(false);
       })
       .catch(e => {
@@ -40,8 +51,8 @@ export default function Home() {
         </h1>
         <div className="flex justify-between items-center mt-2">
           <div className="flex gap-2 items-center">
-             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-             <span className="text-[10px] text-slate-400 font-mono tracking-widest uppercase">Live Link Active</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-[10px] text-slate-400 font-mono tracking-widest uppercase">Decision Intelligence Active</span>
           </div>
         </div>
       </div>
@@ -52,7 +63,7 @@ export default function Home() {
         </div>
       ) : matches.length === 0 ? (
         <div className="w-full max-w-4xl p-20 text-center text-slate-500 font-mono text-sm tracking-widest uppercase border border-dashed border-slate-900 mt-8 rounded-2xl mx-4">
-          No Active Intelligence Signals
+          No Intelligence Signals Found
         </div>
       ) : (
         <div className="w-full max-w-4xl pb-20 px-4">
@@ -78,107 +89,138 @@ const getLeagueDisplay = (leagueName?: string): string => {
 const toTLA = (name: string) => getShortName(name);
 
 function RowItem({ match, isExpanded, onToggle }: { match: any, isExpanded: boolean, onToggle: () => void }) {
-  const isUCL = (match.league?.league_name || '').toUpperCase().includes('CHAMPIONS LEAGUE');
+  const tags = match.tags || [];
+  const signalId = match.future?.signalId || match.match_id;
+
+  // 1. SIGNAL HEADER LOGIC
+  const isGolden = tags.includes('THE_GOLDEN_ALPHA');
+  const isValue = tags.includes('SMART_VALUE');
+  const isTrap = tags.includes('STATISTICAL_TRAP');
+  const isStale = tags.includes('STALE_ODDS');
+
+  let headerStyle = "border-slate-800 text-slate-500 bg-slate-900/40";
+  let tagLabel = match.signal || "NEUTRAL";
+
+  if (isGolden) {
+    headerStyle = "border-cyan-500 bg-cyan-500/10 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)] animate-pulse";
+    tagLabel = "⭐ THE GOLDEN ALPHA";
+  } else if (isValue) {
+    headerStyle = "border-blue-500 bg-blue-500/10 text-blue-400";
+    tagLabel = "🔥 SMART VALUE";
+  } else if (isTrap) {
+    headerStyle = "border-red-500 bg-red-500/10 text-red-500";
+    tagLabel = "⚠️ STATISTICAL TRAP";
+  }
+
+  // 3. INTERPRETATION LAYER
+  const getInterpretation = () => {
+    if (isGolden) return "Market Inefficiency Detected";
+    if (isTrap) return "High EV but Low Reliability";
+    if (isStale) return "Market Data Outdated";
+    return "Stable Quantitative Alignment";
+  };
+
+  const trackUserEvent = async (action: string, id: string) => {
+    console.log(`[V13 Ghost] Recording decision: ${action} for signal ${id}`);
+    // Mock API call per "Do not modify backend" constraint
+    try {
+      await fetch('/api/ghost/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, signalId: id })
+      });
+    } catch (e) { }
+  };
 
   return (
-    <div className="group border-b border-slate-900/50">
-      <div 
+    <div className={`group mb-4 rounded-xl border transition-all duration-500 overflow-hidden ${isExpanded ? 'border-slate-700 bg-slate-900/20' : 'border-slate-900/50 hover:border-slate-700 bg-slate-950'}`}>
+      <div
         onClick={onToggle}
-        className={`w-full py-6 md:py-8 cursor-pointer transition-all duration-300 relative overflow-hidden ${isExpanded ? 'bg-slate-900/40' : 'hover:bg-slate-900/20'}`}
+        className="w-full p-4 md:p-6 cursor-pointer relative"
       >
-        {/* LEAGUE / TIME / TOGGLER HEADER */}
-        <div className="flex justify-between items-center px-4 md:px-6 mb-4">
-           <div className="flex items-center gap-4 overflow-hidden">
-             <span className="text-[10px] md:text-sm text-slate-400 font-black tracking-[0.2em] uppercase flex items-center gap-2 whitespace-nowrap">
-               {getLeagueDisplay(match.league?.league_name)}
-               {isUCL && (
-                 <span className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(16,185,129,0.3)] animate-pulse">
-                   [FREE TO VIEW]
-                 </span>
-               )}
-             </span>
-            </div>
-           <div className="flex items-center gap-3 shrink-0">
-             <span className="text-[10px] md:text-sm text-slate-500 font-mono tracking-widest font-bold">
-                {formatLocalTime(match.match_date)}
-             </span>
-             {match.status === "COMPLETED" && (
-               <span className="text-[9px] md:text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 font-black uppercase tracking-widest">FINAL</span>
-             )}
-             {isExpanded ? <ChevronUp size={16} className="text-slate-600" /> : <ChevronDown size={16} className="text-slate-600" />}
-           </div>
-        </div>
-
-      <div className="flex flex-col gap-4 w-full">
-        {/* ROW 1: SIGNAL TAG (FULL WIDTH) */}
-        <div className="flex justify-center h-6">
-          {match.primaryTag && (
-            <div className="bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse">
-              <span className="text-[10px] md:text-xs font-black text-cyan-400 uppercase tracking-widest">{match.primaryTag}</span>
-            </div>
-          )}
-        </div>
-
-        {/* ROW 2: TEAMS GRID */}
-        <div className="grid grid-cols-[1fr_60px_1fr] md:grid-cols-[1fr_100px_1fr] items-center gap-4 md:gap-10 w-full px-4 md:px-6">
-          <div className="flex items-center justify-end gap-3 md:gap-8 text-right">
-            <span className="text-white font-black text-3xl md:text-5xl tracking-tighter uppercase leading-none">
-              {toTLA(match.home_team_name || match.home_team?.full_name || match.home_short_name || 'HOM')}
-            </span>
-            <div className="w-10 h-10 md:w-16 md:h-16 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.6)]">
-               {match.home_logo ? <img src={match.home_logo} alt="" className="w-full h-full object-contain p-2" /> : <Zap className="text-slate-800" size={24} />}
-            </div>
+        {/* DECISION HEADER */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <div className={`px-4 py-1.5 rounded-full border text-[10px] md:text-xs font-black tracking-widest uppercase transition-all ${headerStyle}`}>
+            {tagLabel}
           </div>
 
-          <div className="text-slate-800 font-black text-sm md:text-xl text-center italic tracking-widest opacity-40">VS</div>
-
-          <div className="flex items-center justify-start gap-3 md:gap-8 text-left">
-            <div className="w-10 h-10 md:w-16 md:h-16 shrink-0 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.6)]">
-               {match.away_logo ? <img src={match.away_logo} alt="" className="w-full h-full object-contain p-2" /> : <Zap className="text-slate-800" size={24} />}
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col items-end">
+              <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">{getShortName(match.home_team_name)} VS {getShortName(match.away_team_name)}</span>
+              <span className="text-[10px] text-slate-400 font-mono">{formatLocalTime(match.match_date)}</span>
             </div>
-            <span className="text-white font-black text-3xl md:text-5xl tracking-tighter uppercase leading-none">
-              {toTLA(match.away_team_name || match.away_team?.full_name || match.away_short_name || 'AWY')}
+          </div>
+        </div>
+
+        {/* 2. CORE METRICS GRID */}
+        <div className="grid grid-cols-3 gap-4 md:gap-8 mb-6">
+          <div className="flex flex-col items-center justify-center p-3 bg-slate-900/50 rounded-lg border border-slate-800/50">
+            <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Edge</span>
+            <span className={`text-xl md:text-3xl font-black ${(match.edge || 0) > 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
+              {((match.edge || 0) * 100).toFixed(1)}%
+            </span>
+          </div>
+          <div className="flex flex-col items-center justify-center p-3 bg-slate-900/50 rounded-lg border border-slate-800/50">
+            <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Exp. EV</span>
+            <span className={`text-xl md:text-3xl font-black ${(match.ev || 0) > 0 ? 'text-amber-400' : 'text-slate-400'}`}>
+              {((match.ev || 0) * 100).toFixed(1)}%
+            </span>
+          </div>
+          <div className="flex flex-col items-center justify-center p-3 bg-slate-900/50 rounded-lg border border-slate-800/50">
+            <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Confidence</span>
+            <span className="text-xl md:text-3xl font-black text-cyan-400">
+              {((match.confidence || 0) * 100).toFixed(1)}%
             </span>
           </div>
         </div>
-      </div>
+
+        {/* 3. INTERPRETATION LAYER */}
+        <div className="bg-slate-950 p-4 rounded-lg border-l-4 border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Info size={14} className="text-slate-500" />
+            <span className="text-xs md:text-sm font-medium text-slate-300 italic">
+              "{getInterpretation()}"
+            </span>
+          </div>
+          {!isExpanded && <ChevronDown size={14} className="text-slate-700" />}
+        </div>
       </div>
 
       {isExpanded && (
-        <div className="bg-slate-900/60 px-6 py-8 md:px-12 border-t border-slate-800/50 shadow-inner">
-          <div className="max-w-3xl mx-auto">
-            <div className="bg-slate-950/80 p-6 md:p-8 rounded-xl border border-slate-800 relative overflow-hidden group/narrative mb-8">
-               <div className="absolute top-0 right-0 w-1 h-full bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)]" />
-               <div className="flex justify-between items-center mb-4">
-                 <div className="flex items-center gap-2">
-                   <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                   <span className="text-[10px] font-black tracking-[0.2em] uppercase text-purple-400">Market Sentiment Intelligence</span>
-                 </div>
-               </div>
-                <ul className="space-y-4 text-sm text-slate-300">
-                   <li className="flex flex-col gap-1">
-                     <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">Expert Analysis</span>
-                     <span className="leading-relaxed">{match.marketSentiment?.expert || "Aggregating keywords..."}</span>
-                   </li>
-                   <li className="flex flex-col gap-1">
-                     <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">Sharp Money</span>
-                     <span className="leading-relaxed text-cyan-400 font-medium">{match.marketSentiment?.money || "High-volume position detected."}</span>
-                   </li>
-                   <li className="flex flex-col gap-1">
-                     <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase">Social Heat</span>
-                     <span className="leading-relaxed">{match.marketSentiment?.social || "Mixed outlook across major platforms."}</span>
-                   </li>
-                </ul>
+        <div className="px-4 pb-6 md:px-6 md:pb-8 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="h-px bg-slate-800/50 w-full mb-6" />
+
+          <div className="max-w-3xl mx-auto space-y-6">
+            {/* 4. ACTION LAYER (V13) */}
+            <div className="flex flex-col md:flex-row gap-3">
+              <button
+                onClick={(e) => { e.stopPropagation(); trackUserEvent("FOLLOW", signalId); }}
+                className="flex-1 flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-black py-4 rounded-lg font-black text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(6,182,212,0.2)]"
+              >
+                <CheckCircle size={14} /> Follow Signal
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); trackUserEvent("VIEW", signalId); }}
+                className="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-lg font-black text-xs uppercase tracking-widest transition-all"
+              >
+                <Eye size={14} /> Watch Intel
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); trackUserEvent("IGNORE", signalId); }}
+                className="flex-1 flex items-center justify-center gap-2 bg-slate-900/50 hover:bg-red-900/20 text-slate-500 hover:text-red-400 py-4 rounded-lg font-black text-xs uppercase tracking-widest transition-all border border-slate-800"
+              >
+                <XCircle size={14} /> Ignore Decision
+              </button>
             </div>
 
-            <div className="flex justify-between items-center border-t border-slate-800/50 pt-6">
-               <Link
-                 href={`/matches/${match.match_id}`}
-                 onClick={e => e.stopPropagation()}
-                 className="flex items-center gap-3 bg-white text-black px-6 py-2 rounded font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-cyan-400 transition-colors"
-               >
-                 ENTER WAR ROOM <ArrowRight size={14} />
-               </Link>
+            <div className="flex justify-center pt-2">
+              <Link
+                href={`/matches/${match.match_id}`}
+                onClick={e => e.stopPropagation()}
+                className="flex items-center gap-2 text-slate-500 hover:text-cyan-400 font-black text-[9px] uppercase tracking-[0.3em] transition-all"
+              >
+                Detailed World State Model <ArrowRight size={10} />
+              </Link>
             </div>
           </div>
         </div>
