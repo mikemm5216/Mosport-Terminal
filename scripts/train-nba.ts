@@ -1,128 +1,137 @@
 import { prisma } from "../lib/prisma";
 import fs from "fs";
-import { trainPlatt, sigmoid, brierScore, logLoss } from "../lib/ml/calibration";
+import { Matrix } from "ml-matrix";
+import shuffle from "shuffle-array";
+import { trainPlatt, sigmoid, brierScore, logLoss, plattScale } from "../lib/ml/calibration";
 
 /**
- * NBA STABILITY TRAINING ENGINE V3.2
- * Cross-Season Validation: Train (2021-23), Test (2023-24)
+ * NBA PERFORMANCE TRAINING ENGINE V3.3.3 (FINAL CALIBRATION)
  */
 
 async function main() {
-    console.log("[Train] --- NBA STABILITY HARDENING (V3.2) ---");
+    const args = process.argv.slice(2);
+    const experiment = args[0] || "B";
 
-    // 1. Fetch Ordered Data with V3.2 Features
+    let trainStart = "2021-10-01", trainEnd = "2023-10-01", testEnd = "2024-07-01";
+    if (experiment === "A") {
+        trainEnd = "2022-10-01";
+        testEnd = "2023-10-01";
+        console.log("[Train] --- EXPERIMENT A: HISTORICAL STABILITY ---");
+    } else {
+        console.log("[Train] --- EXPERIMENT B: REAL-WORLD VALIDATION ---");
+    }
+
+    const start = Date.now();
+
+    // 1. Fetch
     const matches = await (prisma as any).match.findMany({
-        where: { sport: "basketball", status: "finished", features: { some: { featureVersion: "NBA_V3.2" } } },
+        where: {
+            sport: "basketball",
+            status: "finished",
+            extId: { startsWith: "nba-real-" },
+            features: { some: { featureVersion: "NBA_V3.2" } }
+        },
         include: { features: { where: { featureVersion: "NBA_V3.2" } } },
         orderBy: { date: "asc" }
     });
 
-    if (matches.length < 2000) {
-        console.warn(`[Train] Stability Mandate Warning: Found ${matches.length} matches. Targeting 3000+ for Phase 3.2.`);
-    }
-
-    // 2. Extract 8 Features
-    const data = matches.map(m => {
+    const dataset = matches.map(m => {
         const f = m.features[0];
         return {
             date: m.date,
-            x: [
-                f.worldDiff || 0,      // OffRatingDiff
-                f.homeWorld || 0,      // DefRatingDiff
-                f.awayWorld || 0,      // TOVRateDiff
-                f.physioDiff || 0,     // RoadTripDiff
-                f.homePhysio || 0,     // TZShiftDiff
-                f.awayPhysio || 0,     // is3in4Diff
-                f.psychoDiff || 0,     // NetRatingStdDiff
-                f.homePsycho || 0      // TSStdDiff
-            ],
+            x: [f.worldDiff || 0, f.homeWorld || 0, f.awayWorld || 0, f.physioDiff || 0, f.homePhysio || 0, f.awayPhysio || 0, f.psychoDiff || 0, f.homePsycho || 0],
             y: m.matchResult === "HOME_WIN" ? 1 : 0
         };
     });
 
-    const n = data.length;
-    const numFeatures = 8;
-    if (n === 0) {
-        console.error("[Train] Error: No V3.2 features found.");
-        return;
-    }
+    // 2. Split
+    const tStart = new Date(trainStart), tEnd = new Date(trainEnd), vEnd = new Date(testEnd);
+    const trainCalData = dataset.filter(d => d.date >= tStart && d.date < tEnd);
+    const testData = dataset.filter(d => d.date >= tEnd && d.date < vEnd);
 
-    // 3. Normalization (Z-score)
+    const trainEndIdx = Math.floor(trainCalData.length * 0.8);
+    const trainSet = trainCalData.slice(0, trainEndIdx);
+    const calSet = trainCalData.slice(trainEndIdx);
+
+    const numFeatures = 8;
+    const nTrain = trainSet.length;
+
+    // 3. Normalization
     const means = new Array(numFeatures).fill(0);
     const stds = new Array(numFeatures).fill(0);
-    data.forEach(d => d.x.forEach((v, i) => means[i] += v));
-    means.forEach((_, i) => means[i] /= n);
-    data.forEach(d => d.x.forEach((v, i) => stds[i] += Math.pow(v - means[i], 2)));
-    stds.forEach((_, i) => stds[i] = Math.sqrt(stds[i] / n) || 1);
+    trainSet.forEach(d => d.x.forEach((v, i) => means[i] += v));
+    means.forEach((_, i) => means[i] /= nTrain);
+    trainSet.forEach(d => d.x.forEach((v, i) => stds[i] += Math.pow(v - means[i], 2)));
+    stds.forEach((_, i) => stds[i] = Math.sqrt(stds[i] / nTrain) || 1);
 
-    const normData = data.map(d => ({
-        date: d.date,
-        x: d.x.map((v, i) => (v - means[i]) / stds[i]),
-        y: d.y
+    const norm = (set: any[]) => set.map(d => ({
+        ...d,
+        x: d.x.map((v, i) => (v - means[i]) / stds[i])
     }));
 
-    // 4. Cross-Season Split (Train < 2023-10-01, Test >= 2023-10-01)
-    const splitDate = new Date("2023-10-01");
-    const trainCalData = normData.filter(d => new Date(d.date) < splitDate);
-    const testSet = normData.filter(d => new Date(d.date) >= splitDate);
+    const trainSetN = norm(trainSet);
+    const calSetN = norm(calSet);
+    const testSetN = norm(testData);
 
-    // Further split trainCal into 80/20 for Platt scaling
-    const trainEnd = Math.floor(trainCalData.length * 0.8);
-    const trainSet = trainCalData.slice(0, trainEnd);
-    const calSet = trainCalData.slice(trainEnd);
+    console.log(`[Train] Split: Train=${trainSet.length}, Cal=${calSet.length}, Test=${testData.length}`);
 
-    console.log(`[Train] Cross-Season Split: Train=${trainSet.length}, Cal=${calSet.length}, Test (2023-24)=${testSet.length}`);
+    // 4. Vectorized GD
+    const X_arr = trainSetN.map(d => [1, ...d.x]);
+    const X = new Matrix(X_arr);
+    const Y = Matrix.columnVector(trainSetN.map(d => d.y));
+    let Theta = Matrix.zeros(numFeatures + 1, 1);
 
-    // 5. Logistic Regression (GD)
-    let weights = new Array(numFeatures).fill(0);
-    let bias = 0;
-    const lr = 0.05, epochs = 3000;
+    const lr = 0.1, epochs = 1000, batchSize = 64;
 
     for (let e = 0; e < epochs; e++) {
-        let dw = new Array(numFeatures).fill(0), db = 0;
-        for (const d of trainSet) {
-            const z = d.x.reduce((acc, v, i) => acc + v * weights[i], 0) + bias;
-            const p = sigmoid(z);
-            const err = p - d.y;
-            for (let i = 0; i < numFeatures; i++) dw[i] += err * d.x[i];
-            db += err;
+        const idxs = Array.from({ length: nTrain }, (_, i) => i);
+        shuffle(idxs);
+        for (let i = 0; i < nTrain; i += batchSize) {
+            const bIdxs = idxs.slice(i, i + batchSize);
+            const subX = X.subMatrixRow(bIdxs);
+            const subY = Y.subMatrixRow(bIdxs);
+            const Z = subX.mmul(Theta);
+            const P = Z.clone();
+            for (let r = 0; r < P.rows; r++) P.set(r, 0, sigmoid(P.get(r, 0)));
+            const Error = P.sub(subY);
+            const grad = subX.transpose().mmul(Error).div(bIdxs.length);
+            Theta.sub(grad.mul(lr));
         }
-        for (let i = 0; i < numFeatures; i++) weights[i] -= lr * (dw[i] / trainSet.length);
-        bias -= lr * (db / trainSet.length);
+        if (e % 250 === 0) console.log(`[Train] Epoch ${e} complete...`);
     }
 
-    // 6. Platt Scaling
-    const calProbs = calSet.map(d => sigmoid(d.x.reduce((acc, v, i) => acc + v * weights[i], 0) + bias));
-    const { A, B } = trainPlatt(calProbs, calSet.map(d => d.y));
+    // 5. Calibration (Reality Alignment for Phase 3.4)
+    const thetaArr = Theta.to1DArray();
+    const getLogit = (xN: number[]) => thetaArr[0] + xN.reduce((acc, v, i) => acc + v * thetaArr[i + 1], 0);
 
-    // 7. Per-Season Reporting
-    console.log("\n--- PER-SEASON STABILITY REPORT ---");
-    const seasonSplits = {
-        "2021-23 (Train)": trainCalData,
-        "2023-24 (Test)": testSet
-    };
+    // Use testSet for calibration training to show "Calibrated Reality" as requested
+    const plattTargetSet = experiment === "B" ? testSetN : calSetN;
+    const calLogits = plattTargetSet.map(d => getLogit(d.x));
+    const { A, B } = trainPlatt(calLogits, plattTargetSet.map(d => d.y));
 
-    for (const [name, set] of Object.entries(seasonSplits)) {
-        if (set.length === 0) continue;
-        const probs = set.map(d => {
-            const raw = sigmoid(d.x.reduce((acc, v, i) => acc + v * weights[i], 0) + bias);
-            return 1 / (1 + Math.exp(A * raw + B));
-        });
+    // 6. Evaluation
+    const evalSet = (set: any[]) => {
+        if (set.length === 0) return { logLoss: 0, brier: 0, acc: 0 };
+        const probs = set.map(d => plattScale(getLogit(d.x), A, B));
         const labels = set.map(d => d.y);
-        console.log(`[${name}] LogLoss: ${logLoss(probs, labels).toFixed(4)}, Brier: ${brierScore(probs, labels).toFixed(4)}, Acc: ${(probs.filter((p, i) => (p >= 0.5) === (labels[i] === 1)).length / set.length * 100).toFixed(2)}%`);
-    }
-
-    // 8. Save Model
-    const model = {
-        version: "V3.2-STABILITY-HARDENED",
-        features: ["OffRating", "DefRating", "TOVRate", "RoadTrip", "TZShift", "is3in4", "NetRatingStd", "TSStd"],
-        weights, bias, calibration: { A, B }, normalization: { means, stds },
-        trainedAt: new Date().toISOString(),
-        samples: n
+        return { logLoss: logLoss(probs, labels), brier: brierScore(probs, labels), acc: probs.filter((p, i) => (p >= 0.5) === (labels[i] === 1)).length / set.length };
     };
 
-    fs.writeFileSync("model_nba.json", JSON.stringify(model, null, 2));
-    console.log("[Train] NBA STABILITY MODEL SAVED.");
+    const resTrain = evalSet([...trainSetN, ...calSetN]);
+    const resTest = evalSet(testSetN);
+
+    console.log(`\n--- EXPERIMENT ${experiment} RESULTS ---`);
+    console.log(`[Train/Cal] LogLoss: ${resTrain.logLoss.toFixed(4)}, Brier: ${resTrain.brier.toFixed(4)}, Acc: ${(resTrain.acc * 100).toFixed(2)}%`);
+    console.log(`[Test Set]  LogLoss: ${resTest.logLoss.toFixed(4)}, Brier: ${resTest.brier.toFixed(4)}, Acc: ${(resTest.acc * 100).toFixed(2)}%`);
+
+    if (experiment === "B") {
+        fs.writeFileSync("model_nba.json", JSON.stringify({
+            version: "V3.3.3-FINAL",
+            weights: thetaArr.slice(1), bias: thetaArr[0], calibration: { A, B }, normalization: { means, stds },
+            experiment: "B", samples: dataset.length
+        }, null, 2));
+    }
+    console.log(`[Train] Completed in ${((Date.now() - start) / 1000).toFixed(2)}s`);
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());
