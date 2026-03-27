@@ -402,3 +402,17 @@ model SignalOutcome {
 
   @@schema("ghost_layer")
 }
+
+model StrategyBacktestResult {
+  id           String   @id @default(cuid())
+  league       String
+  strategyType String   // FLAT, WEIGHTED, KELLY
+  simulatedROI Float
+  sharpeRatio  Float
+  maxDrawdown  Float
+  sampleSize   Int
+  robustness   String   // HIGH_ROBUSTNESS, LOW_ROBUSTNESS
+  updatedAt    DateTime @default(now())
+
+  @@schema("ghost_layer")
+}
