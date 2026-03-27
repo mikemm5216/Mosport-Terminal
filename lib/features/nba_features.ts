@@ -76,7 +76,7 @@ async function getTeamAdvancedStats(teamId: string, beforeDate: Date, isHomeTeam
         },
         orderBy: { date: "desc" },
         take: 10, // Fetch more for RoadTrip/3in4 calculation
-        include: { nbaStats: true }
+        include: { nbaStats: true, home_team: true, away_team: true }
     });
 
     const h5 = history.slice(0, 5);
