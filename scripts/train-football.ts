@@ -16,6 +16,8 @@ async function main() {
         return;
     }
 
+    features.sort((a, b) => new Date(a.match.date).getTime() - new Date(b.match.date).getTime());
+
     const X = new Matrix(features.length, 6);
     const labels: number[] = [];
 
@@ -43,11 +45,15 @@ async function main() {
         }
     }
 
-    const split = Math.floor(features.length * 0.8);
-    const trainX = X.subMatrix(0, split - 1, 0, 5);
-    const testX = X.subMatrix(split, features.length - 1, 0, 5);
-    const trainY = toOneHot(labels.slice(0, split));
-    const testY = labels.slice(split);
+    const N = features.length;
+    const split1 = Math.floor(N * 0.7);
+    const split2 = Math.floor(N * 0.85);
+
+    const trainX = X.subMatrix(0, split1 - 1, 0, 5);
+    const trainY = toOneHot(labels.slice(0, split1));
+
+    const testX = X.subMatrix(split2, N - 1, 0, 5);
+    const testY = labels.slice(split2);
 
     const model = new MultinomialModel(6, 3);
     model.train(trainX, trainY, 0.05, 1000, 64);
@@ -55,17 +61,29 @@ async function main() {
     const preds = model.predict(testX);
     let correct = 0;
     let logLoss = 0;
+    let brierSum = 0;
 
     for (let i = 0; i < testX.rows; i++) {
         const row = preds.getRow(i);
         const predClass = row.indexOf(Math.max(...row));
         if (predClass === testY[i]) correct++;
-        logLoss -= Math.log(Math.max(row[testY[i]], 1e-15));
+
+        const p = Math.max(row[testY[i]], 1e-15);
+        logLoss -= Math.log(p);
+
+        let rowBrier = 0;
+        for (let k = 0; k < 3; k++) {
+            const actual = (k === testY[i] ? 1 : 0);
+            rowBrier += Math.pow(row[k] - actual, 2);
+        }
+        brierSum += rowBrier;
     }
 
-    console.log("\n--- FOOTBALL BACKTEST RESULTS ---");
+    console.log("\n--- REAL FOOTBALL BACKTEST (70/15/15) ---");
     console.log(`Accuracy: ${(correct / testX.rows * 100).toFixed(2)}%`);
     console.log(`LogLoss: ${(logLoss / testX.rows).toFixed(4)}`);
+    console.log(`Brier Score: ${(brierSum / testX.rows).toFixed(4)}`);
+    console.log(`Total Samples: ${features.length}`);
     console.log(`Total Samples: ${features.length}`);
 }
 
