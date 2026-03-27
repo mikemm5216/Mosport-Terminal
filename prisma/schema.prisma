@@ -111,6 +111,9 @@ model Match {
   matchResult  String?
   status       String   @default("scheduled")
 
+  leagueId     String?  @map("league_id")
+  league       League?  @relation(fields: [leagueId], references: [id])
+
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -121,10 +124,52 @@ model Match {
 
   predictions  MatchPrediction[]
   signals      MatchSignal[]
+  
   nbaStats     MatchStatsNBA?
+  footballStats MatchStatsFootball?
+  baseballStats MatchStatsBaseball?
 
   @@index([sport, date])
   @@map("Matches")
+  @@schema("quant_internal")
+}
+
+model League {
+  id              String   @id
+  sport           String   // 'football', 'basketball', 'baseball'
+  hasDraw         Boolean  // Determines Binary vs Multinomial Model
+  matchDuration   Int      // e.g., 48 (NBA), 40 (FIBA), 90 (Football)
+  isKnockout      Boolean  // True for Cup/Playoff formats
+  matches         Match[]
+
+  @@schema("quant_internal")
+}
+
+model MatchStatsFootball {
+  matchId       String   @id @map("match_id")
+  homeXG        Float
+  awayXG        Float
+  homePoss      Float
+  awayPoss      Float
+  homeShots     Int
+  awayShots     Int
+  homeSot       Int
+  awaySot       Int
+  match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@schema("quant_internal")
+}
+
+model MatchStatsBaseball {
+  matchId       String   @id @map("match_id")
+  homeStarterId String?
+  awayStarterId String?
+  homeXFIP      Float?
+  awayXFIP      Float?
+  homeWRC       Float?
+  awayWRC       Float?
+  match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
   @@schema("quant_internal")
 }
 
@@ -302,7 +347,11 @@ model MatchResolutionLog {
 enum LeagueType {
   NBA
   MLB
-  SOCCER
+  FOOTBALL
+  FIBA
+  CPBL
+  NPB
+  KBO
 
   @@schema("public_api")
 }
