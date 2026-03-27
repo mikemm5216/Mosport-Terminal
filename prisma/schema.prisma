@@ -168,6 +168,7 @@ model MatchStatsBaseball {
   awayXFIP      Float?
   homeWRC       Float?
   awayWRC       Float?
+  startingPitcherConfirmed Boolean @default(false)
   match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@schema("quant_internal")
