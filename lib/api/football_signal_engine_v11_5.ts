@@ -1,11 +1,14 @@
 import { extractFairProbs } from "../market/anti_juice";
 import { calculateValueMetrics } from "../market/value_engine";
 import { evaluateTemporalState } from "../market/temporal_engine";
+import { generateSignalHash } from "../ghost/tracking_service";
 
 /**
  * FOOTBALL SIGNAL ENGINE (V11.5 - MARKET SOVEREIGNTY)
  * Hedge Fund Grade Decision Layer
  */
+
+const MODEL_VERSION = "V11.5";
 
 export type UserSignal = "NONE" | "LEAN 👍" | "STRONG 🔥" | "ELITE ⭐";
 
@@ -19,10 +22,12 @@ export interface FootballPredictionV11_5 {
     ev: number;
     clv: number | null;
     edgeDecay: number;
+    modelVersion: string;
     tags: string[];
     future?: {
         recommendedStake: number | null;
         strategyLabel: string | null;
+        signalId: string | null;
     };
 }
 
@@ -77,10 +82,12 @@ export function generateFootballSignalV11_5(
         ev: valueData.ev,
         clv: temporalData.clv,
         edgeDecay: temporalData.edgeDrift,
+        modelVersion: MODEL_VERSION,
         tags: allTags,
         future: {
             recommendedStake: null, // V13+ Personalized Alpha
-            strategyLabel: null     // V13+ Individual Matching
+            strategyLabel: null,    // V13+ Individual Matching
+            signalId: generateSignalHash(matchId, oddsUpdatedAt.getTime(), MODEL_VERSION, maxP, marketOdds[0])
         }
     };
 }

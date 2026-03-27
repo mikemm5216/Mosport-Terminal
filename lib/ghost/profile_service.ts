@@ -7,27 +7,54 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function auditUserProfile(userId: string) {
-    const logs = await prisma.userDecisionLog.findMany({
-        where: { userId },
-        take: 100
+const LAMBDA = 0.1; // Decay constant (higher = faster decay)
+
+function calculateDecayedMetric(values: { val: number; timestamp: Date }[]): number {
+    if (values.length === 0) return 0;
+
+    const now = new Date().getTime();
+    let weightedSum = 0;
+    let totalWeight = 0;
+
+    values.forEach(v => {
+        const dt = (now - v.timestamp.getTime()) / (1000 * 60 * 60 * 24); // Days
+        const weight = Math.exp(-LAMBDA * dt);
+        weightedSum += v.val * weight;
+        totalWeight += weight;
     });
 
-    // Heuristic: Calculate mean risk/edge/odds preference from history
+    return totalWeight > 0 ? weightedSum / totalWeight : 0;
+}
+
+export async function auditUserProfile(userId: string) {
+    const logs = await prisma.userEventLog.findMany({
+        where: { userId },
+        take: 200,
+        orderBy: { createdAt: "desc" }
+    });
+
     const follows = logs.filter(l => l.action === "FOLLOW");
 
-    let riskPreference = 0.5;
-    let edgePreference = 0.03;
-    let oddsPreference = 2.0;
+    // 1. Odds Preference (Decayed)
+    const oddsValues = follows.map(l => ({
+        val: (l.metadata as any)?.odds || 2.0,
+        timestamp: l.createdAt
+    }));
+    const oddsPreference = Number(calculateDecayedMetric(oddsValues).toFixed(2)) || 2.0;
 
-    if (follows.length > 0) {
-        const avgOdds = follows.reduce((sum, l: any) => sum + (l.metadata?.odds || 0), 0) / follows.length;
-        const avgEdge = follows.reduce((sum, l: any) => sum + (l.metadata?.edge || 0), 0) / follows.length;
+    // 2. Edge Preference (Decayed)
+    const edgeValues = follows.map(l => ({
+        val: (l.metadata as any)?.edge || 0.03,
+        timestamp: l.createdAt
+    }));
+    const edgePreference = Number(calculateDecayedMetric(edgeValues).toFixed(4)) || 0.03;
 
-        oddsPreference = Number(avgOdds.toFixed(2));
-        edgePreference = Number(avgEdge.toFixed(4));
-        riskPreference = follows.length / logs.length; // Basic engagement proxy
-    }
+    // 3. Risk Preference (Engagement Proxy - Decayed)
+    const engagementValues = logs.map(l => ({
+        val: l.action === "FOLLOW" ? 1.0 : 0.0,
+        timestamp: l.createdAt
+    }));
+    const riskPreference = Number(calculateDecayedMetric(engagementValues).toFixed(2)) || 0.5;
 
     await prisma.userProfileVector.upsert({
         where: { userId },
