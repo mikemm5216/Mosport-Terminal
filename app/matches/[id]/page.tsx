@@ -195,9 +195,9 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                   <div className="flex items-center gap-4 justify-end text-right">
                      <div className="flex flex-col">
                         <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-0.5">Athletic Intelligence...</span>
-                        <span className="text-[11px] font-black text-amber-500 uppercase italic">{displayMatch.away_team.short_name} [ST]</span>
+                        <span className="text-[11px] font-black text-blue-500 uppercase italic">{displayMatch.away_team.short_name} [ST]</span>
                      </div>
-                     <div className="w-16 h-16 rounded-xl bg-slate-900 border border-amber-500/50 flex flex-col items-center justify-center">
+                     <div className="w-16 h-16 rounded-xl bg-slate-900 border border-blue-500/50 flex flex-col items-center justify-center">
                         <span className="text-2xl font-black text-white">{(awayStats.strength * 10).toFixed(0)}</span>
                         <span className="text-[8px] font-black text-slate-700 uppercase italic">ST</span>
                      </div>

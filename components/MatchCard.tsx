@@ -12,8 +12,8 @@ export const narrativeThemes: Record<string, { border: string, text: string, lab
     label: 'Energy Domination'
   },
   scandal: {
-    border: 'border-orange-500',
-    text: 'text-orange-500', 
+    border: 'border-blue-500',
+    text: 'text-blue-500', 
     label: 'Off-Court Storm'
   },
   news_driven: {
