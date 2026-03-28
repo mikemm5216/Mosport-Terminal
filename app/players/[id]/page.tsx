@@ -5,7 +5,7 @@ import { ArrowLeft, Zap, Target, Activity, Shield, Info, TrendingUp, AlertCircle
 export default async function PlayerDossierPage({ params }: { params: { id: string } }) {
    const { id } = await params;
 
-   // 1. DATA INGESTION (Hardened V16.0: Absolute Resilience)
+   // 1. DATA INGESTION (Institutional Alpha Resilience)
    let player = null;
    try {
       player = await (prisma as any).player.findUnique({
@@ -29,7 +29,7 @@ export default async function PlayerDossierPage({ params }: { params: { id: stri
       );
    }
 
-   // V15.5 MOCK FALLBACK FOR DEMO
+   // ALPHA MOCK FALLBACK FOR DEMO
    const mockPlayer = {
       player_id: 'P_OHTANI_GENESIS',
       display_name: 'SHOHEI OHTANI',
@@ -55,7 +55,7 @@ export default async function PlayerDossierPage({ params }: { params: { id: stri
    return (
       <div className="min-h-screen bg-[#05090f] text-slate-200 font-sans selection:bg-cyan-500/30 overflow-x-hidden pb-40">
 
-         {/* NAV: TOP BAR (High-Density V16.0) */}
+         {/* NAV: TOP BAR (High-Density Alpha) */}
          <nav className="w-full bg-[#070c14]/90 backdrop-blur-md border-b border-slate-900 px-12">
             <div className="max-w-7xl mx-auto h-14 flex items-center justify-between">
                <div className="flex items-center gap-10">
@@ -87,7 +87,7 @@ export default async function PlayerDossierPage({ params }: { params: { id: stri
                Back to Radar
             </Link>
 
-            {/* HERO SECTION (High-Density V16.0) */}
+            {/* HERO SECTION (High-Density Alpha) */}
             <div className="w-full bg-[#0a111a] border border-slate-800 rounded-[2rem] p-8 flex items-center gap-10 relative overflow-hidden shadow-2xl">
                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                   <Target size={120} className="text-white" />

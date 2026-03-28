@@ -40,7 +40,7 @@ async function main() {
         { id: 'NYY', name: 'New York Yankees', short: 'NYY', logo: '/logos/nyy_hd.png', league: LeagueType.MLB },
         { id: 'SFG', name: 'San Francisco Giants', short: 'SFG', logo: '/logos/giants.png', league: LeagueType.MLB },
         // PL
-        { id: 'CRY', name: 'Crystal Palace', short: 'CRY', logo: '/logos/cry.png', league: LeagueType.FOOTBALL },
+        { id: 'CRY', name: 'Crystal Palace', short: 'CRY', logo: '/logos/cry_hd.png', league: LeagueType.FOOTBALL },
         { id: 'WHU', name: 'West Ham United', short: 'WHU', logo: '/logos/whu.png', league: LeagueType.FOOTBALL }
     ];
 
@@ -92,12 +92,12 @@ async function main() {
     }
 
     // 4. MATCHES & V11.5 SIGNALS
-    const baseDate = new Date("2026-03-29T19:00:00Z"); // Tomorrow
+    const baseDate = new Date(); // RIGHT NOW
     const matchData = [
-        { id: 'EPL-2026-001', league: 'EPL', home: 'CRY', away: 'WHU', offsetHours: 0, tag: '🔥 UPSET ALERT', edge: 0.1245, ra_ev: 0.1420, clv: 0.0850, conf: 0.8520, sport: 'soccer' },
-        { id: 'NBA-2026-001', league: 'NBA', home: 'LAL', away: 'GSW', offsetHours: 4, tag: '🔒 LOCKED', edge: 0.0540, ra_ev: 0.0710, clv: 0.0320, conf: 0.9210, sport: 'basketball' },
-        { id: 'MLB-2026-001', league: 'MLB', home: 'NYY', away: 'LAD', offsetHours: 24, tag: 'BIOMETRIC_EDGE', edge: 0.0890, ra_ev: 0.1040, clv: 0.0610, conf: 0.7640, sport: 'baseball' },
-        { id: 'NBA-2026-002', league: 'NBA', home: 'BKN', away: 'GSW', offsetHours: 48, tag: 'SHARP_ALPHA', edge: 0.0320, ra_ev: 0.0450, clv: 0.0120, conf: 0.6850, sport: 'basketball' }
+        { id: 'EPL-2026-001', league: 'EPL', home: 'CRY', away: 'WHU', offsetHours: -1, tag: '🔥 UPSET ALERT', edge: 0.1245, ra_ev: 0.1420, clv: 0.0850, conf: 0.8520, sport: 'soccer' },
+        { id: 'NBA-2026-001', league: 'NBA', home: 'LAL', away: 'GSW', offsetHours: 1, tag: '🔒 LOCKED', edge: 0.0540, ra_ev: 0.0710, clv: 0.0320, conf: 0.9210, sport: 'basketball' },
+        { id: 'MLB-2026-001', league: 'MLB', home: 'NYY', away: 'LAD', offsetHours: 3, tag: 'BIOMETRIC_EDGE', edge: 0.0890, ra_ev: 0.1040, clv: 0.0610, conf: 0.7640, sport: 'baseball' },
+        { id: 'NBA-2026-002', league: 'NBA', home: 'BKN', away: 'GSW', offsetHours: 6, tag: 'SHARP_ALPHA', edge: 0.0320, ra_ev: 0.0450, clv: 0.0120, conf: 0.6850, sport: 'basketball' }
     ];
 
     for (const m of matchData) {
