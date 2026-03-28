@@ -22,8 +22,8 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                 <p className="text-slate-500 text-xs font-mono tracking-widest uppercase">Premium Match Feed</p>
             </div>
 
-            {/* Vertical Match List */}
-            <div className="flex flex-col space-y-3">
+            {/* Horizontal Match List - Scrollable */}
+            <div className="flex gap-3 overflow-x-auto pb-4 scroll-smooth scrollbar-hide">
                 {matches.map((match, idx) => {
                     const matchId = match.match_id || idx.toString();
                     const isExpanded = expandedId === matchId;
@@ -31,7 +31,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                     return (
                         <div
                             key={matchId}
-                            className="group cursor-pointer"
+                            className="group cursor-pointer flex-shrink-0 w-80"
                         >
                             {/* Match Row Item - ESPN Dense Style */}
                             <button
