@@ -23,6 +23,7 @@ async function main() {
     { team_id: "NYY", full_name: "New York Yankees", short_name: "NYY", city: "New York", league_type: LeagueType.MLB, logo_url: "/logos/nyy.png" },
     { team_id: "CRY", full_name: "Crystal Palace", short_name: "CRY", city: "London", league_type: LeagueType.SOCCER, logo_url: "/logos/cry.png" },
     { team_id: "WHU", full_name: "West Ham United", short_name: "WHU", city: "London", league_type: LeagueType.SOCCER, logo_url: "/logos/whu.png" },
+    { team_id: "DOD", full_name: "Los Angeles Dodgers", short_name: "DOD", city: "Los Angeles", league_type: LeagueType.MLB, logo_url: "/logos/dodgers.png" },
     { team_id: "LIV", full_name: "Liverpool", short_name: "LIV", city: "Liverpool", league_type: LeagueType.SOCCER, logo_url: null },
     { team_id: "OPP", full_name: "Opponent", short_name: "OPP", city: "Unknown", league_type: LeagueType.SOCCER, logo_url: null },
     { team_id: "TRP", full_name: "Trap Team", short_name: "TRP", city: "Trap City", league_type: LeagueType.SOCCER, logo_url: null },
@@ -43,40 +44,73 @@ async function main() {
 
   const sampleMatches = [
     {
-      id: "LIV-001",
-      extId: "LIV-001",
-      sport: "football",
-      homeTeamId: "LIV",
-      awayTeamId: "OPP",
+      id: "EPL-CRY-WHU-001",
+      extId: "EPL-CRY-WHU-001",
+      sport: "soccer",
+      homeTeamId: "CRY",
+      awayTeamId: "WHU",
       date: new Date(),
       status: "scheduled",
-      homeTeamName: "Liverpool",
-      awayTeamName: "Opponent",
-      signalData: { signalId: "LIV-001", signal: "ELITE", confidence: 0.7890, edge: 0.0925, ev: 0.1520, tags: ["THE_GOLDEN_ALPHA", "SHARP_SIGNAL"] }
+      homeTeamName: "Crystal Palace",
+      awayTeamName: "West Ham United",
+      signalData: {
+        signalId: "EPL-CRY-WHU-001",
+        signal: "ELITE",
+        confidence: 0.8520,
+        edge: 0.1245,
+        ev: 0.1840,
+        ra_ev: 0.1420,
+        clv: 0.0850,
+        modelProbs: [0.65, 0.25, 0.10],
+        marketFairProbs: [0.55, 0.30, 0.15],
+        tags: ["THE_GOLDEN_ALPHA", "SHARP_SIGNAL", "🔥 UPSET ALERT"]
+      }
     },
     {
-      id: "TRP-002",
-      extId: "TRP-002",
-      sport: "football",
-      homeTeamId: "TRP",
-      awayTeamId: "BAT",
+      id: "NBA-LAL-GSW-002",
+      extId: "NBA-LAL-GSW-002",
+      sport: "basketball",
+      homeTeamId: "LAL",
+      awayTeamId: "GSW",
       date: new Date(),
       status: "scheduled",
-      homeTeamName: "Trap Team",
-      awayTeamName: "Bait Team",
-      signalData: { signalId: "TRP-002", signal: "NONE", confidence: 0.0000, edge: 0.0000, ev: 0.5300, tags: ["STATISTICAL_TRAP"] }
+      homeTeamName: "Los Angeles Lakers",
+      awayTeamName: "Golden State Warriors",
+      signalData: {
+        signalId: "NBA-LAL-GSW-002",
+        signal: "LOCK",
+        confidence: 0.9210,
+        edge: 0.0540,
+        ev: 0.0820,
+        ra_ev: 0.0710,
+        clv: 0.0320,
+        modelProbs: [0.72, 0.28],
+        marketFairProbs: [0.68, 0.32],
+        tags: ["🔒 LOCKED", "INSTITUTIONAL_ALPHA"]
+      }
     },
     {
-      id: "STL-003",
-      extId: "STL-003",
-      sport: "football",
-      homeTeamId: "SHL",
-      awayTeamId: "SAL",
+      id: "MLB-NYY-DOD-003",
+      extId: "MLB-NYY-DOD-003",
+      sport: "baseball",
+      homeTeamId: "NYY",
+      awayTeamId: "DOD",
       date: new Date(),
       status: "scheduled",
-      homeTeamName: "Stale Home",
-      awayTeamName: "Stale Away",
-      signalData: { signalId: "STL-003", signal: "NONE", confidence: 0.0810, edge: 0.0090, ev: 0.0800, tags: ["STATISTICAL_TRAP", "STALE_ODDS"] }
+      homeTeamName: "New York Yankees",
+      awayTeamName: "Los Angeles Dodgers",
+      signalData: {
+        signalId: "MLB-NYY-DOD-003",
+        signal: "ELITE",
+        confidence: 0.7640,
+        edge: 0.0890,
+        ev: 0.1250,
+        ra_ev: 0.1040,
+        clv: 0.0610,
+        modelProbs: [0.58, 0.42],
+        marketFairProbs: [0.52, 0.48],
+        tags: ["SHARP_ALPHA", "BIOMETRIC_EDGE"]
+      }
     }
   ];
 
@@ -96,15 +130,21 @@ async function main() {
       }
     });
 
-    await prisma.eventSnapshot.create({
+    // V11.5 Signal Integration
+    await prisma.matchSignal.create({
       data: {
-        match: { connect: { extId: m.extId } },
-        snapshot_type: "V11.5_SIGNAL",
-        state_json: signalData as any,
-        status: "PUBLISHED"
+        matchId: m.extId,
+        signalLabel: (signalData as any).signal,
+        signalScore: (signalData as any).confidence,
+        confidence: (signalData as any).confidence,
+        edge: (signalData as any).edge,
+        ev: (signalData as any).ev,
+        ra_ev: (signalData as any).ra_ev,
+        clv: (signalData as any).clv,
+        tags: (signalData as any).tags
       }
     });
-    console.log(`[SEEDED MATCH] ${m.extId}`);
+    console.log(`[SEEDED MATCH + SIGNAL] ${m.extId}`);
   }
 
   console.log('--- GENESIS SEED COMPLETE ---');
