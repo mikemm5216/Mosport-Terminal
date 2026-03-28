@@ -22,8 +22,8 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                 <p className="text-slate-500 text-xs font-mono tracking-widest uppercase">Premium Match Feed</p>
             </div>
 
-            {/* Horizontal Match Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+            {/* Vertical Match List */}
+            <div className="flex flex-col space-y-3">
                 {matches.map((match, idx) => {
                     const matchId = match.match_id || idx.toString();
                     const isExpanded = expandedId === matchId;
@@ -33,37 +33,23 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                             key={matchId}
                             className="group cursor-pointer"
                         >
-                            {/* Match Card Item - ESPN Card Style */}
+                            {/* Match Row Item - ESPN Dense Style */}
                             <button
                                 onClick={() => toggleExpand(matchId)}
-                                className="w-full relative overflow-hidden rounded-lg"
+                                className="w-full relative overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-br from-slate-900/60 to-slate-950 border border-slate-800/60 rounded-lg group-hover:from-slate-800/70 group-hover:to-slate-900/70 group-hover:border-blue-500/40 transition-all duration-300" />
                                 <div className="absolute -inset-full top-0 left-0 h-64 w-64 bg-gradient-to-br from-blue-500/5 to-transparent rounded-full blur-3xl group-hover:from-blue-500/10 transition-all duration-500 pointer-events-none" />
 
-                                <div className="relative px-3 py-4 flex flex-col gap-3">
-                                    {/* Top: Time & Status */}
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex flex-col text-[9px] font-mono text-slate-400 tracking-wider">
-                                            <span className="font-black text-blue-400">{match.time || "19:00"}</span>
-                                            <span className="text-[7px] text-slate-600">{match.status || "SCHEDULED"}</span>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-1">
-                                            {match.tags?.includes("UPSET ALERT") && (
-                                                <span className="text-[7px] font-black text-blue-300 bg-blue-500/20 px-2 py-0.5 rounded border border-blue-400/50 uppercase tracking-wider italic whitespace-nowrap">
-                                                    UPSET 🔥
-                                                </span>
-                                            )}
-                                            {match.tags?.includes("SYSTEM LOCK") && (
-                                                <span className="text-[7px] font-black text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-400/50 uppercase tracking-wider italic whitespace-nowrap">
-                                                    LOCKED 🔒
-                                                </span>
-                                            )}
-                                        </div>
+                                <div className="relative px-4 py-3 flex items-center justify-between gap-4">
+                                    {/* Left: Time/Status - Monospace */}
+                                    <div className="flex flex-col items-start min-w-fit text-[10px] font-mono text-slate-400 tracking-wider">
+                                        <span className="font-black text-blue-400">{match.time || "19:00"}</span>
+                                        <span className="text-[8px] text-slate-600">{match.status || "SCHEDULED"}</span>
                                     </div>
 
                                     {/* Middle: Stacked Teams */}
-                                    <div className="flex flex-col gap-2">
+                                    <div className="flex-1 flex flex-col gap-2">
                                         {/* Home Team */}
                                         <div className="flex items-center gap-3">
                                             <img
@@ -105,10 +91,25 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                         </div>
                                     </div>
 
-                                    {/* Bottom: Expand Toggle */}
-                                    <div className="flex items-center justify-center pt-1">
+                                    {/* Right: Signal Tags */}
+                                    <div className="flex flex-col items-end gap-1.5 min-w-fit">
+                                        {match.tags?.includes("UPSET ALERT") && (
+                                            <span className="text-[8px] font-black text-blue-300 bg-blue-500/20 px-2 py-1 rounded border border-blue-400/50 uppercase tracking-wider italic whitespace-nowrap">
+                                                UPSET ALERT 🔥
+                                            </span>
+                                        )}
+                                        {match.tags?.includes("SYSTEM LOCK") && (
+                                            <span className="text-[8px] font-black text-emerald-300 bg-emerald-500/20 px-2 py-1 rounded border border-emerald-400/50 uppercase tracking-wider italic whitespace-nowrap">
+                                                LOCKED 🔒
+                                            </span>
+                                        )}
+                                        {!match.tags || match.tags.length === 0 && (
+                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider italic">
+                                                V11.5 SIGNAL
+                                            </span>
+                                        )}
                                         <ChevronDown
-                                            size={16}
+                                            size={14}
                                             className={`text-slate-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
                                         />
                                     </div>
