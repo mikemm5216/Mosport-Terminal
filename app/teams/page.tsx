@@ -22,7 +22,7 @@ export default async function TeamsAnalyticsPage({
   const teams = allTeams.filter(t => {
     if (sport === 'NBA') return t.league_type === 'NBA';
     if (sport === 'MLB') return t.league_type === 'MLB';
-    if (sport === 'SOCCER') return t.league_type === 'SOCCER';
+    if (sport === 'SOCCER') return t.league_type === 'FOOTBALL';
     return false;
   });
 
@@ -58,7 +58,7 @@ export default async function TeamsAnalyticsPage({
               Teams <span className="text-cyan-400">Vault</span>
             </h1>
             <p className="text-slate-500 text-[10px] md:text-xs font-mono uppercase tracking-[0.4em]">
-              Squad Intelligence & Multi-Sport Grid v2.1
+              Squad Intelligence & Multi-Sport Grid
             </p>
           </div>
 

@@ -12,7 +12,7 @@ export default function ExecutionTerminal({ signalId }: ExecutionTerminalProps) 
 
     const trackUserEvent = async (action: string) => {
         setStatus(`Recording ${action}...`);
-        console.log(`[V13 Ghost] Recording decision: ${action} for signal ${signalId}`);
+        console.log(`[ALPHA FEEDBACK] Recording decision: ${action} for signal ${signalId}`);
 
         try {
             await fetch('/api/ghost/track', {
@@ -33,7 +33,7 @@ export default function ExecutionTerminal({ signalId }: ExecutionTerminalProps) 
                     <div className="flex items-center gap-2 mb-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                         <span className="text-[10px] font-black text-white uppercase tracking-widest italic">
-                            {status || "V13 Personal Alpha Model Active"}
+                            {status || "Personal Alpha Model Active"}
                         </span>
                     </div>
                     <p className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">Your decision trains the cognitive feedback loop.</p>

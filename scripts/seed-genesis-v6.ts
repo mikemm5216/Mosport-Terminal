@@ -5,6 +5,15 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('--- [GENESIS 6.0] STARTING DATA DELUGE ---');
 
+    // 0. NUCLEAR RESET
+    console.log('--- PURGING STALE INTEL ---');
+    await (prisma as any).matchSignal.deleteMany({});
+    await (prisma as any).match.deleteMany({});
+    await (prisma as any).roster.deleteMany({});
+    await prisma.player.deleteMany({});
+    await prisma.teams.deleteMany({});
+    console.log('--- COLD PURGE COMPLETE ---');
+
     // 1. LEAGUES
     const leagues = [
         { id: 'EPL', sport: 'FOOTBALL', hasDraw: true, matchDuration: 90, isKnockout: false },
@@ -20,15 +29,15 @@ async function main() {
         });
     }
 
-    // 2. TEAMS (HD LOGOS - LOCAL PATHS)
+    // 2. TEAMS (HD LOGOS - GENERATED ASSETS)
     const teamsData = [
         // NBA
-        { id: 'LAL', name: 'Los Angeles Lakers', short: 'LAL', logo: '/logos/lal.png', league: LeagueType.NBA },
-        { id: 'GSW', name: 'Golden State Warriors', short: 'GSW', logo: '/logos/gsw.png', league: LeagueType.NBA },
+        { id: 'LAL', name: 'Los Angeles Lakers', short: 'LAL', logo: '/logos/lal_hd.png', league: LeagueType.NBA },
+        { id: 'GSW', name: 'Golden State Warriors', short: 'GSW', logo: '/logos/gsw_hd.png', league: LeagueType.NBA },
         { id: 'BKN', name: 'Brooklyn Nets', short: 'BKN', logo: '/logos/bkn.png', league: LeagueType.NBA },
         // MLB
-        { id: 'DOD', name: 'LA Dodgers', short: 'DOD', logo: '/logos/dodgers.png', league: LeagueType.MLB },
-        { id: 'NYY', name: 'New York Yankees', short: 'NYY', logo: '/logos/nyy.png', league: LeagueType.MLB },
+        { id: 'LAD', name: 'LA Dodgers', short: 'LAD', logo: '/logos/lad_hd.png', league: LeagueType.MLB },
+        { id: 'NYY', name: 'New York Yankees', short: 'NYY', logo: '/logos/nyy_hd.png', league: LeagueType.MLB },
         { id: 'SFG', name: 'San Francisco Giants', short: 'SFG', logo: '/logos/giants.png', league: LeagueType.MLB },
         // PL
         { id: 'CRY', name: 'Crystal Palace', short: 'CRY', logo: '/logos/cry.png', league: LeagueType.FOOTBALL },
@@ -53,7 +62,7 @@ async function main() {
     const players = [
         { id: 'P_LEBRON', first: 'LeBron', last: 'James', display: 'LEBRON JAMES', pos: 'F', team: 'LAL' },
         { id: 'P_CURRY', first: 'Stephen', last: 'Curry', display: 'STEPHEN CURRY', pos: 'G', team: 'GSW' },
-        { id: 'P_OHTANI', first: 'Shohei', last: 'Ohtani', display: 'SHOHEI OHTANI', pos: 'DH/P', team: 'DOD' },
+        { id: 'P_OHTANI', first: 'Shohei', last: 'Ohtani', display: 'SHOHEI OHTANI', pos: 'DH/P', team: 'LAD' },
         { id: 'P_JUDGE', first: 'Aaron', last: 'Judge', display: 'AARON JUDGE', pos: 'OF', team: 'NYY' }
     ];
 
@@ -87,7 +96,7 @@ async function main() {
     const matchData = [
         { id: 'EPL-2026-001', league: 'EPL', home: 'CRY', away: 'WHU', offsetHours: 0, tag: '🔥 UPSET ALERT', edge: 0.1245, ra_ev: 0.1420, clv: 0.0850, conf: 0.8520, sport: 'soccer' },
         { id: 'NBA-2026-001', league: 'NBA', home: 'LAL', away: 'GSW', offsetHours: 4, tag: '🔒 LOCKED', edge: 0.0540, ra_ev: 0.0710, clv: 0.0320, conf: 0.9210, sport: 'basketball' },
-        { id: 'MLB-2026-001', league: 'MLB', home: 'NYY', away: 'DOD', offsetHours: 24, tag: 'BIOMETRIC_EDGE', edge: 0.0890, ra_ev: 0.1040, clv: 0.0610, conf: 0.7640, sport: 'baseball' },
+        { id: 'MLB-2026-001', league: 'MLB', home: 'NYY', away: 'LAD', offsetHours: 24, tag: 'BIOMETRIC_EDGE', edge: 0.0890, ra_ev: 0.1040, clv: 0.0610, conf: 0.7640, sport: 'baseball' },
         { id: 'NBA-2026-002', league: 'NBA', home: 'BKN', away: 'GSW', offsetHours: 48, tag: 'SHARP_ALPHA', edge: 0.0320, ra_ev: 0.0450, clv: 0.0120, conf: 0.6850, sport: 'basketball' }
     ];
 
@@ -95,7 +104,7 @@ async function main() {
         const matchDate = new Date(baseDate.getTime() + m.offsetHours * 60 * 60 * 1000);
         const match = await (prisma as any).match.upsert({
             where: { extId: m.id },
-            update: { date: matchDate },
+            update: { date: matchDate, id: m.id },
             create: {
                 id: m.id,
                 extId: m.id,
@@ -118,7 +127,7 @@ async function main() {
                 ra_ev: m.ra_ev,
                 clv: m.clv,
                 confidence: m.conf,
-                tags: [m.tag, "V11.5_ALPHA"],
+                tags: [m.tag, "ALPHA_SIGNAL"],
                 signalLabel: m.tag === '🔒 LOCKED' ? 'ELITE' : 'STRONG',
                 signalScore: m.conf,
                 marketFairProbs: { home: 0.55, away: 0.45 }
@@ -130,7 +139,7 @@ async function main() {
                 ra_ev: m.ra_ev,
                 clv: m.clv,
                 confidence: m.conf,
-                tags: [m.tag, "V11.5_ALPHA"],
+                tags: [m.tag, "ALPHA_SIGNAL"],
                 signalLabel: m.tag === '🔒 LOCKED' ? 'ELITE' : 'STRONG',
                 signalScore: m.conf,
                 marketFairProbs: { home: 0.55, away: 0.45 }

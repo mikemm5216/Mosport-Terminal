@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // 1. FETCH ENRICHED V11.5+ SIGNALS
+    // 1. FETCH ENRICHED ALPHA SIGNALS
     const signals = await prisma.matchSignal.findMany({
       take: 40,
       include: {
@@ -38,7 +38,7 @@ export async function GET() {
         match_date: match.date,
         sport: match.sport,
 
-        // V11.5+ Metrics
+        // Alpha Metrics
         edge: s.edge,
         ev: s.ev,
         ra_ev: s.ra_ev,
