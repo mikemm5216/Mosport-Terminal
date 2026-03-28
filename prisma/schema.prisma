@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["quant_internal", "public_api", "ghost_layer"]
+  schemas  = ["ghost_layer", "public_api", "quant_internal"]
 }
 
 model Teams {
@@ -20,9 +20,9 @@ model Teams {
   created_at   DateTime       @default(now())
   updated_at   DateTime       @updatedAt
   history      MatchHistory[]
+  rosters      Roster[]
   matches_away Match[]        @relation("AwayMatches")
   matches_home Match[]        @relation("HomeMatches")
-  rosters      Roster[]
 
   @@schema("public_api")
 }
@@ -91,43 +91,33 @@ model Stats_Soccer {
 }
 
 model Match {
-  id           String   @id @default(cuid()) @map("match_id")
-  extId        String   @unique
-  date         DateTime @map("match_date")
-  sport        String
-
-  homeTeamId   String   @map("home_team_id")
-  awayTeamId   String   @map("away_team_id")
-  
-  home_team    Teams    @relation("HomeMatches", fields: [homeTeamId], references: [team_id])
-  away_team    Teams    @relation("AwayMatches", fields: [awayTeamId], references: [team_id])
-
-  homeTeamName String
-  awayTeamName String
-
-  homeScore    Int?     @map("home_score")
-  awayScore    Int?     @map("away_score")
-
-  matchResult  String?
-  status       String   @default("scheduled")
-
-  leagueId     String?  @map("league_id")
-  league       League?  @relation(fields: [leagueId], references: [id])
-
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  features     MatchFeatures[]
-  odds         Odds[]
-  snapshots    EventSnapshot[]
-  mappings     ExternalMatchMap[]
-
-  predictions  MatchPrediction[]
-  signals      MatchSignal[]
-  
-  nbaStats     MatchStatsNBA?
-  footballStats MatchStatsFootball?
+  id            String              @id @default(cuid()) @map("match_id")
+  extId         String              @unique
+  date          DateTime            @map("match_date")
+  sport         String
+  homeTeamId    String              @map("home_team_id")
+  awayTeamId    String              @map("away_team_id")
+  homeTeamName  String
+  awayTeamName  String
+  homeScore     Int?                @map("home_score")
+  awayScore     Int?                @map("away_score")
+  matchResult   String?
+  status        String              @default("scheduled")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  leagueId      String?             @map("league_id")
+  predictions   MatchPrediction?
+  signals       MatchSignal?
+  snapshots     EventSnapshot[]
+  mappings      ExternalMatchMap[]
+  features      MatchFeatures[]
   baseballStats MatchStatsBaseball?
+  footballStats MatchStatsFootball?
+  nbaStats      MatchStatsNBA?
+  away_team     Teams               @relation("AwayMatches", fields: [awayTeamId], references: [team_id])
+  home_team     Teams               @relation("HomeMatches", fields: [homeTeamId], references: [team_id])
+  league        League?             @relation(fields: [leagueId], references: [id])
+  odds          Odds[]
 
   @@index([sport, date])
   @@map("Matches")
@@ -135,43 +125,41 @@ model Match {
 }
 
 model League {
-  id              String   @id
-  name            String?  @unique
-  sport           String   // 'football', 'basketball', 'baseball'
-  hasDraw         Boolean? @default(false)
-  matchDuration   Int?     @default(90)
-  isKnockout      Boolean? @default(false)
-  logo_url        String?
-  matches         Match[]
+  id            String  @id
+  sport         String
+  hasDraw       Boolean
+  matchDuration Int
+  isKnockout    Boolean
+  matches       Match[]
 
   @@schema("quant_internal")
 }
 
 model MatchStatsFootball {
-  matchId       String   @id @map("match_id")
-  homeXG        Float
-  awayXG        Float
-  homePoss      Float
-  awayPoss      Float
-  homeShots     Int
-  awayShots     Int
-  homeSot       Int
-  awaySot       Int
-  match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  matchId   String @id @map("match_id")
+  homeXG    Float
+  awayXG    Float
+  homePoss  Float
+  awayPoss  Float
+  homeShots Int
+  awayShots Int
+  homeSot   Int
+  awaySot   Int
+  match     Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@schema("quant_internal")
 }
 
 model MatchStatsBaseball {
-  matchId       String   @id @map("match_id")
-  homeStarterId String?
-  awayStarterId String?
-  homeXFIP      Float?
-  awayXFIP      Float?
-  homeWRC       Float?
-  awayWRC       Float?
+  matchId                  String  @id @map("match_id")
+  homeStarterId            String?
+  awayStarterId            String?
+  homeXFIP                 Float?
+  awayXFIP                 Float?
+  homeWRC                  Float?
+  awayWRC                  Float?
   startingPitcherConfirmed Boolean @default(false)
-  match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  match                    Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@schema("quant_internal")
 }
@@ -182,73 +170,67 @@ model MatchStatsNBA {
   homeFta       Int
   homeTov       Int
   homeOreb      Int
-  homeReb       Int
-  homeAst       Int
   awayFga       Int
   awayFta       Int
   awayTov       Int
   awayOreb      Int
+  homePlayerIds String[]
+  awayPlayerIds String[]
+  homeReb       Int
+  homeAst       Int
   awayReb       Int
   awayAst       Int
-  homePlayerIds String[] // For Starter Consistency Proxy
-  awayPlayerIds String[]
   match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@schema("quant_internal")
 }
 
 model MatchPrediction {
-  id           String   @id @default(cuid())
-  matchId      String   @unique @map("match_id")
-  homeWinProb  Float    @map("home_win_prob")
-  awayWinProb  Float    @map("away_win_prob")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  match        Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  matchId     String   @unique @map("match_id")
+  homeWinProb Float    @map("home_win_prob")
+  awayWinProb Float    @map("away_win_prob")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@schema("public_api")
 }
 
 model MatchSignal {
-  id           String   @id @default(cuid())
-  matchId      String   @unique @map("match_id")
-  signalLabel  String   @map("signal_label") // LEAN, STRONG, ELITE
-  signalScore  Float    @map("signal_score")
-  
-  // V11.5 Metrics
-  edge         Float?   @default(0)
-  ev           Float?   @default(0)
-  ra_ev        Float?   @default(0) // Risk-Adjusted EV
-  clv          Float?   @default(0) // Closing Line Value
-  confidence   Float?   @default(0)
-  tags         String[] @default([])
+  id              String   @id @default(cuid())
+  matchId         String   @unique @map("match_id")
+  signalLabel     String   @map("signal_label")
+  signalScore     Float    @map("signal_score")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  confidence      Float?   @default(0)
+  edge            Float?   @default(0)
+  ev              Float?   @default(0)
   marketFairProbs Json?
-
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  match        Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  tags            String[] @default([])
+  clv             Float?   @default(0)
+  ra_ev           Float?   @default(0)
+  match           Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@schema("public_api")
 }
 
 model MatchFeatures {
-  id              String   @id @default(cuid())
-  matchId         String   @map("match_id")
-  sport           String
-
-  homeWorld       Float?
-  awayWorld       Float?
-  homePhysio      Float?
-  awayPhysio      Float?
-  homePsycho      Float?
-  awayPsycho      Float?
-
-  worldDiff       Float?
-  physioDiff      Float?
-  psychoDiff      Float?
-
-  featureTime     DateTime @default(now())
-  featureVersion  String
-  updatedAt       DateTime @updatedAt
-  match           Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  matchId        String   @map("match_id")
+  sport          String
+  homeWorld      Float?
+  awayWorld      Float?
+  homePhysio     Float?
+  awayPhysio     Float?
+  homePsycho     Float?
+  awayPsycho     Float?
+  worldDiff      Float?
+  physioDiff     Float?
+  psychoDiff     Float?
+  featureTime    DateTime @default(now())
+  featureVersion String
+  updatedAt      DateTime @updatedAt
+  match          Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@unique([matchId, sport, featureVersion])
   @@schema("quant_internal")
@@ -277,15 +259,15 @@ model MatchHistory {
 }
 
 model ExternalMatchMap {
-  id          String   @id @default(cuid())
-  matchId     String
-  provider    String
-  extId       String
-  match_date  DateTime
-  home_team   String
-  away_team   String
-  created_at  DateTime @default(now())
-  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  matchId    String
+  provider   String
+  extId      String
+  match_date DateTime
+  home_team  String
+  away_team  String
+  created_at DateTime @default(now())
+  match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@unique([provider, extId])
   @@schema("quant_internal")
@@ -357,28 +339,14 @@ model MatchResolutionLog {
   @@schema("quant_internal")
 }
 
-enum LeagueType {
-  NBA
-  MLB
-  FOOTBALL
-  FIBA
-  CPBL
-  NPB
-  KBO
-
-  @@schema("public_api")
-}
-
-// --- V13.0 GHOST LAYER MODELS ---
-
 model UserEventLog {
-  id        String   @id @default(cuid())
-  userId    String
-  matchId   String
-  action    String   // VIEW, FOLLOW, IGNORE
-  modelVersion String? // V13+ Model Versioning
-  metadata  Json?
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String
+  matchId      String
+  action       String
+  modelVersion String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
 
   @@schema("ghost_layer")
 }
@@ -405,12 +373,12 @@ model UserProfileVector {
 }
 
 model SignalOutcome {
-  id           String   @id @default(cuid())
-  signalId     String   @unique
-  result       String   // WIN, LOSE, DRAW
-  payout       Float
-  closingOdds  Float
-  recordedAt   DateTime @default(now())
+  id          String   @id @default(cuid())
+  signalId    String   @unique
+  result      String
+  payout      Float
+  closingOdds Float
+  recordedAt  DateTime @default(now())
 
   @@schema("ghost_layer")
 }
@@ -418,13 +386,25 @@ model SignalOutcome {
 model StrategyBacktestResult {
   id           String   @id @default(cuid())
   league       String
-  strategyType String   // FLAT, WEIGHTED, KELLY
+  strategyType String
   simulatedROI Float
   sharpeRatio  Float
   maxDrawdown  Float
   sampleSize   Int
-  robustness   String   // HIGH_ROBUSTNESS, LOW_ROBUSTNESS
+  robustness   String
   updatedAt    DateTime @default(now())
 
   @@schema("ghost_layer")
+}
+
+enum LeagueType {
+  NBA
+  MLB
+  FOOTBALL
+  FIBA
+  CPBL
+  NPB
+  KBO
+
+  @@schema("public_api")
 }
