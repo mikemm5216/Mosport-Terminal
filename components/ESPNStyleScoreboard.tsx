@@ -11,145 +11,156 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
         setExpandedId(prev => (prev === id ? null : id));
     };
 
+    if (!matches || matches.length === 0) {
+        return (
+            <div className="w-full flex flex-col items-center justify-center p-20 border border-dashed border-slate-800 rounded-xl bg-slate-900/10">
+                <span className="text-slate-600 font-black tracking-[0.5em] uppercase text-[10px] italic">
+                    [ NO ACTIVE MATCH INTELLIGENCE SCHEDULED FOR THIS CYCLE ]
+                </span>
+            </div>
+        );
+    }
+
     return (
-        <div className="w-full max-w-7xl mx-auto flex flex-col space-y-3">
+        <div className="w-full max-w-7xl mx-auto flex flex-col space-y-2">
             {matches.map((match, idx) => {
-                const isExpanded = expandedId === match.match_id;
+                const uniqueId = match.match_id || match.id || `match-${idx}`;
+                const isExpanded = expandedId === uniqueId;
                 const hasUpset = match.tags?.some((t: string) => t.includes("UPSET"));
                 const isLocked = match.tags?.some((t: string) => t.includes("LOCKED") || t.includes("LOCK"));
 
                 return (
-                    <div key={match.match_id || idx} className="w-full bg-[#020617] border border-slate-900 rounded-lg overflow-hidden shadow-[0_10px_30px_-15px_rgba(0,0,0,0.5)] transition-all hover:border-cyan-500/40">
+                    <div key={uniqueId} className="w-full bg-[#020617] border border-slate-900 rounded-lg overflow-hidden transition-all hover:border-cyan-500/40 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.5)]">
                         <div
-                            onClick={() => toggleExpand(match.match_id)}
-                            className="flex items-center justify-between p-3 md:p-5 cursor-pointer group select-none"
+                            onClick={() => toggleExpand(uniqueId)}
+                            className="flex items-center justify-between px-3 py-2 md:px-5 md:py-3 cursor-pointer group select-none relative"
                         >
-                            {/* 左側：Time/Status (ESPN Monospace Style) */}
-                            <div className="flex flex-col items-start min-w-[65px] md:min-w-[100px] border-r border-slate-800 pr-4">
-                                <span className="text-[10px] md:text-sm font-black text-slate-500 uppercase tracking-widest leading-none mb-1 tabular-nums">
-                                    {match.time || (match.match_date ? new Date(match.match_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "19:00")}
+                            {/* LEFT: TIME/STATUS (Small Monospace) */}
+                            <div className="flex flex-col items-start min-w-[50px] md:min-w-[80px] border-r border-slate-900 pr-3">
+                                <span className="text-[9px] md:text-sm font-black text-slate-500 uppercase tracking-widest leading-none mb-1 tabular-nums">
+                                    {match.time || (match.date ? new Date(match.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "19:00")}
                                 </span>
-                                <span className={`text-[8px] md:text-[10px] font-bold uppercase tracking-tighter ${match.status === 'LIVE' ? 'text-red-500 animate-pulse' : 'text-cyan-400'}`}>
-                                    {match.status || 'PRE'}
+                                <span className={`text-[7px] md:text-[9px] font-black uppercase tracking-widest ${match.status === 'LIVE' ? 'text-red-500 animate-pulse' : 'text-cyan-400'}`}>
+                                    {match.status || 'FINAL'}
                                 </span>
                             </div>
 
-                            {/* 中間：Stacked Teams (Identity Core) */}
-                            <div className="flex-1 px-4 md:px-10">
-                                <div className="flex flex-col gap-3 md:gap-5">
+                            {/* MIDDLE: STACKED TEAMS (Identity Core) */}
+                            <div className="flex-1 px-4 md:px-12">
+                                <div className="flex flex-col gap-2 md:gap-3">
                                     {/* Home Team */}
-                                    <div className="flex items-center gap-3 md:gap-6">
+                                    <div className="flex items-center gap-2 md:gap-4 group/team">
                                         <img
-                                            src={match.home_logo || `/logos/${match.home_short_name?.toLowerCase()}.png`}
-                                            alt={match.home_team_name}
-                                            className="w-5 h-5 md:w-9 md:h-9 object-contain flex-shrink-0 grayscale brightness-200 contrast-125"
+                                            src={match.home_logo || `/logos/${match.homeTeamId?.toLowerCase()}_hd.png`}
+                                            alt={match.homeTeamName}
+                                            className="w-5 h-5 md:w-8 md:h-8 object-contain flex-shrink-0 transition-all group-hover/team:scale-110"
+                                            onError={(e) => (e.currentTarget.src = '/logos/default-shield.png')}
                                         />
-                                        <div className="flex items-baseline gap-3">
-                                            <span className="text-xl md:text-3xl lg:text-4xl font-black text-white italic uppercase tracking-tighter leading-none">
-                                                {match.home_short_name || match.home_team_name}
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xl md:text-3xl lg:text-4xl font-black text-white italic uppercase tracking-tighter leading-none transition-all group-hover:text-cyan-400">
+                                                {match.homeTeamId}
                                             </span>
-                                            <span className="text-[9px] md:text-[11px] font-bold text-slate-600 uppercase hidden sm:inline tracking-wide">
-                                                {match.home_team_name}
+                                            <span className="text-[8px] md:text-[10px] font-bold text-slate-700 uppercase hidden sm:inline tracking-widest">
+                                                {match.homeTeamName}
                                             </span>
                                         </div>
                                         {match.home_score !== undefined && (
-                                            <span className="ml-auto text-xl md:text-4xl font-black text-white italic tabular-nums">{match.home_score}</span>
+                                            <span className="ml-auto text-xl md:text-3xl font-black text-white italic tabular-nums">{match.home_score}</span>
                                         )}
                                     </div>
+
                                     {/* Away Team */}
-                                    <div className="flex items-center gap-3 md:gap-6">
+                                    <div className="flex items-center gap-2 md:gap-4 group/team">
                                         <img
-                                            src={match.away_logo || `/logos/${match.away_short_name?.toLowerCase()}.png`}
-                                            alt={match.away_team_name}
-                                            className="w-5 h-5 md:w-9 md:h-9 object-contain flex-shrink-0 grayscale brightness-200 contrast-125"
+                                            src={match.away_logo || `/logos/${match.awayTeamId?.toLowerCase()}_hd.png`}
+                                            alt={match.awayTeamName}
+                                            className="w-5 h-5 md:w-8 md:h-8 object-contain flex-shrink-0 transition-all group-hover/team:scale-110"
+                                            onError={(e) => (e.currentTarget.src = '/logos/default-shield.png')}
                                         />
-                                        <div className="flex items-baseline gap-3">
-                                            <span className="text-xl md:text-3xl lg:text-4xl font-black text-white italic uppercase tracking-tighter leading-none">
-                                                {match.away_short_name || match.away_team_name}
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xl md:text-3xl lg:text-4xl font-black text-white italic uppercase tracking-tighter leading-none transition-all group-hover:text-cyan-400">
+                                                {match.awayTeamId}
                                             </span>
-                                            <span className="text-[9px] md:text-[11px] font-bold text-slate-600 uppercase hidden sm:inline tracking-wide">
-                                                {match.away_team_name}
+                                            <span className="text-[8px] md:text-[10px] font-bold text-slate-700 uppercase hidden sm:inline tracking-widest">
+                                                {match.awayTeamName}
                                             </span>
                                         </div>
                                         {match.away_score !== undefined && (
-                                            <span className="ml-auto text-xl md:text-4xl font-black text-white italic tabular-nums">{match.away_score}</span>
+                                            <span className="ml-auto text-xl md:text-3xl font-black text-white italic tabular-nums">{match.away_score}</span>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* 右側：Extreme Density Decision Matrix */}
-                            <div className="flex flex-col items-end gap-3 pr-2">
+                            {/* RIGHT: AI SIGNAL LABELS (Extreme Density) */}
+                            <div className="flex flex-col items-end gap-2 pr-1">
                                 {hasUpset ? (
-                                    <div className="px-2 md:px-4 py-1 md:py-1.5 bg-cyan-950/20 border border-cyan-500/50 rounded shadow-[0_0_15px_rgba(6,182,212,0.3)] group-hover:shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all">
-                                        <span className="text-[8px] md:text-[11px] font-black text-cyan-400 tracking-[0.1em] md:tracking-[0.2em] uppercase italic whitespace-nowrap">UPSET ALERT 🔥</span>
+                                    <div className="px-2 md:px-3 py-1 bg-cyan-950/20 border border-cyan-500/50 rounded shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                                        <span className="text-[7px] md:text-[10px] font-black text-cyan-400 tracking-[0.2em] uppercase italic whitespace-nowrap">UPSET ALERT 🔥</span>
                                     </div>
                                 ) : isLocked ? (
-                                    <div className="px-2 md:px-4 py-1 md:py-1.5 bg-cyan-900/30 border border-cyan-400/60 rounded shadow-[0_0_10px_rgba(34,211,238,0.2)]">
-                                        <span className="text-[8px] md:text-[11px] font-black text-cyan-300 tracking-[0.1em] md:tracking-[0.2em] uppercase italic whitespace-nowrap">LOCKED 🔒</span>
+                                    <div className="px-2 md:px-3 py-1 bg-cyan-900/30 border border-cyan-400/60 rounded shadow-[0_0_10px_rgba(34,211,238,0.1)]">
+                                        <span className="text-[7px] md:text-[10px] font-black text-cyan-300 tracking-[0.2em] uppercase italic whitespace-nowrap">LOCKED 🔒</span>
                                     </div>
                                 ) : (
-                                    <div className="px-3 py-1 border border-slate-800 rounded opacity-60">
-                                        <span className="text-[8px] md:text-[10px] font-bold text-slate-500 uppercase tracking-tighter">SIG PENDING</span>
+                                    <div className="px-2 py-1 border border-slate-900 rounded opacity-40">
+                                        <span className="text-[7px] md:text-[9px] font-bold text-slate-600 uppercase tracking-tighter">SIG PENDING</span>
                                     </div>
                                 )}
-                                <div className="flex items-center gap-4 opacity-40 group-hover:opacity-100 transition-opacity">
-                                    <ChevronDown size={16} className={`text-cyan-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                                <div className="opacity-30 group-hover:opacity-100 transition-opacity">
+                                    <ChevronDown size={14} className={`text-cyan-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
                                 </div>
                             </div>
                         </div>
 
-                        {/* PROGRESSIVE DISCLOSURE (Accordion Glide) */}
+                        {/* ACCORDION GLIDE (Progressive Disclosure) */}
                         {isExpanded && (
-                            <div className="border-t border-slate-900 bg-black/60 p-6 md:p-10 animate-in slide-in-from-top-4 duration-500 ease-out backdrop-blur-sm">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-16">
-                                    {/* Model Probabilities */}
-                                    <div className="space-y-5">
-                                        <div className="flex items-center gap-3">
-                                            <Zap size={16} className="text-cyan-400 fill-cyan-400/20" />
-                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Alpha Probability</span>
+                            <div className="border-t border-slate-900 bg-slate-950/40 p-5 md:p-8 animate-in slide-in-from-top-2 duration-300 ease-out backdrop-blur-md">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
+                                    {/* TUG-OF-WAR BAR */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2">
+                                            <Zap size={14} className="text-cyan-400 fill-cyan-400/20" />
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Alpha Confidence</span>
                                         </div>
-                                        <div className="relative h-2 w-full bg-slate-900/50 rounded-full overflow-hidden border border-slate-800">
-                                            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-600 to-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.5)]" style={{ width: `${(match.confidence || 0.5) * 100}%` }} />
+                                        <div className="relative h-1.5 w-full bg-slate-900/30 rounded-full overflow-hidden border border-white/5">
+                                            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-600 to-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.4)]" style={{ width: `${(match.confidence || 0.5) * 100}%` }} />
                                         </div>
-                                        <div className="flex justify-between text-lg md:text-2xl font-black italic tracking-tighter">
-                                            <span className="text-white">{(match.confidence * 100).toFixed(0)}% <span className="text-[10px] text-slate-600 not-italic uppercase ml-1">LAL</span></span>
-                                            <span className="text-slate-700">{((1 - match.confidence) * 100).toFixed(0)}% <span className="text-[10px] text-slate-800 not-italic uppercase ml-1">GSW</span></span>
+                                        <div className="flex justify-between text-xl md:text-2xl font-black italic">
+                                            <span className="text-white">{(match.confidence * 100).toFixed(0)}% <span className="text-[9px] text-slate-700 not-italic uppercase ml-1">{match.homeTeamId}</span></span>
+                                            <span className="text-slate-800">{(100 - match.confidence * 100).toFixed(0)}% <span className="text-[9px] text-slate-900 not-italic uppercase ml-1">{match.awayTeamId}</span></span>
                                         </div>
                                     </div>
 
-                                    {/* Expected Edge */}
-                                    <div className="space-y-5 border-x border-slate-900/50 px-0 md:px-8">
-                                        <div className="flex items-center gap-3">
-                                            <Activity size={16} className="text-emerald-400" />
-                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Institutional EV</span>
+                                    {/* INSTITUTIONAL EV */}
+                                    <div className="space-y-4 border-x border-slate-900/40 px-0 md:px-8">
+                                        <div className="flex items-center gap-2">
+                                            <Activity size={14} className="text-emerald-400" />
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Converged EV</span>
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-4xl md:text-5xl font-black text-emerald-400 italic leading-none drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">
+                                            <span className="text-3xl md:text-4xl font-black text-emerald-400 italic leading-none">
                                                 +{(match.ev * 100 || 8.4).toFixed(2)}%
                                             </span>
-                                            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.1em] mt-2">Converged over 10,000 simulations</span>
+                                            <span className="text-[9px] font-bold text-slate-700 uppercase tracking-widest mt-2 italic">Institutional Alpha Active</span>
                                         </div>
                                     </div>
 
-                                    {/* CLV & Tags */}
-                                    <div className="space-y-5">
-                                        <div className="flex items-center gap-3">
-                                            <TrendingUp size={16} className="text-cyan-400" />
-                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Risk Variance</span>
+                                    {/* CTA & TAGS */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2">
+                                            <TrendingUp size={14} className="text-cyan-400" />
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Signal Metadata</span>
                                         </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(match.tags || []).map((tag: string) => (
-                                                <span key={tag} className="text-[9px] font-black text-cyan-400/80 border border-cyan-500/20 px-3 py-1 rounded-sm bg-cyan-950/10 uppercase tracking-widest italic">
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            {(match.tags || []).slice(0, 2).map((tag: string) => (
+                                                <span key={tag} className="text-[8px] font-black text-cyan-400/60 border border-cyan-500/10 px-2 py-0.5 rounded-sm bg-cyan-950/5 uppercase tracking-tighter">
                                                     #{tag}
                                                 </span>
                                             ))}
-                                            <span className="text-[9px] font-black text-slate-500 border border-slate-800 px-3 py-1 rounded-sm bg-slate-900/30 uppercase tracking-widest">
-                                                CLV: +{(match.clv * 100 || 0).toFixed(1)}%
-                                            </span>
                                         </div>
-                                        <Link href={`/matches/${match.match_id}`} className="inline-flex items-center gap-2 mt-2 px-5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-[10px] font-black text-white uppercase tracking-widest transition-colors group/link">
-                                            ENTER WAR ROOM <Zap size={10} className="text-cyan-400 group-hover/link:animate-pulse" />
+                                        <Link href={`/matches/${uniqueId}`} className="block w-full text-center py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-[9px] font-black text-white uppercase tracking-[0.3em] transition-all hover:tracking-[0.4em]">
+                                            WAR ROOM
                                         </Link>
                                     </div>
                                 </div>

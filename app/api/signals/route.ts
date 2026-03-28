@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     // 1. FETCH ENRICHED ALPHA SIGNALS
-    const signals = await prisma.matchSignal.findMany({
+    const signals = await (prisma as any).matchSignal.findMany({
       take: 40,
       include: {
         match: {
@@ -33,9 +33,8 @@ export async function GET() {
       return {
         match_id: s.matchId,
         signalId: s.id,
-        league_name: match.league?.id || 'PRO',
         league_id: match.league?.id || 'GLOBAL',
-        match_date: match.date,
+        date: match.date,
         sport: match.sport,
 
         // Alpha Metrics
@@ -45,25 +44,23 @@ export async function GET() {
         clv: s.clv,
         confidence: s.confidence,
         tags: s.tags || [],
-        signal: s.signalLabel,
+        signalLabel: s.signalLabel,
+        signalScore: s.signalScore,
         marketFairProbs: s.marketFairProbs,
 
-        // Team Identity
-        home_team_name: match.home_team?.full_name || 'HOME',
-        away_team_name: match.away_team?.full_name || 'AWAY',
-        home_short_name: match.home_team?.short_name || 'HOM',
-        away_short_name: match.away_team?.short_name || 'AWY',
+        // Team Identity (Aligned with ESPNStyleScoreboard)
+        homeTeamName: match.home_team?.full_name || match.homeTeamName || 'HOME',
+        awayTeamName: match.away_team?.full_name || match.awayTeamName || 'AWAY',
+        homeTeamId: match.homeTeamId || match.home_team?.team_id || 'HOM',
+        awayTeamId: match.awayTeamId || match.away_team?.team_id || 'AWY',
         home_logo: match.home_team?.logo_url || null,
-        away_logo: match.away_team?.logo_url || null,
-
-        home_team_id: match.homeTeamId,
-        away_team_id: match.awayTeamId
+        away_logo: match.away_team?.logo_url || null
       };
     }).filter(Boolean);
 
     return NextResponse.json({ success: true, count: data.length, data });
   } catch (e: any) {
-    console.error("V11.5 Signal API failure:", e.message, e.stack);
+    console.error("Signal API failure:", e.message, e.stack);
     return NextResponse.json({ success: false, error: e.message || "Internal Server Error" }, { status: 500 });
   }
 }
