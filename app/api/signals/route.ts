@@ -30,22 +30,23 @@ export async function GET() {
 
         // V11.5+ Metrics
         edge: s.edge,
-        ev: s.ev, // Mapped to Upset Index base
+        ev: s.ev,
         ra_ev: s.ra_ev,
         clv: s.clv,
         confidence: s.confidence,
         tags: s.tags || [],
         signal: s.signalLabel,
 
-        // Team Identity
+        // Team Identity (Localized V16.2)
         home_team_name: s.match.home_team.full_name,
         away_team_name: s.match.away_team.full_name,
         home_short_name: s.match.home_team.short_name,
         away_short_name: s.match.away_team.short_name,
-        home_logo_url: s.match.home_team.logo_url,
-        away_logo_url: s.match.away_team.logo_url,
+        home_logo: s.match.home_team.logo_url || null,
+        away_logo: s.match.away_team.logo_url || null,
+        home_logo_url: s.match.home_team.logo_url || null,
+        away_logo_url: s.match.away_team.logo_url || null,
 
-        // World Engine Hook
         home_team_id: s.match.homeTeamId,
         away_team_id: s.match.awayTeamId
       }));
@@ -56,7 +57,7 @@ export async function GET() {
     console.error("V15.5 Signal API failure:", e);
   }
 
-  // 2. V15.5 MOCK FALLBACK (Precision Mapping to image_10.png)
+  // 2. V15.5 MOCK FALLBACK (Localized V16.2)
   const mockData = [
     {
       match_id: "EPL-CRY-WHU-001",
@@ -74,27 +75,31 @@ export async function GET() {
       away_team_name: "West Ham United",
       home_short_name: "CRY",
       away_short_name: "WHU",
-      home_logo_url: "https://www.thesportsdb.com/images/media/team/badge/7rtht11534151.png",
-      away_logo_url: "https://www.thesportsdb.com/images/media/team/badge/8z39f61534151.png"
+      home_logo: null,
+      away_logo: null,
+      home_logo_url: null,
+      away_logo_url: null
     },
     {
-      match_id: "EPL-MCI-ARS-001",
-      league_name: "EPL",
-      league_id: "EPL",
+      match_id: "NBA-LAL-GSW-001",
+      league_name: "NBA",
+      league_id: "NBA",
       match_date: "2026-03-24T22:30:00Z",
-      sport: "football",
+      sport: "basketball",
       edge: 0.18,
       ra_ev: 0.22,
       clv: 0.12,
       confidence: 0.94,
       tags: ["SYSTEM LOCK", "ELITE_VALUE"],
       signal: "ELITE",
-      home_team_name: "Manchester City",
-      away_team_name: "Arsenal",
-      home_short_name: "MCI",
-      away_short_name: "ARS",
-      home_logo_url: "https://www.thesportsdb.com/images/media/team/badge/v668381534151.png",
-      away_logo_url: "https://www.thesportsdb.com/images/media/team/badge/9079.png"
+      home_team_name: "LA Lakers",
+      away_team_name: "GS Warriors",
+      home_short_name: "LAL",
+      away_short_name: "GSW",
+      home_logo: null,
+      away_logo: null,
+      home_logo_url: null,
+      away_logo_url: null
     }
   ];
 
