@@ -8,10 +8,10 @@ function getResultColor(result: string): string {
   return 'bg-rose-500';
 }
 
-export default async function TeamsAnalyticsPage({ 
-  searchParams 
-}: { 
-  searchParams: Promise<{ sport?: string }> 
+export default async function TeamsAnalyticsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ sport?: string }>
 }) {
   const { sport = 'SOCCER' } = await searchParams;
 
@@ -38,13 +38,12 @@ export default async function TeamsAnalyticsPage({
   }
 
   const FilterButton = ({ label, value, active, icon }: { label: string, value: string, active: boolean, icon: string }) => (
-    <Link 
+    <Link
       href={`/teams${value === 'ALL' ? '' : `?sport=${value}`}`}
-      className={`px-6 py-2 rounded border text-[10px] md:text-xs font-black tracking-[0.3em] transition-all uppercase ${
-        active 
-          ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]' 
-          : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
-      }`}
+      className={`px-6 py-2 rounded border text-[10px] md:text-xs font-black tracking-[0.3em] transition-all uppercase ${active
+        ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]'
+        : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
+        }`}
     >
       {icon} {label}
     </Link>
@@ -62,7 +61,7 @@ export default async function TeamsAnalyticsPage({
               Squad Intelligence & Multi-Sport Grid v2.1
             </p>
           </div>
-          
+
           <div className="flex gap-4 flex-wrap">
             <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="" />
             <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} icon="" />
@@ -96,7 +95,11 @@ export default async function TeamsAnalyticsPage({
 
                 <div className="flex items-center gap-5 mb-6 border-b border-slate-800/40 pb-5">
                   {team.logo_url ? (
-                    <img src={team.logo_url} alt={team.full_name} className="w-16 h-16 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-500" />
+                    <img
+                      src={team.logo_url || '/logos/default-shield.png'}
+                      alt={team.full_name}
+                      className="w-10 h-10 md:w-12 md:h-12 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-500"
+                    />
                   ) : (
                     <div className="w-16 h-16 bg-slate-950 rounded-full border border-slate-800 flex items-center justify-center text-slate-600 font-black text-xl">
                       {team.short_name?.[0] || team.full_name[0]}

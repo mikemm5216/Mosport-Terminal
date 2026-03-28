@@ -17,25 +17,26 @@ async function main() {
   console.log('--- STARTING GENESIS SEED: V11.5 PRODUCTION SAMPLES ---');
 
   const teams = [
-    { team_id: "LAL", full_name: "Los Angeles Lakers", short_name: "LAL", city: "Los Angeles", league_type: LeagueType.NBA, logo_url: "https://b.fssta.com/wp-content/uploads/espanol/2016/04/lakers.png" },
-    { team_id: "GSW", full_name: "Golden State Warriors", short_name: "GSW", city: "San Francisco", league_type: LeagueType.NBA, logo_url: "https://b.fssta.com/wp-content/uploads/espanol/2016/04/warriors.png" },
-    { team_id: "BKN", full_name: "Brooklyn Nets", short_name: "BKN", city: "Brooklyn", league_type: LeagueType.NBA, logo_url: "https://b.fssta.com/wp-content/uploads/espanol/2016/04/nets.png" },
-    { team_id: "LAD", full_name: "Los Angeles Dodgers", short_name: "LAD", city: "Los Angeles", league_type: LeagueType.MLB, logo_url: "https://b.fssta.com/wp-content/uploads/espanol/2016/04/dodgers.png" },
-    { team_id: "NYY", full_name: "New York Yankees", short_name: "NYY", city: "New York", league_type: LeagueType.MLB, logo_url: "https://b.fssta.com/wp-content/uploads/espanol/2016/04/yankees.png" },
-    { team_id: "WHU", full_name: "West Ham United", short_name: "WHU", city: "London", league_type: LeagueType.SOCCER, logo_url: "https://b.fssta.com/wp-content/uploads/espanol/2016/04/westham.png" },
-    { team_id: "MCI", full_name: "Manchester City", short_name: "MCI", city: "Manchester", league_type: LeagueType.SOCCER, logo_url: "https://b.fssta.com/wp-content/uploads/espanol/2016/04/mancity.png" },
-    { team_id: "ARS", full_name: "Arsenal", short_name: "ARS", city: "London", league_type: LeagueType.SOCCER, logo_url: "https://b.fssta.com/wp-content/uploads/espanol/2016/04/arsenal.png" },
-    { team_id: "LIV", full_name: "Liverpool", short_name: "LIV", city: "Liverpool", league_type: LeagueType.SOCCER, logo_url: "" },
-    { team_id: "OPP", full_name: "Opponent", short_name: "OPP", city: "Unknown", league_type: LeagueType.SOCCER, logo_url: "" },
-    { team_id: "TRP", full_name: "Trap Team", short_name: "TRP", city: "Trap City", league_type: LeagueType.SOCCER, logo_url: "" },
-    { team_id: "BAT", full_name: "Bait Team", short_name: "BAT", city: "Bait Town", league_type: LeagueType.SOCCER, logo_url: "" },
-    { team_id: "SHL", full_name: "Stale Home", short_name: "SHL", city: "Stale Port", league_type: LeagueType.SOCCER, logo_url: "" },
-    { team_id: "SAL", full_name: "Stale Away", short_name: "SAL", city: "Stale Berg", league_type: LeagueType.SOCCER, logo_url: "" },
+    { team_id: "LAL", full_name: "Los Angeles Lakers", short_name: "LAL", city: "Los Angeles", league_type: LeagueType.NBA, logo_url: "/logos/lal.png" },
+    { team_id: "GSW", full_name: "Golden State Warriors", short_name: "GSW", city: "San Francisco", league_type: LeagueType.NBA, logo_url: "/logos/gsw.png" },
+    { team_id: "BKN", full_name: "Brooklyn Nets", short_name: "BKN", city: "Brooklyn", league_type: LeagueType.NBA, logo_url: "/logos/bkn.png" },
+    { team_id: "NYY", full_name: "New York Yankees", short_name: "NYY", city: "New York", league_type: LeagueType.MLB, logo_url: "/logos/nyy.png" },
+    { team_id: "CRY", full_name: "Crystal Palace", short_name: "CRY", city: "London", league_type: LeagueType.SOCCER, logo_url: "/logos/cry.png" },
+    { team_id: "WHU", full_name: "West Ham United", short_name: "WHU", city: "London", league_type: LeagueType.SOCCER, logo_url: "/logos/whu.png" },
+    { team_id: "LIV", full_name: "Liverpool", short_name: "LIV", city: "Liverpool", league_type: LeagueType.SOCCER, logo_url: null },
+    { team_id: "OPP", full_name: "Opponent", short_name: "OPP", city: "Unknown", league_type: LeagueType.SOCCER, logo_url: null },
+    { team_id: "TRP", full_name: "Trap Team", short_name: "TRP", city: "Trap City", league_type: LeagueType.SOCCER, logo_url: null },
+    { team_id: "BAT", full_name: "Bait Team", short_name: "BAT", city: "Bait Town", league_type: LeagueType.SOCCER, logo_url: null },
+    { team_id: "SHL", full_name: "Stale Home", short_name: "SHL", city: "Stale Port", league_type: LeagueType.SOCCER, logo_url: null },
+    { team_id: "SAL", full_name: "Stale Away", short_name: "SAL", city: "Stale Berg", league_type: LeagueType.SOCCER, logo_url: null },
   ];
 
   for (const team of teams) {
-    await prisma.teams.create({
-      data: team
+    const { team_id, ...data } = team;
+    await prisma.teams.upsert({
+      where: { team_id: team_id },
+      update: data,
+      create: team
     });
     console.log(`[SEEDED TEAM] ${team.full_name}`);
   }
@@ -97,7 +98,7 @@ async function main() {
 
     await prisma.eventSnapshot.create({
       data: {
-        match_id: m.id,
+        match: { connect: { extId: m.extId } },
         snapshot_type: "V11.5_SIGNAL",
         state_json: signalData as any,
         status: "PUBLISHED"

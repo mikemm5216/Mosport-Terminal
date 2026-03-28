@@ -5,6 +5,7 @@ import { ArrowLeft, Zap, Activity, Info, TrendingUp, Shield, Target } from 'luci
 import { getShortName } from '@/lib/teams';
 import { formatLocalTime } from '@/lib/timezone';
 import ExecutionTerminal from '@/components/ExecutionTerminal';
+import LogoFallback from '@/components/LogoFallback';
 
 export default async function WarRoomPage({ params }: { params: { id: string } }) {
    const { id } = await params;
@@ -92,26 +93,20 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                   Radar Feed
                </Link>
 
-               {/* TEAM HEADER (Scaled Down) */}
-               <div className="flex justify-between items-center mb-10">
-                  <div className="flex flex-col items-center gap-2">
-                     <span className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">{displayMatch.home_team.short_name}</span>
-                     <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest">{displayMatch.home_team.full_name}</span>
+               {/* V16.3 終極響應式 Header */}
+               <div className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-4 md:gap-12 mb-4 md:mb-8 pt-4">
+                  <div className="flex flex-col md:flex-row items-center gap-2 md:gap-6 text-center md:text-left">
+                     <LogoFallback url={displayMatch.home_team.logo_url} name={displayMatch.home_team.full_name} shortName={displayMatch.home_team.short_name} sport={displayMatch.sport} size={80} />
+                     <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white italic tracking-tighter uppercase leading-none mt-2 md:mt-0">
+                        {displayMatch.home_team.short_name}
+                     </h1>
                   </div>
-
-                  <div className="flex items-center gap-6 opacity-20">
-                     <div className="w-8 h-8 rounded-full border border-white flex items-center justify-center">
-                        <Zap size={14} className="text-white" />
-                     </div>
-                     <span className="text-xl font-black text-white italic">VS</span>
-                     <div className="w-8 h-8 rounded-full border border-white flex items-center justify-center">
-                        <Zap size={14} className="text-white" />
-                     </div>
-                  </div>
-
-                  <div className="flex flex-col items-center gap-2">
-                     <span className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">{displayMatch.away_team.short_name}</span>
-                     <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest">{displayMatch.away_team.full_name}</span>
+                  <span className="text-lg md:text-2xl font-black text-slate-600 italic">VS</span>
+                  <div className="flex flex-col md:flex-row-reverse items-center gap-2 md:gap-6 text-center md:text-right">
+                     <LogoFallback url={displayMatch.away_team.logo_url} name={displayMatch.away_team.full_name} shortName={displayMatch.away_team.short_name} sport={displayMatch.sport} size={80} />
+                     <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white italic tracking-tighter uppercase leading-none mt-2 md:mt-0">
+                        {displayMatch.away_team.short_name}
+                     </h1>
                   </div>
                </div>
 
