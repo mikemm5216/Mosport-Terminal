@@ -136,10 +136,12 @@ model Match {
 
 model League {
   id              String   @id
+  name            String?  @unique
   sport           String   // 'football', 'basketball', 'baseball'
-  hasDraw         Boolean  // Determines Binary vs Multinomial Model
-  matchDuration   Int      // e.g., 48 (NBA), 40 (FIBA), 90 (Football)
-  isKnockout      Boolean  // True for Cup/Playoff formats
+  hasDraw         Boolean? @default(false)
+  matchDuration   Int?     @default(90)
+  isKnockout      Boolean? @default(false)
+  logo_url        String?
   matches         Match[]
 
   @@schema("quant_internal")
@@ -215,6 +217,8 @@ model MatchSignal {
   // V11.5 Metrics
   edge         Float?   @default(0)
   ev           Float?   @default(0)
+  ra_ev        Float?   @default(0) // Risk-Adjusted EV
+  clv          Float?   @default(0) // Closing Line Value
   confidence   Float?   @default(0)
   tags         String[] @default([])
   marketFairProbs Json?
