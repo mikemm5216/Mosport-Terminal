@@ -44,20 +44,22 @@ export default function Home() {
           </div>
           <h1 className="text-2xl md:text-4xl font-black text-white italic uppercase tracking-[0.05em] leading-none flex items-baseline gap-2">
             MOSPORT <span className="text-cyan-400">TERMINAL</span>
-            <span className="text-[10px] text-slate-700 font-bold tracking-widest ml-auto hidden md:block">V11.5 SIGMA GENESIS</span>
+            <span className="text-[10px] text-slate-700 font-bold tracking-widest ml-auto hidden md:block">ALPHA QUANT FEED</span>
           </h1>
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex-1 flex items-center justify-center p-40">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400"></div>
-        </div>
-      ) : (
-        <div className="w-full max-w-7xl px-12 pt-4 pb-40">
-          <ESPNStyleScoreboard matches={matches} />
-        </div>
-      )}
-    </main>
+      {
+        loading ? (
+          <div className="flex-1 flex items-center justify-center p-40">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400"></div>
+          </div>
+        ) : (
+          <div className="w-full max-w-7xl px-12 pt-4 pb-40">
+            <ESPNStyleScoreboard matches={matches} />
+          </div>
+        )
+      }
+    </main >
   );
 }
