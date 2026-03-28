@@ -4,10 +4,11 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  // 1. ATTEMPT REAL DATA FETCH
   try {
-    const realSignals = await (prisma as any).matchSignal.findMany({
-      take: 20,
+    // 1. FETCH REAL V11.5 SIGNALS FROM DB
+    const realSignals = await prisma.matchSignal.findMany({
+      where: { is_active: true },
+      take: 50,
       include: {
         match: {
           include: {
@@ -20,27 +21,43 @@ export async function GET() {
 
     if (realSignals.length > 0) {
       const mapped = realSignals.map((s: any) => ({
-        match_id: s.match_id,
-        home_team_name: s.match.home_team.full_name,
-        away_team_name: s.match.away_team.full_name,
+        match_id: s.matchId,
+        home_team_name: s.match.homeTeamName,
+        away_team_name: s.match.awayTeamName,
         home_short_name: s.match.home_team.short_name,
         away_short_name: s.match.away_team.short_name,
         home_logo_url: s.match.home_team.logo_url,
         away_logo_url: s.match.away_team.logo_url,
         match_date: s.match.date,
+        sport: s.match.sport,
         edge: s.edge,
         ev: s.ev,
         confidence: s.confidence,
         tags: s.tags || [],
-        signal: s.signal_type
+        signal: s.signalLabel,
+        // Relations for deeper dive
+        home_team_id: s.match.homeTeamId,
+        away_team_id: s.match.awayTeamId
       }));
-      return NextResponse.json({ success: true, count: mapped.length, data: mapped });
+
+      // PRIORITY SORTING: GOLDEN_ALPHA > SMART_VALUE > NORMAL > TRAPS
+      const sorted = mapped.sort((a, b) => {
+        const getRank = (tags: string[]) => {
+          if (tags.includes('THE_GOLDEN_ALPHA')) return 1;
+          if (tags.includes('SMART_VALUE')) return 2;
+          if (tags.includes('STATISTICAL_TRAP')) return 4;
+          return 3;
+        };
+        return getRank(a.tags) - getRank(b.tags);
+      });
+
+      return NextResponse.json({ success: true, count: sorted.length, data: sorted });
     }
   } catch (e) {
-    console.error("Signal fetch failed, falling back to mock", e);
+    console.error("Signal fetch failed:", e);
   }
 
-  // 2. EMERGENCY HARDCODED MOCK (V15.3 ENRICHED)
+  // 2. ENRICHED FALLBACK MOCK (If DB is empty)
   const mockResult = [
     {
       match_id: "LIV-001",
@@ -51,36 +68,21 @@ export async function GET() {
       home_logo_url: "https://www.thesportsdb.com/images/media/team/badge/7786.png",
       away_logo_url: "https://www.thesportsdb.com/images/media/team/badge/v668381534151.png",
       match_date: new Date(),
-      edge: 0.12,
-      ev: 0.25,
+      sport: "football",
+      edge: 0.0925,
+      ev: 0.1520,
       confidence: 0.85,
       tags: ["THE_GOLDEN_ALPHA", "SHARP_SIGNAL"],
       signal: "ELITE"
     },
     {
-      match_id: "LAL-002",
-      home_team_name: "L.A. Lakers",
-      away_team_name: "Golden State Warriors",
-      home_short_name: "LAL",
-      away_short_name: "GSW",
-      home_logo_url: "https://www.thesportsdb.com/images/media/team/badge/v668381534151.png", // Fallback for demo
-      away_logo_url: "https://www.thesportsdb.com/images/media/team/badge/7786.png",
+      match_id: "TRP-002",
+      home_team_name: "Trap Squad",
+      away_team_name: "Bait Team",
+      home_short_name: "TRP",
+      away_short_name: "BAT",
       match_date: new Date(),
-      edge: 0.05,
-      ev: 1.5,
-      confidence: 0.45,
-      tags: ["SMART_VALUE"],
-      signal: "STRONG"
-    },
-    {
-      match_id: "TRP-003",
-      home_team_name: "Public Favorite",
-      away_team_name: "Trap Squad",
-      home_short_name: "PUB",
-      away_short_name: "TRP",
-      home_logo_url: null,
-      away_logo_url: null,
-      match_date: new Date(),
+      sport: "baseball",
       edge: 0.0,
       ev: 0.0,
       confidence: 0.1,
