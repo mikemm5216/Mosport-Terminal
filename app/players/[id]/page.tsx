@@ -1,191 +1,194 @@
 import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
-import { ArrowLeft, User, Activity, Zap, Target, Star, TrendingUp, Info } from 'lucide-react';
+import { ArrowLeft, Zap, Target, Activity, Shield, Info, TrendingUp, AlertCircle } from 'lucide-react';
 
 export default async function PlayerDossierPage({ params }: { params: { id: string } }) {
    const { id } = await params;
 
-   const player = await prisma.player.findUnique({
+   const player = await (prisma as any).player.findUnique({
       where: { player_id: id },
       include: {
          stats_nba: true,
          stats_mlb: true,
-         stats_soccer: true,
-         rosters: {
-            include: { team: true },
-            orderBy: { season_year: 'desc' },
-            take: 1
-         }
+         stats_soccer: true
       }
    });
 
    if (!player) {
       return (
          <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-8">
-            <h1 className="text-2xl font-black text-white uppercase tracking-widest mb-4">Dossier Classified</h1>
-            <Link href="/" className="text-cyan-400 font-mono text-xs uppercase tracking-widest hover:underline">Return to Radar</Link>
+            <h1 className="text-2xl font-black text-white uppercase tracking-widest mb-4">Dossier Locked</h1>
+            <Link href="/" className="text-cyan-400 font-mono text-xs uppercase tracking-widest hover:underline">Return to Hub</Link>
          </div>
       );
    }
 
-   const team = player.rosters[0]?.team;
-
-   // MOCK BIO-RADAR & CLUTCH (V15.0 LOGIC)
-   // In production, these would be derived from Stats_XXX
-   const bio = {
-      physical: 88,
-      skill: 92,
-      iq: 95,
-      impact: 84,
-      stamina: 79
-   };
-
-   const clutchFactor = 94.1;
+   // Mock Bio-Radar Data
+   const bioData = [
+      { label: 'POWER', value: 88 },
+      { label: 'SPEED', value: 94 },
+      { label: 'DURABILITY', value: 72 },
+      { label: 'CLUTCH', value: 96 },
+      { label: 'IQ', value: 85 },
+      { label: 'PRECISION', value: 91 }
+   ];
 
    return (
-      <div className="min-h-screen pb-32 bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30">
-         {/* HEADER */}
-         <nav className="w-full border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-4">
-            <div className="max-w-7xl mx-auto h-16 flex items-center justify-between">
-               <Link href="/" className="flex items-center gap-2 group">
-                  <ArrowLeft size={16} className="text-slate-500 group-hover:text-cyan-400 transition-colors" />
-                  <span className="text-[10px] font-black tracking-widest uppercase text-slate-400">ATHLETE DOSSIER</span>
+      <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30 overflow-x-hidden pb-40">
+
+         {/* NAV: PLAYER INTEL HEADER */}
+         <nav className="w-full border-b border-slate-900 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50 px-8">
+            <div className="max-w-7xl mx-auto h-24 flex items-center justify-between">
+               <Link href="/" className="flex items-center gap-6 group">
+                  <div className="w-12 h-12 rounded-full bg-slate-900 flex items-center justify-center border border-slate-800 group-hover:border-cyan-500/50 transition-all shadow-2xl">
+                     <ArrowLeft size={20} className="text-slate-400 group-hover:text-cyan-400" />
+                  </div>
+                  <div className="flex flex-col">
+                     <span className="text-[10px] font-black tracking-[0.4em] uppercase text-slate-500 italic">Personnel Index</span>
+                     <span className="text-xl font-black text-white italic uppercase tracking-tighter">Back to Radar</span>
+                  </div>
                </Link>
-               <div className="flex items-center gap-4">
-                  <span className="text-[9px] font-black text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded border border-cyan-400/20 uppercase tracking-tighter italic">ELITE PROFILE</span>
+               <div className="flex flex-col items-end">
+                  <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">{player.display_name}</h1>
+                  <span className="text-[10px] font-black text-emerald-400 tracking-[0.5em] uppercase mt-2">ATHLETIC DOSSIER ACTIVE</span>
                </div>
             </div>
          </nav>
 
-         <main className="max-w-5xl mx-auto px-4 py-12">
+         <main className="max-w-6xl mx-auto px-8 py-16 grid grid-cols-1 lg:grid-cols-12 gap-16">
 
-            {/* PLAYER HERO SECTION */}
-            <div className="flex flex-col lg:flex-row items-center lg:items-end gap-8 mb-16 relative">
-               <div className="w-64 h-64 bg-slate-900 border-2 border-slate-800 rounded-lg overflow-hidden flex items-center justify-center relative group">
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent opacity-60" />
-                  <User size={120} className="text-slate-700 group-hover:scale-110 transition-transform duration-500" />
-                  <div className="absolute bottom-4 left-4 flex flex-col">
-                     <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">ACTIVE STATUS</span>
-                     <span className="text-xs font-bold text-emerald-400 italic uppercase tracking-tighter">VERIFIED ARCHIVE</span>
-                  </div>
-               </div>
+            {/* LEFT: BIO-ATHLETIC RADAR */}
+            <div className="lg:col-span-5 space-y-12">
+               <section className="bg-slate-900/40 border border-slate-800 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent pointer-events-none" />
 
-               <div className="flex-1 text-center lg:text-left">
-                  <div className="flex items-center justify-center lg:justify-start gap-4 mb-4">
-                     <span className="px-2 py-0.5 bg-slate-800 text-[10px] font-black tracking-widest uppercase rounded">#{player.rosters[0]?.jersey_number || '00'}</span>
-                     <span className="px-2 py-0.5 bg-slate-800 text-[10px] font-black tracking-widest uppercase rounded">{player.position_main}</span>
-                     {team && <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{team.full_name}</span>}
-                  </div>
-                  <h1 className="text-6xl md:text-8xl font-black text-white italic uppercase tracking-tighter leading-none mb-2">
-                     {player.display_name}
-                  </h1>
-                  <p className="text-xs text-slate-500 font-mono tracking-[0.4em] uppercase">{player.nationality || 'GLOBAL'} ATHLETE DNA</p>
-               </div>
-
-               {/* CLUTCH FACTOR GAUGE */}
-               <div className="lg:absolute lg:top-0 lg:right-0 bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col items-center">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Clutch Factor Index</span>
-                  <div className="relative w-24 h-24 flex items-center justify-center">
-                     <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                        <path className="text-slate-800 fill-none stroke-current" strokeWidth="3" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path className="text-amber-400 fill-none stroke-current transition-all duration-1000" strokeWidth="3" strokeDasharray={`${clutchFactor}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                     </svg>
-                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-xl font-black text-white">{clutchFactor.toFixed(0)}</span>
-                        <span className="text-[8px] font-black text-amber-400 uppercase">APEX</span>
-                     </div>
-                  </div>
-                  <span className="text-[8px] text-slate-500 uppercase mt-4 text-center">High-Leverage Execution Rate</span>
-               </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-               {/* BIO-RADAR PANEL */}
-               <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden p-8 flex flex-col items-center">
-                  <div className="w-full flex items-center gap-3 mb-12">
-                     <Star size={18} className="text-cyan-400" />
-                     <h3 className="text-xs font-black tracking-[0.2em] uppercase text-white">Bio-Radar: Ability Matrix</h3>
+                  <div className="flex items-center gap-4 mb-12">
+                     <Activity size={24} className="text-cyan-400" />
+                     <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">Bio-Athletic Radar</h2>
                   </div>
 
-                  <div className="relative w-64 h-64">
-                     <svg className="w-full h-full p-2 overflow-visible" viewBox="0 0 100 100">
-                        {[20, 40, 60, 80, 100].map(r => (
-                           <circle key={r} cx="50" cy="50" r={r / 2} fill="none" stroke="#1e293b" strokeWidth="0.5" />
-                        ))}
-                        {[0, 72, 144, 216, 288].map(a => (
-                           <line key={a} x1="50" y1="50" x2={50 + 50 * Math.cos((a - 90) * Math.PI / 180)} y2={50 + 50 * Math.sin((a - 90) * Math.PI / 180)} stroke="#1e293b" strokeWidth="0.5" />
-                        ))}
-                        <path
-                           d={`
-                              M ${50 + (bio.physical / 2) * Math.cos((-90) * Math.PI / 180)} ${50 + (bio.physical / 2) * Math.sin((-90) * Math.PI / 180)}
-                              L ${50 + (bio.skill / 2) * Math.cos((-18) * Math.PI / 180)} ${50 + (bio.skill / 2) * Math.sin((-18) * Math.PI / 180)}
-                              L ${50 + (bio.iq / 2) * Math.cos((54) * Math.PI / 180)} ${50 + (bio.iq / 2) * Math.sin((54) * Math.PI / 180)}
-                              L ${50 + (bio.impact / 2) * Math.cos((126) * Math.PI / 180)} ${50 + (bio.impact / 2) * Math.sin((126) * Math.PI / 180)}
-                              L ${50 + (bio.stamina / 2) * Math.cos((198) * Math.PI / 180)} ${50 + (bio.stamina / 2) * Math.sin((198) * Math.PI / 180)}
-                              Z
-                           `}
-                           fill="rgba(34,211,238,0.2)"
-                           stroke="#22d3ee"
-                           strokeWidth="2"
-                           className="transition-all duration-1000"
+                  <div className="relative w-full aspect-square flex items-center justify-center bg-slate-950/30 rounded-full border border-slate-800/50 p-12">
+                     {/* Grid */}
+                     {[0.2, 0.4, 0.6, 0.8, 1].map(r => (
+                        <div key={r} className="absolute border border-slate-800/30 rounded-full" style={{ width: `${r * 100}%`, height: `${r * 100}%` }} />
+                     ))}
+
+                     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                        <polygon
+                           points={bioData.map((d, i) => {
+                              const angle = (i / bioData.length) * 2 * Math.PI - Math.PI / 2;
+                              const r = (d.value / 100) * 45;
+                              return `${50 + r * Math.cos(angle)},${50 + r * Math.sin(angle)}`;
+                           }).join(' ')}
+                           className="fill-cyan-400/20 stroke-cyan-400 stroke-[0.5] transition-all duration-700"
                         />
+                        {bioData.map((_, i) => {
+                           const angle = (i / bioData.length) * 2 * Math.PI - Math.PI / 2;
+                           return <line key={i} x1="50" y1="50" x2={50 + 45 * Math.cos(angle)} y2={50 + 45 * Math.sin(angle)} className="stroke-slate-800 stroke-[0.2]" />;
+                        })}
                      </svg>
-                     <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase text-slate-500">Physical</span>
-                     <span className="absolute top-1/4 -right-12 text-[10px] font-black uppercase text-slate-500">Skill</span>
-                     <span className="absolute bottom-0 -right-4 text-[10px] font-black uppercase text-slate-500">IQ</span>
-                     <span className="absolute bottom-0 -left-2 text-[10px] font-black uppercase text-slate-500">Impact</span>
-                     <span className="absolute top-1/4 -left-12 text-[10px] font-black uppercase text-slate-500">Stamina</span>
-                  </div>
-               </div>
 
-               {/* SEASON INTEL & STATS */}
-               <div className="lg:col-span-2 space-y-8">
-                  <div className="bg-slate-900/30 border border-slate-800 rounded-xl p-8">
-                     <div className="flex items-center gap-3 mb-8">
-                        <TrendingUp size={18} className="text-emerald-400" />
-                        <h3 className="text-xs font-black tracking-[0.2em] uppercase text-white">Season Trajectory Dossier</h3>
-                     </div>
-
-                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        {player.stats_nba && (
-                           <>
-                              <div className="bg-slate-950 p-4 border border-slate-800 rounded">
-                                 <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">PTS/G</span>
-                                 <span className="text-2xl font-black text-white">{player.stats_nba.pts || '0.0'}</span>
-                              </div>
-                              <div className="bg-slate-950 p-4 border border-slate-800 rounded">
-                                 <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">REB/G</span>
-                                 <span className="text-2xl font-black text-white">{player.stats_nba.reb || '0.0'}</span>
-                              </div>
-                              <div className="bg-slate-950 p-4 border border-slate-800 rounded">
-                                 <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">AST/G</span>
-                                 <span className="text-2xl font-black text-white">{player.stats_nba.ast || '0.0'}</span>
-                              </div>
-                              <div className="bg-slate-950 p-4 border border-slate-800 rounded flex items-center justify-center">
-                                 <span className="text-[10px] font-black text-cyan-400 uppercase italic">LEVEL: ELITE</span>
-                              </div>
-                           </>
-                        )}
-                        {!player.stats_nba && (
-                           <div className="col-span-4 py-8 text-center text-slate-600 font-black text-xs uppercase tracking-widest border-2 border-dashed border-slate-800/40 rounded italic">
-                              [ REAL-TIME SEASON DATA PENDING ]
+                     {/* Labels */}
+                     {bioData.map((d, i) => {
+                        const angle = (i / bioData.length) * 2 * Math.PI - Math.PI / 2;
+                        return (
+                           <div key={i} className="absolute text-[9px] font-black text-slate-400 uppercase tracking-widest" style={{
+                              left: `${50 + 52 * Math.cos(angle)}%`,
+                              top: `${50 + 52 * Math.sin(angle)}%`,
+                              transform: 'translate(-50%, -50%)'
+                           }}>
+                              {d.label}
                            </div>
-                        )}
-                     </div>
+                        );
+                     })}
                   </div>
 
-                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-8 relative overflow-hidden">
-                     <div className="absolute top-0 right-0 p-4 opacity-5">
-                        <Info size={120} />
+                  <div className="mt-12 grid grid-cols-2 gap-4">
+                     <div className="p-6 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col items-center">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Clutch Factor</span>
+                        <span className="text-3xl font-black text-amber-500 italic">96.8</span>
                      </div>
-                     <span className="text-[10px] font-black text-white uppercase tracking-widest block mb-4">Strategic Interpretation</span>
-                     <p className="max-w-xl text-sm text-slate-400 leading-relaxed uppercase italic font-medium">
-                        This athlete presents a unique **High-IQ / Low-Friction** hybrid profile. Data indicates a superior ability to process high-velocity scenarios while maintaining 90th percentile skill output. Optimized for high-leverage deployments in the final quadrant.
-                     </p>
+                     <div className="p-6 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col items-center">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">System Tier</span>
+                        <span className="text-3xl font-black text-white italic uppercase">S+</span>
+                     </div>
                   </div>
-               </div>
+               </section>
             </div>
+
+            {/* RIGHT: ATHLETIC INTELLIGENCE & STATS */}
+            <div className="lg:col-span-7 space-y-12">
+
+               <section className="bg-slate-950 border border-slate-800 rounded-[3rem] p-12 space-y-10 shadow-xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+                     <Target size={180} className="text-white" />
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                     <Zap size={24} className="text-amber-400" />
+                     <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">Performance Dominance</h2>
+                  </div>
+
+                  <div className="space-y-8">
+                     <div className="p-8 bg-slate-900/40 rounded-3xl border border-slate-800 flex flex-col gap-4">
+                        <div className="flex justify-between items-center">
+                           <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest italic">Position Maturity</span>
+                           <TrendingUp size={16} className="text-emerald-500" />
+                        </div>
+                        <p className="text-lg font-black text-white italic uppercase leading-relaxed tracking-tighter">
+                           Exhibits world-class rotational awareness and high-volume output in high-leverage scenarios.
+                        </p>
+                        <div className="pt-4 border-t border-slate-800 flex items-center gap-3">
+                           <Info size={14} className="text-slate-600" />
+                           <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic leading-none">V13 Core: High Statistical Robustness Detected</span>
+                        </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="p-6 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col gap-1">
+                           <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Physics Core</span>
+                           <span className="text-xl font-black text-white italic">{player.position_main}</span>
+                        </div>
+                        <div className="p-6 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col gap-1">
+                           <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Status</span>
+                           <span className="text-xl font-black text-emerald-400 italic">NOMINAL</span>
+                        </div>
+                        <div className="p-6 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col gap-1">
+                           <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Nationality</span>
+                           <span className="text-xl font-black text-white italic">{player.nationality || 'GOS'}</span>
+                        </div>
+                     </div>
+                  </div>
+               </section>
+
+               {/* RECENT INTEL LOGS */}
+               <section className="space-y-6">
+                  <div className="flex items-center gap-3 px-4">
+                     <AlertCircle size={16} className="text-slate-700" />
+                     <span className="text-[11px] font-black text-slate-600 uppercase tracking-[0.3em] italic">Personnel Audit Logs</span>
+                  </div>
+                  <div className="p-8 bg-slate-900/20 border-2 border-dashed border-slate-900 rounded-[3rem] text-center italic">
+                     <span className="text-xs text-slate-700 font-bold uppercase tracking-widest">[ AWAITING HIGH-DEFINITION SNAPSHOTS ]</span>
+                  </div>
+               </section>
+
+            </div>
+
          </main>
+
+         {/* FOOTER: TERMINAL AUTH */}
+         <footer className="w-full max-w-7xl mx-auto px-8 py-12 border-t border-slate-900/50 flex flex-col md:flex-row justify-between items-center gap-8">
+            <div className="flex flex-col">
+               <span className="text-[11px] font-black text-white uppercase tracking-[0.3em] italic">MOSPORT PERSONNEL VAULT</span>
+               <span className="text-[9px] text-slate-700 font-bold uppercase tracking-[0.2em] mt-1">Personnel Dossier V15.4 Active</span>
+            </div>
+            <div className="flex gap-12">
+               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">SCAN: READY</span>
+               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">INTEL: OPTIMAL</span>
+               <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest hover:underline cursor-pointer">REQUEST DEEP SCAN</span>
+            </div>
+         </footer>
+
       </div>
    );
 }

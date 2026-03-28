@@ -211,6 +211,14 @@ model MatchSignal {
   matchId      String   @unique @map("match_id")
   signalLabel  String   @map("signal_label") // LEAN, STRONG, ELITE
   signalScore  Float    @map("signal_score")
+  
+  // V11.5 Metrics
+  edge         Float?   @default(0)
+  ev           Float?   @default(0)
+  confidence   Float?   @default(0)
+  tags         String[] @default([])
+  marketFairProbs Json?
+
   updatedAt    DateTime @updatedAt @map("updated_at")
   match        Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 

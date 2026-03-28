@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ArrowRight, User, Activity, Clock, Zap, Target, Shield } from 'lucide-react';
+import { ChevronDown, ArrowRight, User, Activity, Clock, Zap, Target, Shield, AlertTriangle } from 'lucide-react';
 import LiveTicker from '@/components/LiveTicker';
 import { formatLocalTime } from '@/lib/timezone';
 import { getShortName } from '@/lib/teams';
@@ -17,15 +17,7 @@ export default function Home() {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          const getPriority = (m: any) => {
-            const tags = m.tags || [];
-            if (tags.includes('THE_GOLDEN_ALPHA')) return 0;
-            if (tags.includes('SMART_VALUE')) return 1;
-            if (tags.includes('STATISTICAL_TRAP')) return 3;
-            return 2;
-          };
-          const sorted = [...data.data].sort((a, b) => getPriority(a) - getPriority(b));
-          setMatches(sorted);
+          setMatches(data.data);
         }
         setLoading(false);
       })
@@ -42,18 +34,27 @@ export default function Home() {
     <main className="min-h-screen bg-slate-950 flex flex-col items-center overflow-x-hidden selection:bg-cyan-500/30">
       <LiveTicker />
 
-      {/* HEADER: MOSPORT GLOBAL OS */}
-      <div className="w-full max-w-4xl p-8 border-b border-slate-900 sticky top-0 bg-slate-950/90 backdrop-blur-3xl z-40">
-        <div className="flex justify-between items-end">
+      {/* HEADER: MOSPORT GLOBAL OS Terminal */}
+      <div className="w-full max-w-6xl p-8 border-b border-slate-900 sticky top-0 bg-slate-950/90 backdrop-blur-3xl z-40">
+        <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tighter uppercase italic leading-none">
-              MOSPORT <span className="text-cyan-400 font-black">GLOBAL OS</span>
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tighter uppercase italic leading-none">
+              MOSPORT <span className="text-cyan-400 font-black">TERMINAL</span>
             </h1>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.4em] mt-2 italic">Next-Gen Sports Intelligence Ecosystem</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.5em] mt-1 italic">High-Density Strategic Intel Ecosystem</p>
           </div>
-          <div className="flex flex-col items-end gap-1">
-            <span className="text-[10px] font-black text-cyan-400 bg-cyan-400/10 px-2 py-0.5 rounded border border-cyan-400/20 uppercase">SYSTEM LIVE</span>
-            <span className="text-[8px] font-bold text-slate-700 uppercase tracking-widest italic">V15.3 ESPN CORE</span>
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex flex-col items-end gap-1">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Scan Active</span>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map(i => <div key={i} className="w-1 h-3 bg-cyan-400/20 rounded-full" />)}
+              </div>
+            </div>
+            <div className="w-px h-10 bg-slate-800" />
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-[10px] font-black text-cyan-400 bg-cyan-400/10 px-2 py-0.5 rounded border border-cyan-400/20 uppercase">SYSTEM LIVE</span>
+              <span className="text-[8px] font-bold text-slate-700 uppercase tracking-widest italic">V15.4 BLOOMBERG CORE</span>
+            </div>
           </div>
         </div>
       </div>
@@ -63,7 +64,7 @@ export default function Home() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.4)]"></div>
         </div>
       ) : (
-        <div className="w-full max-w-4xl py-12 pb-40 px-4 space-y-6">
+        <div className="w-full max-w-6xl py-12 pb-40 px-4 space-y-6">
           {matches.length === 0 ? (
             <div className="p-24 text-center text-slate-700 font-black text-xs uppercase tracking-[0.4em] border-2 border-dashed border-slate-900 rounded-[3rem] italic">
               [ NO FRESH SIGNALS DETECTED ]
@@ -80,14 +81,14 @@ export default function Home() {
 }
 
 const TeamBadge = ({ src, name, size = "md" }: { src: string | null, name: string, size?: "md" | "lg" }) => {
-  const dim = size === "lg" ? "w-28 h-28 md:w-36 md:h-36" : "w-20 h-20 md:w-28 md:h-28";
-  const iconDim = size === "lg" ? "w-16 h-16 md:w-24 md:h-24" : "w-12 h-12 md:w-20 md:h-20";
+  const dim = size === "lg" ? "w-24 h-24" : "w-16 h-16";
+  const iconDim = size === "lg" ? "w-16 h-16" : "w-12 h-12";
 
   return (
-    <div className={`${dim} rounded-[2.5rem] bg-slate-900 border border-slate-800 transition-all duration-500 flex items-center justify-center group-hover/team:border-cyan-500/30 overflow-hidden relative shadow-2xl`}>
+    <div className={`${dim} rounded-3xl bg-slate-900 border border-slate-800 transition-all duration-500 flex items-center justify-center group-hover/team:border-cyan-500/30 overflow-hidden relative shadow-xl`}>
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
       {src ? (
-        <img src={src} alt={name} className={`${iconDim} object-contain drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] contrast-110 saturate-125`} />
+        <img src={src} alt={name} className={`${iconDim} object-contain drop-shadow-2xl`} />
       ) : (
         <Shield className={`${iconDim} text-slate-800`} strokeWidth={1.5} />
       )}
@@ -97,165 +98,153 @@ const TeamBadge = ({ src, name, size = "md" }: { src: string | null, name: strin
 
 function DecisionCard({ match, isExpanded, onToggle }: { match: any, isExpanded: boolean, onToggle: () => void }) {
   const tags = match.tags || [];
-  const signalId = match.future?.signalId || match.match_id;
-
   const isGolden = tags.includes('THE_GOLDEN_ALPHA');
   const isUpset = tags.includes('SMART_VALUE');
-  const isVolatile = tags.includes('STATISTICAL_TRAP');
+  const isTrap = tags.includes('STATISTICAL_TRAP');
 
-  let typeBadge = "text-slate-500 bg-slate-900/40";
-  let typeLabel = "PRO MATCHUP";
-
-  if (isGolden) {
-    typeBadge = "text-cyan-400 bg-cyan-400/10 border border-cyan-400/20";
-    typeLabel = "⭐ MAIN EVENT";
-  } else if (isUpset) {
-    typeBadge = "text-amber-400 bg-amber-400/10 border border-amber-400/20";
-    typeLabel = "🔥 UPSET ALERT";
-  } else if (isVolatile) {
-    typeBadge = "text-red-500 bg-red-500/10 border border-red-500/20";
-    typeLabel = "⚠️ VOLATILE MATCH";
-  }
-
-  // Next-Gen Feature: Using real team logos from DB mapping
-  const homeLogo = match.home_team?.logo_url || match.home_logo_url;
-  const awayLogo = match.away_team?.logo_url || match.away_logo_url;
+  // V15.4 Terminology Purge
+  const typeLabel = isGolden ? "⭐ SYSTEM LOCK" : isUpset ? "🔥 UPSET ALERT" : isTrap ? "⚠️ MANIPULATION RISK" : "PRO MATCHUP";
+  const typeBadge = isGolden ? "text-cyan-400 bg-cyan-400/10 border-cyan-400/20" : isUpset ? "text-amber-400 bg-amber-400/10 border-amber-400/20" : isTrap ? "text-red-500 bg-red-500/10 border-red-500/20" : "text-slate-500 bg-slate-900/40 border-slate-800";
 
   return (
-    <div className={`group transition-all duration-500 rounded-[3rem] border overflow-hidden ${isExpanded ? 'border-slate-700 bg-slate-900/50 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)]' : 'border-slate-900 hover:border-slate-800 bg-slate-950/50 hover:bg-slate-950 shadow-xl'}`}>
+    <div className={`group transition-all duration-500 rounded-[2.5rem] border overflow-hidden relative ${isExpanded ? 'border-slate-700 bg-slate-900/50 shadow-2xl' : 'border-slate-900 hover:border-slate-800 bg-slate-950/50 hover:bg-slate-950 shadow-lg'}`}>
 
-      {/* 1. COLLAPSED VIEW (100% PURE MATCHUP) */}
-      <div onClick={onToggle} className="w-full cursor-pointer relative">
-        <div className={`h-1.5 w-full ${isGolden ? 'bg-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.4)]' : isUpset ? 'bg-amber-500' : isVolatile ? 'bg-red-500' : 'bg-slate-800'}`} />
+      {/* TRAP MODE: RED SLANTED STRIPES */}
+      {isTrap && (
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #ef4444 0, #ef4444 10px, transparent 10px, transparent 20px)' }} />
+      )}
 
-        <div className="p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+      {/* 1. COLLAPSED VIEW (HIGH-DENSITY TERMINAL) */}
+      <div onClick={onToggle} className="w-full cursor-pointer relative z-10">
+        <div className={`h-1 w-full ${isGolden ? 'bg-cyan-500' : isUpset ? 'bg-amber-500' : isTrap ? 'bg-red-500' : 'bg-slate-800'}`} />
 
-          {/* HEADER META */}
-          <div className="w-full md:w-auto flex md:flex-col justify-between items-center md:items-start gap-4 flex-shrink-0">
-            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black tracking-[0.2em] uppercase ${typeBadge}`}>
-              {typeLabel}
-            </span>
-            <span className="text-[10px] text-slate-600 font-bold uppercase italic tracking-widest flex items-center gap-2">
-              <Clock size={12} className="text-slate-800" /> {formatLocalTime(match.match_date)}
-            </span>
+        <div className="grid grid-cols-1 md:grid-cols-12 items-center p-6 md:p-8 gap-6">
+
+          {/* COLUMN 1: IDENTITY (LEFT) */}
+          <div className="md:col-span-3 flex items-center gap-4">
+            <div className="flex -space-x-4">
+              <TeamBadge src={match.home_logo_url} name={match.home_team_name} />
+              <TeamBadge src={match.away_logo_url} name={match.away_team_name} />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl font-black text-white italic uppercase tracking-tighter">
+                {getShortName(match.home_team_name)} <span className="text-slate-700">⚔️</span> {getShortName(match.away_team_name)}
+              </span>
+              <span className="text-[10px] text-slate-600 font-bold uppercase italic tracking-widest flex items-center gap-2">
+                <Clock size={10} /> {formatLocalTime(match.match_date)}
+              </span>
+            </div>
           </div>
 
-          {/* HERO CENTER: LOGO PAIRING */}
-          <div className="flex-1 flex items-center justify-center gap-8 md:gap-16">
-            <div className="flex flex-col items-center gap-4 group/team">
-              <TeamBadge src={homeLogo} name={match.home_team_name} />
-              <span className="text-xl md:text-3xl font-black text-white italic uppercase tracking-tighter group-hover/team:text-cyan-400 transition-colors">{getShortName(match.home_team_name)}</span>
+          {/* COLUMN 2: THE TRUTH BAR (CENTER) */}
+          <div className="md:col-span-5 hidden md:flex flex-col gap-3 px-8 border-x border-slate-900/50">
+            <div className="flex justify-between items-end">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Dominance Advantage</span>
+              <span className={`text-xs font-black ${isTrap ? 'text-slate-700 line-through' : 'text-cyan-400'}`}>
+                {isTrap ? "N/A" : `+${((match.edge || 0) * 100).toFixed(2)}%`}
+              </span>
+            </div>
+            <div className="h-3 w-full bg-slate-900 rounded-full border border-slate-800 overflow-hidden relative group/tug">
+              <div
+                className={`h-full transition-all duration-1000 ${isGolden ? 'bg-cyan-500' : isTrap ? 'bg-red-500/40' : 'bg-slate-600'}`}
+                style={{ width: `${(match.edge + 0.5 || 0.5) * 100}%` }}
+              />
+              <div className="absolute top-0 left-1/2 w-px h-full bg-slate-800/50" />
+            </div>
+            <div className="flex justify-between text-[8px] font-black text-slate-700 uppercase tracking-[0.2em]">
+              <span>{match.home_short_name} MODEL</span>
+              <span>{match.away_short_name} MODEL</span>
+            </div>
+          </div>
+
+          {/* COLUMN 3: DECISION MATRIX (RIGHT) */}
+          <div className="md:col-span-4 flex items-center justify-between pl-4">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 italic">Upset Index</span>
+              <span className={`text-3xl font-black italic leading-none ${isGolden ? 'text-cyan-400' : isUpset ? 'text-amber-400' : isTrap ? 'text-slate-800 line-through' : 'text-white'}`}>
+                {isTrap ? "0.0x" : (Math.max((match.ev || 0) * 10 + 1, 1.1)).toFixed(2)}x
+              </span>
             </div>
 
-            <div className="flex flex-col items-center justify-center">
-              <span className="text-slate-900 font-black text-5xl md:text-7xl italic opacity-40 mb-2 leading-none">VS</span>
-              <div className="w-2 h-16 bg-slate-950 rounded-full border border-slate-900/40 relative">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 bg-slate-950 border-2 border-slate-800 rounded-full flex items-center justify-center shadow-2xl">
-                  <div className={`w-1.5 h-1.5 rounded-full transition-all duration-700 ${isExpanded ? 'bg-cyan-400 shadow-[0_0_10px_cyan]' : 'bg-slate-800'}`} />
-                </div>
+            <div className="flex flex-col items-end gap-2">
+              <div className={`px-3 py-1 rounded text-[8px] font-black tracking-widest uppercase border ${typeBadge}`}>
+                {typeLabel}
+              </div>
+              <div className="flex gap-1">
+                {tags.map((t: string) => (
+                  <span key={t} className="text-[7px] font-bold text-slate-700 uppercase tracking-tighter border border-slate-900/50 px-1.5 py-0.5 rounded">
+                    {t.replace(/_/g, ' ')}
+                  </span>
+                ))}
               </div>
             </div>
-
-            <div className="flex flex-col items-center gap-4 group/team">
-              <TeamBadge src={awayLogo} name={match.away_team_name} />
-              <span className="text-xl md:text-3xl font-black text-white italic uppercase tracking-tighter group-hover/team:text-cyan-400 transition-colors">{getShortName(match.away_team_name)}</span>
-            </div>
           </div>
 
-          {/* INDICATOR */}
-          <div className="flex-shrink-0 text-slate-800 group-hover:text-slate-500 transition-colors hidden md:block">
-            <ChevronDown size={36} className={`transition-transform duration-500 ${isExpanded ? 'rotate-180 text-cyan-500' : ''}`} />
-          </div>
         </div>
       </div>
 
-      {/* 2. EXPANDED VIEW (AI INTELLIGENCE LAYER) */}
-      <div className={`transition-all duration-700 ease-in-out ${isExpanded ? 'max-h-[1400px] border-t border-slate-900 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-        <div className="p-8 md:p-16 bg-slate-950/80 backdrop-blur-3xl">
+      {/* 2. EXPANDED VIEW (PROGRESSIVE DISCLOSURE LAYER) */}
+      <div className={`transition-all duration-700 ease-in-out ${isExpanded ? 'max-h-[1200px] border-t border-slate-900 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+        <div className="p-8 md:p-12 bg-slate-950/80 backdrop-blur-3xl">
 
-          <div className="max-w-4xl mx-auto space-y-16">
+          <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
 
-            {/* PANEL: AI ENGINE FEED */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-
-              {/* WIN PROBABILITY (TUG-OF-WAR) */}
-              <div className="flex flex-col gap-6 p-8 bg-slate-900/40 border border-slate-800 shadow-2xl rounded-[2.5rem] relative overflow-hidden group/metric">
-                <div className="flex items-center gap-3">
-                  <Target size={16} className="text-cyan-400" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Win Probability</span>
-                </div>
-                <div className="flex items-end justify-between">
-                  <span className="text-4xl font-black text-white italic leading-none">{((match.edge || 0.5) * 100).toFixed(0)}%</span>
-                  <span className="text-[10px] font-black text-slate-600 uppercase italic tracking-widest">{getShortName(match.home_team_name)} EDGE</span>
-                </div>
-                <div className="w-full h-4 bg-slate-950 rounded-full border border-slate-800/50 overflow-hidden relative shadow-inner">
-                  <div
-                    className={`h-full transition-all duration-1000 ease-out ${isGolden ? 'bg-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.6)]' : 'bg-slate-600'}`}
-                    style={{ width: `${(match.edge || 0.5) * 100}%` }}
-                  />
-                  <div className="absolute top-0 left-1/2 w-px h-full bg-slate-800/50" />
-                </div>
+            {/* PSYCHO: MOMENTUM */}
+            <div className="p-6 bg-slate-900/40 rounded-3xl border border-slate-800">
+              <div className="flex items-center gap-2 mb-4">
+                <Activity size={14} className="text-cyan-400" />
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Psycho Engine</span>
               </div>
-
-              {/* BIO ENGINE (STRENGTH) */}
-              <div className="flex flex-col gap-6 p-8 bg-slate-900/40 border border-slate-800 shadow-2xl rounded-[2.5rem] group/metric">
-                <div className="flex items-center gap-3">
-                  <Activity size={16} className="text-emerald-500" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Bio Engine</span>
-                </div>
-                <div className="flex items-end justify-between">
-                  <span className="text-4xl font-black text-emerald-400 italic leading-none">{(Math.max((match.ev || 0) * 10, 1.2)).toFixed(1)}x</span>
-                  <span className="text-[10px] font-black text-slate-600 uppercase italic tracking-widest">UPSET INDEX</span>
-                </div>
-                <div className="flex gap-1.5 h-2">
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                    <div key={i} className={`flex-1 rounded-full transition-all duration-700 delay-[${i * 100}ms] ${i <= (match.ev || 0) * 8 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-800'}`} />
-                  ))}
-                </div>
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-2xl font-black text-white italic uppercase">Surging</span>
+                <span className="text-[10px] font-black text-cyan-400">92/100</span>
               </div>
-
-              {/* PSYCHO ENGINE (MOMENTUM) */}
-              <div className="flex flex-col gap-6 p-8 bg-slate-900/40 border border-slate-800 shadow-2xl rounded-[2.5rem] group/metric">
-                <div className="flex items-center gap-3">
-                  <Zap size={16} className="text-amber-500" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Psycho Engine</span>
-                </div>
-                <div className="flex items-end justify-between">
-                  <span className="text-4xl font-black text-white italic leading-none">{((match.confidence || 0) * 100).toFixed(0)}</span>
-                  <span className="text-[10px] font-black text-slate-600 uppercase italic tracking-widest">HYPE RATING</span>
-                </div>
-                <div className="text-[10px] font-black text-amber-500/90 uppercase tracking-[0.2em] bg-amber-500/10 py-2 px-4 rounded-2xl border border-amber-500/20 text-center animate-pulse">
-                  {isGolden ? "CRITICAL MOMENTUM" : "STABLE FLOW"}
-                </div>
+              <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-cyan-400 w-[92%]" />
               </div>
-
             </div>
 
-            {/* 3. CTA LAYER */}
-            <div className="flex flex-col md:flex-row gap-8">
+            {/* BIO: FATIGUE */}
+            <div className="p-6 bg-slate-900/40 rounded-3xl border border-slate-800">
+              <div className="flex items-center gap-2 mb-4">
+                <Zap size={14} className="text-amber-500" />
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Bio Engine</span>
+              </div>
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-2xl font-black text-emerald-400 italic uppercase">Optimal</span>
+                <span className="text-[10px] font-black text-slate-600">STABLE</span>
+              </div>
+              <div className="flex gap-1 h-1">
+                {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className={`flex-1 rounded-full ${i < 5 ? 'bg-emerald-500 shadow-[0_0_5px_emerald]' : 'bg-slate-800'}`} />)}
+              </div>
+            </div>
+
+            {/* ACTION: CTA */}
+            <div className="flex flex-col gap-4 justify-center">
               <Link
                 href={`/matches/${match.match_id}`}
-                className="flex-[2] flex items-center justify-center gap-4 bg-white hover:bg-cyan-500 text-black py-8 rounded-[3rem] font-black text-base uppercase tracking-[0.4em] transition-all hover:scale-[1.02] active:scale-95 shadow-[0_40px_80px_-15px_rgba(255,255,255,0.15)] group/btn"
+                className="w-full bg-white hover:bg-cyan-500 text-black py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all hover:scale-[1.02] shadow-2xl group"
               >
-                Enter War Room <ArrowRight size={24} className="group-hover/btn:translate-x-3 transition-transform duration-500" />
+                Enter War Room <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
               </Link>
-              <button
-                className="flex-1 flex items-center justify-center gap-4 bg-slate-900 border-2 border-slate-800 hover:border-slate-700 text-slate-300 py-8 rounded-[3rem] font-black text-sm uppercase tracking-[0.3em] transition-all hover:text-white"
-                onClick={(e) => { e.stopPropagation(); }}
-              >
-                Access Archives
-              </button>
-            </div>
-
-            {/* VAULT FOOTER */}
-            <div className="flex justify-between items-center text-slate-700 pt-4 px-4">
-              <span className="text-[9px] font-black uppercase tracking-[0.5em] italic">AI Strategic Feed Integrated via V9 Core</span>
-              <div className="flex gap-8">
-                <Link href={`/teams/${match.home_team_id || 'LIV'}`} className="text-[10px] font-black uppercase tracking-widest hover:text-cyan-400 transition-colors">Home Profile</Link>
-                <Link href={`/teams/${match.away_team_id || 'OPP'}`} className="text-[10px] font-black uppercase tracking-widest hover:text-cyan-400 transition-colors">Away Profile</Link>
+              <div className="flex gap-4">
+                <button className="flex-1 bg-slate-900 border border-slate-800 text-slate-500 py-4 rounded-[1.2rem] font-bold text-[9px] uppercase tracking-widest hover:text-white transition-colors">
+                  Track Match
+                </button>
+                <button className="flex-1 bg-slate-900 border border-slate-800 text-slate-500 py-4 rounded-[1.2rem] font-bold text-[9px] uppercase tracking-widest hover:text-white transition-colors">
+                  Add to Vault
+                </button>
               </div>
             </div>
 
+          </div>
+
+          <div className="mt-12 pt-8 border-t border-slate-900/50 flex justify-between items-center px-4">
+            <span className="text-[8px] font-black text-slate-700 uppercase tracking-[0.5em] italic">V13 Ghost Layer Behavioral Backbone Active</span>
+            <div className="flex gap-6">
+              <Link href={`/teams/${match.home_team_id || 'LIV'}`} className="text-[9px] font-black text-slate-500 hover:text-cyan-400 transition-colors uppercase tracking-widest">Team Profile</Link>
+              <Link href={`/teams/${match.away_team_id || 'MCI'}`} className="text-[9px] font-black text-slate-500 hover:text-cyan-400 transition-colors uppercase tracking-widest">Opponent Profile</Link>
+            </div>
           </div>
 
         </div>
