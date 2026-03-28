@@ -13,8 +13,8 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
 
     if (!matches || matches.length === 0) {
         return (
-            <div className="w-full flex flex-col items-center justify-center p-20 border border-dashed border-slate-800 rounded-xl bg-slate-900/10">
-                <span className="text-slate-600 font-black tracking-[0.5em] uppercase text-[10px] italic">
+            <div className="w-full flex flex-col items-center justify-center p-12 border border-dashed border-slate-800 rounded-xl bg-slate-900/10">
+                <span className="text-slate-600 font-black tracking-[0.5em] uppercase text-[10px] italic text-center">
                     [ NO ACTIVE MATCH INTELLIGENCE SCHEDULED FOR THIS CYCLE ]
                 </span>
             </div>
@@ -22,145 +22,123 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
     }
 
     return (
-        <div className="w-full max-w-7xl mx-auto flex flex-col space-y-2">
+        <div className="w-full max-w-7xl mx-auto flex flex-col space-y-1.5 px-2 md:px-0">
             {matches.map((match, idx) => {
                 const uniqueId = match.match_id || match.id || `match-${idx}`;
                 const isExpanded = expandedId === uniqueId;
-                const hasUpset = match.tags?.some((t: string) => t.includes("UPSET"));
-                const isLocked = match.tags?.some((t: string) => t.includes("LOCKED") || t.includes("LOCK"));
+                const hasUpset = match.signal_label?.includes("UPSET") || (match.confidence > 0.8 && match.win_probabilities?.home_win_prob < 0.4);
 
                 return (
-                    <div key={uniqueId} className="w-full bg-[#020617] border border-slate-900 rounded-lg overflow-hidden transition-all hover:border-cyan-500/40 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.5)]">
+                    <div key={uniqueId} className="w-full bg-[#020617] border border-slate-900 rounded-md overflow-hidden transition-all hover:border-cyan-500/40 shadow-lg">
                         <div
                             onClick={() => toggleExpand(uniqueId)}
-                            className="flex items-center justify-between px-3 py-2 md:px-5 md:py-3 cursor-pointer group select-none relative"
+                            className="flex items-center justify-between px-3 py-2 md:px-4 md:py-2.5 cursor-pointer group select-none relative"
                         >
-                            {/* LEFT: TIME/STATUS (Small Monospace) */}
-                            <div className="flex flex-col items-start min-w-[50px] md:min-w-[80px] border-r border-slate-900 pr-3">
-                                <span className="text-[9px] md:text-sm font-black text-slate-500 uppercase tracking-widest leading-none mb-1 tabular-nums">
-                                    {match.time || (match.date ? new Date(match.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "19:00")}
+                            {/* LEFT: TIME/STATUS */}
+                            <div className="flex flex-col items-start min-w-[45px] md:min-w-[70px] border-r border-slate-900 pr-3">
+                                <span className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-tighter tabular-nums mb-0.5">
+                                    {match.time || (match.start_time ? new Date(match.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "19:00")}
                                 </span>
-                                <span className={`text-[7px] md:text-[9px] font-black uppercase tracking-widest ${match.status === 'LIVE' ? 'text-red-500 animate-pulse' : 'text-cyan-400'}`}>
-                                    {match.status || 'FINAL'}
+                                <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest ${match.status === 'live' ? 'text-red-500 animate-pulse' : 'text-cyan-400'}`}>
+                                    {match.status?.toUpperCase() || 'FINAL'}
                                 </span>
                             </div>
 
-                            {/* MIDDLE: STACKED TEAMS (Identity Core) */}
-                            <div className="flex-1 px-4 md:px-12">
-                                <div className="flex flex-col gap-2 md:gap-3">
+                            {/* MIDDLE: STACKED TEAMS */}
+                            <div className="flex-1 px-4 md:px-10">
+                                <div className="flex flex-col gap-1.5 md:gap-2">
                                     {/* Home Team */}
-                                    <div className="flex items-center gap-2 md:gap-4 group/team">
+                                    <div className="flex items-center gap-3 md:gap-4 group/team">
                                         <img
-                                            src={match.home_logo || `/logos/${match.homeTeamId?.toLowerCase()}_hd.png`}
-                                            alt={match.homeTeamName}
-                                            className="w-5 h-5 md:w-8 md:h-8 object-contain flex-shrink-0 transition-all group-hover/team:scale-110"
-                                            onError={(e) => (e.currentTarget.src = '/logos/default-shield.png')}
+                                            src={match.home_team?.logo_url || `/logos/${match.home_team?.short_name?.toLowerCase()}_hd.png`}
+                                            alt={match.home_team?.short_name}
+                                            className="w-5 h-5 md:w-7 md:h-7 object-contain flex-shrink-0 transition-transform group-hover/team:scale-110"
                                         />
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xl md:text-3xl lg:text-4xl font-black text-white italic uppercase tracking-tighter leading-none transition-all group-hover:text-cyan-400">
-                                                {match.homeTeamId}
-                                            </span>
-                                            <span className="text-[8px] md:text-[10px] font-bold text-slate-700 uppercase hidden sm:inline tracking-widest">
-                                                {match.homeTeamName}
+                                            <span className="text-lg md:text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none transition-colors group-hover:text-cyan-400">
+                                                {match.home_team?.short_name}
                                             </span>
                                         </div>
-                                        {match.home_score !== undefined && (
-                                            <span className="ml-auto text-xl md:text-3xl font-black text-white italic tabular-nums">{match.home_score}</span>
-                                        )}
                                     </div>
 
                                     {/* Away Team */}
-                                    <div className="flex items-center gap-2 md:gap-4 group/team">
+                                    <div className="flex items-center gap-3 md:gap-4 group/team">
                                         <img
-                                            src={match.away_logo || `/logos/${match.awayTeamId?.toLowerCase()}_hd.png`}
-                                            alt={match.awayTeamName}
-                                            className="w-5 h-5 md:w-8 md:h-8 object-contain flex-shrink-0 transition-all group-hover/team:scale-110"
-                                            onError={(e) => (e.currentTarget.src = '/logos/default-shield.png')}
+                                            src={match.away_team?.logo_url || `/logos/${match.away_team?.short_name?.toLowerCase()}_hd.png`}
+                                            alt={match.away_team?.short_name}
+                                            className="w-5 h-5 md:w-7 md:h-7 object-contain flex-shrink-0 transition-transform group-hover/team:scale-110"
                                         />
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xl md:text-3xl lg:text-4xl font-black text-white italic uppercase tracking-tighter leading-none transition-all group-hover:text-cyan-400">
-                                                {match.awayTeamId}
-                                            </span>
-                                            <span className="text-[8px] md:text-[10px] font-bold text-slate-700 uppercase hidden sm:inline tracking-widest">
-                                                {match.awayTeamName}
+                                            <span className="text-lg md:text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none transition-colors group-hover:text-cyan-400">
+                                                {match.away_team?.short_name}
                                             </span>
                                         </div>
-                                        {match.away_score !== undefined && (
-                                            <span className="ml-auto text-xl md:text-3xl font-black text-white italic tabular-nums">{match.away_score}</span>
-                                        )}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* RIGHT: AI SIGNAL LABELS (Extreme Density) */}
-                            <div className="flex flex-col items-end gap-2 pr-1">
+                            {/* RIGHT: AI SIGNAL */}
+                            <div className="flex flex-col items-end gap-1.5 pr-1">
                                 {hasUpset ? (
-                                    <div className="px-2 md:px-3 py-1 bg-cyan-950/20 border border-cyan-500/50 rounded shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-                                        <span className="text-[7px] md:text-[10px] font-black text-cyan-400 tracking-[0.2em] uppercase italic whitespace-nowrap">UPSET ALERT 🔥</span>
-                                    </div>
-                                ) : isLocked ? (
-                                    <div className="px-2 md:px-3 py-1 bg-cyan-900/30 border border-cyan-400/60 rounded shadow-[0_0_10px_rgba(34,211,238,0.1)]">
-                                        <span className="text-[7px] md:text-[10px] font-black text-cyan-300 tracking-[0.2em] uppercase italic whitespace-nowrap">LOCKED 🔒</span>
+                                    <div className="px-1.5 md:px-2 py-0.5 bg-cyan-950/20 border border-cyan-500/50 rounded shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+                                        <span className="text-[7px] md:text-[9px] font-black text-cyan-400 tracking-widest uppercase italic">UPSET ALERT 🔥</span>
                                     </div>
                                 ) : (
-                                    <div className="px-2 py-1 border border-slate-900 rounded opacity-40">
-                                        <span className="text-[7px] md:text-[9px] font-bold text-slate-600 uppercase tracking-tighter">SIG PENDING</span>
+                                    <div className="px-1.5 py-0.5 border border-slate-900 rounded opacity-30">
+                                        <span className="text-[7px] md:text-[8px] font-bold text-slate-600 uppercase tracking-tighter italic">QUANT ALPHA</span>
                                     </div>
                                 )}
-                                <div className="opacity-30 group-hover:opacity-100 transition-opacity">
-                                    <ChevronDown size={14} className={`text-cyan-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
-                                </div>
+                                <ChevronDown size={14} className={`text-cyan-500 transition-transform duration-300 opacity-20 group-hover:opacity-100 ${isExpanded ? 'rotate-180' : ''}`} />
                             </div>
                         </div>
 
-                        {/* ACCORDION GLIDE (Progressive Disclosure) */}
+                        {/* ACCORDION (Progressive Disclosure) */}
                         {isExpanded && (
-                            <div className="border-t border-slate-900 bg-slate-950/40 p-5 md:p-8 animate-in slide-in-from-top-2 duration-300 ease-out backdrop-blur-md">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-12">
-                                    {/* TUG-OF-WAR BAR */}
-                                    <div className="space-y-4">
+                            <div className="border-t border-slate-900 bg-slate-950/40 p-4 md:p-6 animate-in slide-in-from-top-1 duration-200 backdrop-blur-md">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {/* ALPHA PROBABILITIES */}
+                                    <div className="space-y-3">
                                         <div className="flex items-center gap-2">
-                                            <Zap size={14} className="text-cyan-400 fill-cyan-400/20" />
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Alpha Confidence</span>
+                                            <Activity size={12} className="text-cyan-400" />
+                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Win Probability</span>
                                         </div>
-                                        <div className="relative h-1.5 w-full bg-slate-900/30 rounded-full overflow-hidden border border-white/5">
-                                            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-600 to-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.4)]" style={{ width: `${(match.confidence || 0.5) * 100}%` }} />
+                                        <div className="flex items-center justify-between text-lg md:text-xl font-black italic">
+                                            <span className="text-white">{(match.win_probabilities?.home_win_prob * 100).toFixed(0)}% <span className="text-[8px] text-slate-600 not-italic ml-1 uppercase">{match.home_team?.short_name}</span></span>
+                                            <span className="text-slate-500">{(match.win_probabilities?.away_win_prob * 100).toFixed(0)}% <span className="text-[8px] text-slate-600 not-italic ml-1 uppercase">{match.away_team?.short_name}</span></span>
                                         </div>
-                                        <div className="flex justify-between text-xl md:text-2xl font-black italic">
-                                            <span className="text-white">{(match.confidence * 100).toFixed(0)}% <span className="text-[9px] text-slate-700 not-italic uppercase ml-1">{match.homeTeamId}</span></span>
-                                            <span className="text-slate-800">{(100 - match.confidence * 100).toFixed(0)}% <span className="text-[9px] text-slate-900 not-italic uppercase ml-1">{match.awayTeamId}</span></span>
+                                        <div className="relative h-1 w-full bg-slate-900 rounded-full overflow-hidden">
+                                            <div className="absolute inset-y-0 left-0 bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]" style={{ width: `${(match.win_probabilities?.home_win_prob || 0.5) * 100}%` }} />
                                         </div>
                                     </div>
 
-                                    {/* INSTITUTIONAL EV */}
-                                    <div className="space-y-4 border-x border-slate-900/40 px-0 md:px-8">
+                                    {/* WAR ROOM GRID PREVIEW */}
+                                    <div className="space-y-2 border-x border-slate-900/50 px-0 md:px-6">
                                         <div className="flex items-center gap-2">
-                                            <Activity size={14} className="text-emerald-400" />
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Converged EV</span>
+                                            <Zap size={12} className="text-cyan-400 fill-cyan-400/20" />
+                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Tactical Matchup</span>
                                         </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-3xl md:text-4xl font-black text-emerald-400 italic leading-none">
-                                                +{(match.ev * 100 || 8.4).toFixed(2)}%
-                                            </span>
-                                            <span className="text-[9px] font-bold text-slate-700 uppercase tracking-widest mt-2 italic">Institutional Alpha Active</span>
-                                        </div>
-                                    </div>
-
-                                    {/* CTA & TAGS */}
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-2">
-                                            <TrendingUp size={14} className="text-cyan-400" />
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Signal Metadata</span>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 mb-4">
-                                            {(match.tags || []).slice(0, 2).map((tag: string) => (
-                                                <span key={tag} className="text-[8px] font-black text-cyan-400/60 border border-cyan-500/10 px-2 py-0.5 rounded-sm bg-cyan-950/5 uppercase tracking-tighter">
-                                                    #{tag}
+                                        <div className="flex flex-col gap-1">
+                                            {(match.tactical_matchup || ["ANALYZING INTELLIGENCE SCALE..."]).slice(0, 3).map((node: string, i: number) => (
+                                                <span key={i} className="text-[9px] font-bold text-slate-400 italic leading-tight border-l-2 border-cyan-500/30 pl-2">
+                                                    {node}
                                                 </span>
                                             ))}
                                         </div>
-                                        <Link href={`/matches/${uniqueId}`} className="block w-full text-center py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-[9px] font-black text-white uppercase tracking-[0.3em] transition-all hover:tracking-[0.4em]">
-                                            WAR ROOM
+                                    </div>
+
+                                    {/* MOMENTUM & LINK */}
+                                    <div className="space-y-3 flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <TrendingUp size={12} className="text-emerald-400" />
+                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Momentum Index</span>
+                                            </div>
+                                            <span className="text-2xl md:text-3xl font-black text-emerald-400 italic">
+                                                {(match.momentum_index * 100 || 74).toFixed(0)}
+                                            </span>
+                                        </div>
+                                        <Link href={`/matches/${uniqueId}`} className="block w-full text-center py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-sm text-[8px] font-black text-white uppercase tracking-[0.4em] transition-all hover:tracking-[0.5em] mt-2">
+                                            ENTER WAR ROOM
                                         </Link>
                                     </div>
                                 </div>
