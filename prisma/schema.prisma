@@ -40,6 +40,8 @@ model Player {
   stats_mlb     Stats_MLB?
   stats_nba     Stats_NBA?
   stats_soccer  Stats_Soccer?
+  height        String?
+  weight        String?
 
   @@schema("public_api")
 }
@@ -209,6 +211,15 @@ model MatchSignal {
   tags            String[] @default([])
   clv             Float?   @default(0)
   ra_ev           Float?   @default(0)
+
+  // V16.4 Sentiment & Grids
+  narrative              String?
+  crowd_sentiment_index  Float?
+  momentum_index         Float?
+  standard_analysis      Json?
+  tactical_matchup       Json?
+  x_factors              Json?
+
   match           Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@schema("public_api")

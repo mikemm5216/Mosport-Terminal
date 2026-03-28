@@ -3,51 +3,49 @@ import { PrismaClient, LeagueType } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log('--- [GENESIS 6.0] STARTING DATA DELUGE ---');
+    console.log("--- [GENESIS 6.0] STARTING DATA DELUGE (V16.4) ---");
+    console.log("--- PURGING STALE INTEL ---");
 
-    // 0. NUCLEAR RESET
-    console.log('--- PURGING STALE INTEL ---');
-    await (prisma as any).matchSignal.deleteMany({});
-    await (prisma as any).match.deleteMany({});
-    await (prisma as any).roster.deleteMany({});
-    await prisma.player.deleteMany({});
-    await prisma.teams.deleteMany({});
-    console.log('--- COLD PURGE COMPLETE ---');
+    try {
+        await (prisma as any).matchSignal.deleteMany({});
+        await (prisma as any).matchPrediction.deleteMany({});
+        await (prisma as any).matchStatsBaseball.deleteMany({});
+        await (prisma as any).matchStatsNBA.deleteMany({});
+        await (prisma as any).match.deleteMany({});
+        await (prisma as any).roster.deleteMany({});
+        await (prisma as any).player.deleteMany({});
+        await (prisma as any).teams.deleteMany({});
+        console.log("--- COLD PURGE COMPLETE ---");
+    } catch (e) {
+        console.warn("Purge failed. Continuing...");
+    }
 
     // 1. LEAGUES
     const leagues = [
-        { id: 'EPL', sport: 'FOOTBALL', hasDraw: true, matchDuration: 90, isKnockout: false },
-        { id: 'NBA', sport: 'BASKETBALL', hasDraw: false, matchDuration: 48, isKnockout: false },
-        { id: 'MLB', sport: 'BASEBALL', hasDraw: false, matchDuration: 9, isKnockout: false }
+        { id: 'NBA', sport: 'basketball', hasDraw: false, matchDuration: 48, isKnockout: false },
+        { id: 'MLB', sport: 'baseball', hasDraw: false, matchDuration: 0, isKnockout: false }
     ];
 
     for (const l of leagues) {
-        await (prisma as any).league.upsert({
+        await prisma.league.upsert({
             where: { id: l.id },
-            update: { sport: l.sport },
+            update: l,
             create: l
         });
     }
 
-    // 2. TEAMS (HD LOGOS - GENERATED ASSETS)
-    const teamsData = [
-        // NBA
+    // 2. TEAMS (LAD FIX)
+    const teams = [
         { id: 'LAL', name: 'Los Angeles Lakers', short: 'LAL', logo: '/logos/lal_hd.png', league: LeagueType.NBA },
         { id: 'GSW', name: 'Golden State Warriors', short: 'GSW', logo: '/logos/gsw_hd.png', league: LeagueType.NBA },
-        { id: 'BKN', name: 'Brooklyn Nets', short: 'BKN', logo: '/logos/bkn.png', league: LeagueType.NBA },
-        // MLB
-        { id: 'LAD', name: 'LA Dodgers', short: 'LAD', logo: '/logos/lad_hd.png', league: LeagueType.MLB },
         { id: 'NYY', name: 'New York Yankees', short: 'NYY', logo: '/logos/nyy_hd.png', league: LeagueType.MLB },
-        { id: 'SFG', name: 'San Francisco Giants', short: 'SFG', logo: '/logos/giants.png', league: LeagueType.MLB },
-        // PL
-        { id: 'CRY', name: 'Crystal Palace', short: 'CRY', logo: '/logos/cry_hd.png', league: LeagueType.FOOTBALL },
-        { id: 'WHU', name: 'West Ham United', short: 'WHU', logo: '/logos/whu.png', league: LeagueType.FOOTBALL }
+        { id: 'LAD', name: 'Los Angeles Dodgers', short: 'LAD', logo: '/logos/lad_hd.png', league: LeagueType.MLB }
     ];
 
-    for (const t of teamsData) {
+    for (const t of teams) {
         await prisma.teams.upsert({
-            where: { team_id: t.id },
-            update: { logo_url: t.logo, short_name: t.short, full_name: t.name, league_type: t.league },
+            where: { full_name: t.name },
+            update: { team_id: t.id, short_name: t.short, logo_url: t.logo },
             create: {
                 team_id: t.id,
                 full_name: t.name,
@@ -58,109 +56,138 @@ async function main() {
         });
     }
 
-    // 3. PLAYERS (NBA & MLB Samples)
-    const players = [
-        { id: 'P_LEBRON', first: 'LeBron', last: 'James', display: 'LEBRON JAMES', pos: 'F', team: 'LAL' },
-        { id: 'P_CURRY', first: 'Stephen', last: 'Curry', display: 'STEPHEN CURRY', pos: 'G', team: 'GSW' },
-        { id: 'P_OHTANI', first: 'Shohei', last: 'Ohtani', display: 'SHOHEI OHTANI', pos: 'DH/P', team: 'LAD' },
-        { id: 'P_JUDGE', first: 'Aaron', last: 'Judge', display: 'AARON JUDGE', pos: 'OF', team: 'NYY' }
+    // 3. PLAYERS (V16.4 Physical Profiles)
+    const playersData = [
+        { id: 'P_LEBRON', first: 'LeBron', last: 'James', display: 'LeBron James', pos: 'F', height: "206cm", weight: "113kg", teamId: 'LAL', jersey: '23' },
+        { id: 'P_CURRY', first: 'Stephen', last: 'Curry', display: 'Stephen Curry', pos: 'G', height: "188cm", weight: "84kg", teamId: 'GSW', jersey: '30' },
+        { id: 'P_OHTANI', first: 'Shohei', last: 'Ohtani', display: 'Shohei Ohtani', pos: 'DH/P', height: "193cm", weight: "102kg", teamId: 'LAD', jersey: '17' },
+        { id: 'P_COLE', first: 'Gerrit', last: 'Cole', display: 'Gerrit Cole', pos: 'P', height: "193cm", weight: "100kg", teamId: 'NYY', jersey: '45' }
     ];
 
-    for (const p of players) {
-        const player = await prisma.player.upsert({
+    for (const p of playersData) {
+        await prisma.player.upsert({
             where: { player_id: p.id },
-            update: { display_name: p.display },
+            update: { height: p.height, weight: p.weight },
             create: {
                 player_id: p.id,
                 first_name: p.first,
                 last_name: p.last,
                 display_name: p.display,
                 position_main: p.pos,
-                active_status: true
+                height: p.height,
+                weight: p.weight
             }
         });
 
         await (prisma as any).roster.upsert({
-            where: { player_id_team_id_season_year: { player_id: p.id, team_id: p.team, season_year: 2026 } },
-            update: {},
+            where: { player_id_team_id_season_year: { player_id: p.id, team_id: p.teamId, season_year: 2026 } },
+            update: { jersey_number: p.jersey },
             create: {
                 player_id: p.id,
-                team_id: p.team,
-                season_year: 2026
+                team_id: p.teamId,
+                season_year: 2026,
+                jersey_number: p.jersey
             }
         });
+
+        // Add stats
+        if (p.teamId === 'LAL' || p.teamId === 'GSW') {
+            await (prisma as any).stats_NBA.upsert({
+                where: { player_id: p.id },
+                update: { pts: p.id === 'P_LEBRON' ? 25.4 : 26.8, reb: 7.2, ast: 8.1 },
+                create: { player_id: p.id, pts: p.id === 'P_LEBRON' ? 25.4 : 26.8, reb: 7.2, ast: 8.1 }
+            });
+        } else {
+            await (prisma as any).stats_MLB.upsert({
+                where: { player_id: p.id },
+                update: { era: p.id === 'P_COLE' ? 2.85 : 0, avg: p.id === 'P_OHTANI' ? 0.310 : 0.260, hr: p.id === 'P_OHTANI' ? 54 : 41 },
+                create: { player_id: p.id, era: p.id === 'P_COLE' ? 2.85 : 0, avg: p.id === 'P_OHTANI' ? 0.310 : 0.260, hr: p.id === 'P_OHTANI' ? 54 : 41 }
+            });
+        }
     }
 
-    // 4. MATCHES & V11.5 SIGNALS
-    const baseDate = new Date(); // RIGHT NOW
+    // 4. MATCHES & V16.4 SIGNALS
+    const baseDate = new Date();
     const matchData = [
-        { id: 'EPL-2026-001', league: 'EPL', home: 'CRY', away: 'WHU', offsetHours: -1, tag: '🔥 UPSET ALERT', edge: 0.1245, ra_ev: 0.1420, clv: 0.0850, conf: 0.8520, sport: 'soccer' },
-        { id: 'NBA-2026-001', league: 'NBA', home: 'LAL', away: 'GSW', offsetHours: 1, tag: '🔒 LOCKED', edge: 0.0540, ra_ev: 0.0710, clv: 0.0320, conf: 0.9210, sport: 'basketball' },
-        { id: 'MLB-2026-001', league: 'MLB', home: 'NYY', away: 'LAD', offsetHours: 3, tag: 'BIOMETRIC_EDGE', edge: 0.0890, ra_ev: 0.1040, clv: 0.0610, conf: 0.7640, sport: 'baseball' },
-        { id: 'NBA-2026-002', league: 'NBA', home: 'BKN', away: 'GSW', offsetHours: 6, tag: 'SHARP_ALPHA', edge: 0.0320, ra_ev: 0.0450, clv: 0.0120, conf: 0.6850, sport: 'basketball' }
+        {
+            id: 'NBA-2026-LAL-GSW', league: 'NBA', home: 'LAL', away: 'GSW', offsetHours: 1, sport: 'basketball',
+            narrative: "West Coast Goliath: Dynasty vs King", sentiment: 0.68, momentum: 0.75,
+            std: ["LAL: Interior Dominance +12%", "GSW: Perimeter Alpha +8%", "Pace: Projected 102.4"],
+            tac: ["AD vs Green: DPOY Intensity", "Curry vs Reaves: Perimeter Stress", "LeBron vs Wiggins: Physical Edge"],
+            xf: ["Home Court Advantage (LAL)", "Betting Line Steam (+3.5 GSW)", "Rotation: GSW Bench Depth"],
+            homeProb: 0.54, awayProb: 0.46,
+            homeStarter: 'P_LEBRON', awayStarter: 'P_CURRY'
+        },
+        {
+            id: 'MLB-2026-NYY-LAD', league: 'MLB', home: 'NYY', away: 'LAD', offsetHours: 3, sport: 'baseball',
+            narrative: "October Preview: Interlocking NY/LA Clash", sentiment: 0.64, momentum: 0.82,
+            std: ["NYY: Cole (RHP) - Elite Velocity", "LAD: Ohtani (LHB) - Power Outlier", "Weather: 18C - Minimal Resistance"],
+            tac: ["Cole vs Ohtani: 4-Seam Heat (Adv: NYY)", "Judge vs LAD Pen: High-Leverage", "Bullpen Depth: LAD Dominant"],
+            xf: ["NYY Stadium Factor (+1.2 HR)", "LAD Travel Fatigue Check", "Umpire: Wide Strike Zone"],
+            homeProb: 0.52, awayProb: 0.48,
+            homeStarter: 'P_COLE', awayStarter: 'P_OHTANI'
+        }
     ];
 
     for (const m of matchData) {
-        const matchDate = new Date(baseDate.getTime() + m.offsetHours * 60 * 60 * 1000);
-        const match = await (prisma as any).match.upsert({
+        const matchTime = new Date(baseDate.getTime() + m.offsetHours * 60 * 60 * 1000);
+        const match = await prisma.match.upsert({
             where: { extId: m.id },
-            update: { date: matchDate, id: m.id },
+            update: { date: matchTime, status: 'live' },
             create: {
-                id: m.id,
                 extId: m.id,
-                date: matchDate,
+                date: matchTime,
                 sport: m.sport,
                 homeTeamId: m.home,
                 awayTeamId: m.away,
-                homeTeamName: teamsData.find(t => t.id === m.home)?.name || '',
-                awayTeamName: teamsData.find(t => t.id === m.away)?.name || '',
-                status: 'scheduled',
+                homeTeamName: m.home,
+                awayTeamName: m.away,
+                status: 'live',
                 leagueId: m.league
             }
         });
 
-        await (prisma as any).matchSignal.upsert({
+        await prisma.matchSignal.upsert({
             where: { matchId: match.id },
             update: {
-                edge: m.edge,
-                ev: m.ra_ev,
-                ra_ev: m.ra_ev,
-                clv: m.clv,
-                confidence: m.conf,
-                tags: [m.tag, "ALPHA_SIGNAL"],
-                signalLabel: m.tag === '🔒 LOCKED' ? 'ELITE' : 'STRONG',
-                signalScore: m.conf,
-                marketFairProbs: { home: 0.55, away: 0.45 }
+                narrative: m.narrative,
+                crowd_sentiment_index: m.sentiment,
+                momentum_index: m.momentum,
+                standard_analysis: m.std,
+                tactical_matchup: m.tac,
+                x_factors: m.xf
             },
             create: {
                 matchId: match.id,
-                edge: m.edge,
-                ev: m.ra_ev,
-                ra_ev: m.ra_ev,
-                clv: m.clv,
-                confidence: m.conf,
-                tags: [m.tag, "ALPHA_SIGNAL"],
-                signalLabel: m.tag === '🔒 LOCKED' ? 'ELITE' : 'STRONG',
-                signalScore: m.conf,
-                marketFairProbs: { home: 0.55, away: 0.45 }
+                signalLabel: 'ALPHA_QUANT_SIGNAL',
+                signalScore: 0.85,
+                confidence: 0.88,
+                narrative: m.narrative,
+                crowd_sentiment_index: m.sentiment,
+                momentum_index: m.momentum,
+                standard_analysis: m.std,
+                tactical_matchup: m.tac,
+                x_factors: m.xf
             }
         });
-    }
 
-    // 5. BACKTEST RESULTS (10,000 Sim Ops)
-    const backtests = [
-        { league: 'NBA', strategyType: 'V11.5_CONVERGENCE', simulatedROI: 0.142, sharpeRatio: 2.4, maxDrawdown: 0.08, sampleSize: 10000, robustness: 'EXCELLENT' },
-        { league: 'MLB', strategyType: 'BIOMETRIC_ALPHA', simulatedROI: 0.085, sharpeRatio: 1.8, maxDrawdown: 0.12, sampleSize: 10000, robustness: 'STABLE' },
-        { league: 'EPL', strategyType: 'SHARP_SIGNAL', simulatedROI: 0.112, sharpeRatio: 2.1, maxDrawdown: 0.09, sampleSize: 10000, robustness: 'HIGH' }
-    ];
-
-    for (const b of backtests) {
-        await (prisma as any).strategyBacktestResult.create({
-            data: b
+        await prisma.matchPrediction.upsert({
+            where: { matchId: match.id },
+            update: { homeWinProb: m.homeProb, awayWinProb: m.awayProb },
+            create: { matchId: match.id, homeWinProb: m.homeProb, awayWinProb: m.awayProb }
         });
+
+        // Link Starters
+        if (m.sport === 'baseball') {
+            await (prisma as any).matchStatsBaseball.upsert({
+                where: { matchId: match.id },
+                update: { homeStarterId: m.homeStarter, awayStarterId: m.awayStarter },
+                create: { matchId: match.id, homeStarterId: m.homeStarter, awayStarterId: m.awayStarter }
+            });
+        }
     }
 
-    console.log('--- [GENESIS 6.0] DATA DELUGE COMPLETE ---');
+    console.log("\n--- [V16.4] DATA DELUGE COMPLETE ---");
 }
 
 main()
