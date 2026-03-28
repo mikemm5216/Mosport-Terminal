@@ -14,26 +14,36 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="w-full bg-slate-950 border-b border-slate-800/80 sticky top-0 z-40">
+    <nav className="w-full bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b-2 border-amber-500/30 sticky top-0 z-40 shadow-xl">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between h-14">
+        <div className="flex justify-between items-center h-16">
           
-          {/* Logo Area */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-cyan-400">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                <polyline points="2 17 12 22 22 17"></polyline>
-                <polyline points="2 12 12 17 22 12"></polyline>
-              </svg>
-            </span>
-            <span className="font-extrabold text-white tracking-widest text-lg ml-1 hidden sm:block">
-              MOSPORT
-            </span>
+          {/* Logo Area - ESPN Style */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg blur-lg opacity-40" />
+              <span className="text-white relative bg-gradient-to-r from-amber-400 to-orange-400 rounded-lg p-2">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+              </span>
+            </div>
+            <div className="flex flex-col leading-none hidden sm:flex">
+              <span className="font-black text-white tracking-[0.15em] text-lg">MOSPORT</span>
+              <span className="text-[9px] text-amber-400/80 font-bold tracking-widest">SPORTS QUANT</span>
+            </div>
           </div>
 
-          {/* Navigation Links */}
-          <div className="flex gap-1 sm:gap-2">
+          {/* Center - Live Indicator */}
+          <div className="hidden md:flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50" />
+            <span className="text-[9px] text-emerald-400 font-black tracking-widest uppercase">LIVE</span>
+          </div>
+
+          {/* Navigation Links - ESPN Tab Style */}
+          <div className="flex gap-0 ml-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.path;
@@ -41,14 +51,15 @@ export default function Navbar() {
                 <Link
                   key={item.path}
                   href={item.path}
-                  className={`flex items-center gap-1.5 px-3 sm:px-4 h-full border-b-2 transition-colors ${
+                  className={`flex items-center gap-1.5 px-4 sm:px-5 h-full border-b-4 transition-all duration-300 relative ${
                     isActive 
-                      ? 'border-cyan-400 text-cyan-400 bg-slate-900/40' 
-                      : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/20'
+                      ? 'border-amber-500 text-amber-400 bg-slate-900/60 shadow-[0_4px_12px_rgba(251,146,60,0.2)]' 
+                      : 'border-transparent text-slate-400 hover:text-amber-300 hover:bg-slate-900/30 hover:border-b-amber-500/50'
                   }`}
                 >
-                  <Icon size={16} className={isActive ? 'animate-pulse' : ''} />
-                  <span className="text-[10px] sm:text-xs font-bold tracking-widest uppercase">{item.label}</span>
+                  {isActive && <div className="absolute inset-0 top-0 bg-gradient-to-b from-amber-500/10 to-transparent pointer-events-none" />}
+                  <Icon size={18} />
+                  <span className="text-xs font-black tracking-wider uppercase hidden sm:inline">{item.label}</span>
                 </Link>
               );
             })}

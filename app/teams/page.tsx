@@ -40,9 +40,9 @@ export default async function TeamsAnalyticsPage({
   const FilterButton = ({ label, value, active, icon }: { label: string, value: string, active: boolean, icon: string }) => (
     <Link
       href={`/teams${value === 'ALL' ? '' : `?sport=${value}`}`}
-      className={`px-6 py-2 rounded border text-[10px] md:text-xs font-black tracking-[0.3em] transition-all uppercase ${active
-        ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]'
-        : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
+      className={`px-6 py-2.5 rounded-lg border-2 text-xs font-black tracking-wider transition-all duration-300 uppercase flex items-center gap-2 ${active
+        ? 'bg-gradient-to-r from-amber-500 to-orange-500 border-amber-400 text-white shadow-[0_0_24px_rgba(251,146,60,0.4)]'
+        : 'bg-slate-900/60 border-slate-700/60 text-slate-400 hover:border-amber-500/50 hover:text-amber-400'
         }`}
     >
       {icon} {label}
@@ -50,22 +50,22 @@ export default async function TeamsAnalyticsPage({
   );
 
   return (
-    <div className="flex flex-col items-center px-4 py-8 min-h-screen bg-slate-950 text-slate-200">
+    <div className="flex flex-col items-center px-4 py-8 min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-200">
       <div className="w-full max-w-7xl mb-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-slate-800/80 pb-8">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b-2 border-amber-500/40 pb-8">
           <div>
             <h1 className="text-4xl md:text-6xl font-black text-white tracking-widest uppercase mb-2">
-              Teams <span className="text-cyan-400">Vault</span>
+              Teams <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">Vault</span>
             </h1>
             <p className="text-slate-500 text-[10px] md:text-xs font-mono uppercase tracking-[0.4em]">
-              Squad Intelligence & Multi-Sport Grid v2.1
+              Squad Intelligence & Multi-Sport Intelligence Grid
             </p>
           </div>
 
           <div className="flex gap-4 flex-wrap">
-            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="" />
-            <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} icon="" />
-            <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} icon="" />
+            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="⚽" />
+            <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} icon="🏀" />
+            <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} icon="⚾" />
           </div>
         </div>
       </div>
@@ -75,7 +75,7 @@ export default async function TeamsAnalyticsPage({
           NO MATCHING UNITS IN COLD DATABASE [{sport || 'ALL'}]
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 w-full max-w-7xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-7xl">
           {teams.map(team => {
             const history = historyByTeamId.get(team.team_id) || [];
             const momentum = WorldEngine.calcMomentum(history);
@@ -89,54 +89,74 @@ export default async function TeamsAnalyticsPage({
             return (
               <div
                 key={team.team_id}
-                className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 hover:border-cyan-500/50 hover:bg-slate-900/60 transition-all group backdrop-blur-md relative overflow-hidden"
+                className="group relative overflow-hidden"
               >
-                <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/5 rounded-bl-full -mr-8 -mt-8 blur-xl group-hover:bg-cyan-500/10 transition-colors" />
+                {/* Card background with gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900/60 to-slate-950 border border-slate-800/60 rounded-2xl group-hover:from-slate-800/70 group-hover:to-slate-900/70 group-hover:border-amber-500/40 transition-all duration-300" />
+                
+                {/* Animated glow */}
+                <div className="absolute -inset-full top-0 right-0 h-80 w-80 bg-gradient-to-bl from-amber-500/8 to-transparent rounded-full blur-3xl group-hover:from-amber-500/15 transition-all duration-500 pointer-events-none" />
 
-                <div className="flex items-center gap-5 mb-6 border-b border-slate-800/40 pb-5">
-                  {team.logo_url ? (
-                    <img
-                      src={team.logo_url || '/logos/default-shield.png'}
-                      alt={team.full_name}
-                      className="w-10 h-10 md:w-12 md:h-12 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-slate-950 rounded-full border border-slate-800 flex items-center justify-center text-slate-600 font-black text-xl">
-                      {team.short_name?.[0] || team.full_name[0]}
+                <div className="relative p-6 flex flex-col h-full">
+                  {/* Header with Logo */}
+                  <div className="flex items-start gap-4 mb-6 pb-5 border-b border-slate-800/40">
+                    {team.logo_url ? (
+                      <img
+                        src={team.logo_url || '/logos/default-shield.png'}
+                        alt={team.full_name}
+                        className="w-16 h-16 object-contain drop-shadow-[0_0_15px_rgba(251,146,60,0.2)] group-hover:drop-shadow-[0_0_25px_rgba(251,146,60,0.4)] transition-all duration-300"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-slate-950 rounded-lg border-2 border-slate-700 flex items-center justify-center text-slate-500 font-black text-2xl group-hover:border-amber-500/50 transition-colors">
+                        {team.short_name?.[0] || team.full_name[0]}
+                      </div>
+                    )}
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-white font-black text-2xl tracking-tighter uppercase leading-tight group-hover:text-amber-400 transition-colors">
+                        {team.short_name || team.full_name.substring(0, 3).toUpperCase()}
+                      </span>
+                      <span className="text-[9px] text-slate-500 font-bold truncate tracking-widest uppercase mt-0.5">
+                        {team.full_name}
+                      </span>
                     </div>
-                  )}
-                  <div className="flex flex-col truncate min-w-0">
-                    <span className="text-white font-black text-2xl tracking-tighter uppercase leading-tight group-hover:text-cyan-400 transition-colors">
-                      {team.short_name || team.full_name.substring(0, 3).toUpperCase()}
-                    </span>
-                    <span className="text-[9px] text-slate-500 font-bold truncate tracking-widest uppercase mt-0.5">
-                      {team.full_name}
-                    </span>
-                    <div className="flex gap-1.5 mt-2">
+                  </div>
+
+                  {/* Last 5 Results - Prominent Display */}
+                  <div className="mb-6 pb-6 border-b border-slate-800/40">
+                    <div className="text-[9px] text-slate-500 font-black tracking-widest uppercase mb-2.5">Last 5</div>
+                    <div className="flex gap-2">
                       {hasData ? last5.map((h, i) => (
                         <div
                           key={i}
                           title={h.result}
-                          className={`w-2.5 h-2.5 rounded-full ${getResultColor(h.result)} shadow-lg shadow-black/50`}
-                        />
+                          className={`flex-1 h-8 rounded-lg flex items-center justify-center font-black text-white text-sm shadow-lg transition-all hover:scale-105 ${getResultColor(h.result)} ${
+                            h.result === 'W' ? 'shadow-emerald-500/30' :
+                            h.result === 'D' ? 'shadow-slate-500/20' :
+                            'shadow-rose-500/30'
+                          }`}
+                        >
+                          {h.result}
+                        </div>
                       )) : (
-                        <span className="text-[8px] text-slate-700 font-mono tracking-widest uppercase">No Signal Data</span>
+                        <span className="text-[8px] text-slate-600 font-mono tracking-widest uppercase py-3">No Signal Data</span>
                       )}
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-4">
-                  <MetricBar label="Momentum" value={momentum} color="cyan" hasData={hasData} />
-                  <MetricBar label="Strength Ratio" value={strength} color="amber" hasData={hasData} />
-                  <MetricBar label="Fatigue Load" value={fatigue} color="rose" hasData={hasData} />
-                </div>
+                  {/* Metrics */}
+                  <div className="space-y-4 flex-1">
+                    <MetricBar label="Momentum" value={momentum} color="cyan" hasData={hasData} />
+                    <MetricBar label="Strength Ratio" value={strength} color="amber" hasData={hasData} />
+                    <MetricBar label="Fatigue Load" value={fatigue} color="rose" hasData={hasData} />
+                  </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-800/40 flex justify-between items-center text-[9px] font-black text-slate-500 tracking-[0.2em] uppercase">
-                  <span className="flex items-center gap-2">
-                    {isNBA ? 'HOOPS' : isMLB ? 'DIAMOND' : 'PITCH'} {team.league_type} PRO
-                  </span>
-                  <span className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800">{history.length} MATCHES</span>
+                  {/* Footer */}
+                  <div className="mt-6 pt-4 border-t border-slate-800/40 flex justify-between items-center text-[8px] font-black text-slate-500 tracking-widest uppercase">
+                    <span className="flex items-center gap-1.5">
+                      {isNBA ? '🏀' : isMLB ? '⚾' : '⚽'} {team.league_type}
+                    </span>
+                    <span className="bg-slate-950 px-2.5 py-1 rounded-md border border-slate-800 text-amber-400/80">{history.length} MATCHES</span>
+                  </div>
                 </div>
               </div>
             );
@@ -149,20 +169,23 @@ export default async function TeamsAnalyticsPage({
 
 function MetricBar({ label, value, color, hasData }: { label: string, value: number, color: string, hasData: boolean }) {
   const colorMap: any = {
-    cyan: 'bg-cyan-500 text-cyan-400',
-    amber: 'bg-amber-500 text-amber-500',
-    rose: 'bg-rose-500 text-rose-400'
+    cyan: { bg: 'bg-cyan-500', text: 'text-cyan-400', glow: 'shadow-cyan-500/30' },
+    amber: { bg: 'bg-amber-500', text: 'text-amber-400', glow: 'shadow-amber-500/30' },
+    rose: { bg: 'bg-rose-500', text: 'text-rose-400', glow: 'shadow-rose-500/30' }
   };
-  const [bgClass, textClass] = colorMap[color].split(' ');
+  const colors = colorMap[color] || colorMap.cyan;
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <div className="flex justify-between items-end">
         <span className="text-[10px] text-slate-500 font-black tracking-widest uppercase">{label}</span>
-        <span className={`text-[10px] font-black font-mono ${textClass}`}>{hasData ? `${Math.round(value * 100)}%` : 'N/A'}</span>
+        <span className={`text-[11px] font-black font-mono ${colors.text}`}>{hasData ? `${Math.round(value * 100)}%` : 'N/A'}</span>
       </div>
-      <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-900">
-        <div className={`h-full ${bgClass} rounded-full transition-all duration-1000`} style={{ width: hasData ? `${value * 100}%` : '0%' }} />
+      <div className="w-full h-2 bg-slate-950/80 rounded-full overflow-hidden border border-slate-800 p-0.5">
+        <div 
+          className={`h-full ${colors.bg} rounded-full transition-all duration-700 ${colors.glow} shadow-lg`} 
+          style={{ width: hasData ? `${value * 100}%` : '0%' }} 
+        />
       </div>
     </div>
   );

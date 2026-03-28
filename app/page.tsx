@@ -32,28 +32,29 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#05090f] flex flex-col items-center overflow-x-hidden selection:bg-cyan-500/30">
+    <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center overflow-x-hidden selection:bg-amber-500/30">
       <LiveTicker />
 
-      {/* TERMINAL HEADER (Extreme Density V16.2 Purged) */}
-      <div className="w-full max-w-7xl pt-4 pb-2 px-12">
-        <div className="flex flex-col border-l-2 border-cyan-400 pl-4">
-          <div className="flex items-center gap-2 mb-0.5">
-            <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_emerald]" />
-            <span className="text-[8px] font-black text-slate-700 uppercase tracking-[0.4em]">Live Alpha Feed Active</span>
+      {/* ESPN-Style Header */}
+      <div className="w-full max-w-7xl pt-6 pb-4 px-4 sm:px-8">
+        <div className="flex flex-col border-l-4 border-amber-500 pl-6">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_12px_rgb(16,185,129)]" />
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">Live Premium Feed</span>
           </div>
-          <h1 className="text-xl font-black text-white italic uppercase tracking-[0.1em] leading-none">
-            MOSPORT <span className="text-cyan-400">TERMINAL</span>
+          <h1 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-[0.05em] leading-tight">
+            MOSPORT <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">RADAR</span>
           </h1>
+          <p className="text-slate-600 text-[9px] font-mono uppercase tracking-[0.3em] mt-2">Global Sports Intelligence Network</p>
         </div>
       </div>
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center p-40">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-amber-500 shadow-[0_0_30px_rgba(251,146,60,0.3)]"></div>
         </div>
       ) : (
-        <div className="w-full max-w-7xl px-12 pt-4 pb-40">
+        <div className="w-full max-w-7xl px-4 sm:px-8 pt-4 pb-40">
           <ESPNStyleScoreboard matches={matches} />
         </div>
       )}
