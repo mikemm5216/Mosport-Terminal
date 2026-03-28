@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronDown, ArrowRight, User, Activity, Clock, Zap, Target, Shield, AlertTriangle } from 'lucide-react';
 import LiveTicker from '@/components/LiveTicker';
 import LogoFallback from '@/components/LogoFallback';
+import ESPNStyleScoreboard from '@/components/ESPNStyleScoreboard';
 import { formatLocalTime } from '@/lib/timezone';
 
 export default function Home() {
@@ -52,11 +53,18 @@ export default function Home() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-400"></div>
         </div>
       ) : (
-        <div className="w-full max-w-7xl px-12 pb-40 space-y-1">
-          {matches.map((match) => (
-            <TerminalRow key={match.match_id} match={match} isExpanded={expandedId === match.match_id} onToggle={() => toggleExpand(match.match_id)} />
-          ))}
-        </div>
+        <>
+          <div className="w-full max-w-7xl px-12 pb-20 space-y-1">
+            {matches.map((match) => (
+              <TerminalRow key={match.match_id} match={match} isExpanded={expandedId === match.match_id} onToggle={() => toggleExpand(match.match_id)} />
+            ))}
+          </div>
+
+          {/* 2. GLOBAL SCOREBOARD (ESPN-STYLE V16.1) */}
+          <div className="w-full max-w-7xl px-12 pb-40">
+            <ESPNStyleScoreboard matches={matches} />
+          </div>
+        </>
       )}
     </main>
   );
