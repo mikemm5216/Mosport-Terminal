@@ -5,74 +5,119 @@ import LogoFallback from './LogoFallback';
 
 export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
     return (
-        <div className="w-full max-w-7xl mx-auto bg-[#0a0f1a] border border-slate-900 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="w-full max-w-7xl mx-auto">
 
-            {/* 標題列：完全致敬 ESPN 的簡潔區塊標題 */}
-            <div className="bg-[#0f172a] border-b border-slate-800 px-6 py-3">
-                <h2 className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.3em] flex items-center gap-2 italic">
-                    <div className="w-1 h-1 rounded-full bg-cyan-400 animate-pulse" />
-                    Global Scoreboard // Alpha Feed
-                </h2>
+            {/* Header Section */}
+            <div className="mb-8 border-b-2 border-amber-500/40 pb-6">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    <h2 className="text-[11px] font-black text-amber-500 uppercase tracking-[0.3em]">Global Scoreboard</h2>
+                </div>
+                <p className="text-slate-500 text-xs font-mono tracking-widest uppercase">Premium Match Feed</p>
             </div>
 
-            {/* 賽事列表 Grid：手機單欄，桌機雙欄 (跟 ESPN Soccer 一樣) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 border-t border-slate-900">
+            {/* Matches Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {matches.map((match, idx) => (
                     <Link
                         key={match.match_id || idx}
                         href={`/matches/${match.match_id}`}
-                        className={`flex items-center justify-between p-5 hover:bg-white/[0.03] transition-all group cursor-pointer border-slate-900/50 ${idx % 2 === 0 ? 'lg:border-r' : ''} border-b`}
+                        className="group relative overflow-hidden"
                     >
+                        {/* Card Background with gradient on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 to-slate-950 border border-slate-800/60 rounded-xl group-hover:from-slate-800/80 group-hover:to-slate-900 group-hover:border-amber-500/40 transition-all duration-300" />
+                        
+                        {/* Animated background glow on hover */}
+                        <div className="absolute -inset-full top-0 left-0 h-96 w-96 bg-gradient-to-br from-amber-500/5 to-transparent rounded-full blur-3xl group-hover:from-amber-500/10 transition-all duration-500 pointer-events-none" />
 
-                        {/* 左側：上下堆疊的球隊 (完美致敬 ESPN) */}
-                        <div className="flex flex-col gap-3">
-                            {/* 主隊列 */}
-                            <div className="flex items-center gap-3">
-                                <LogoFallback
-                                    url={match.home_logo_url || match.home_logo}
-                                    name={match.home_team_name}
-                                    shortName={match.home_short_name}
-                                    sport={match.sport}
-                                    size={24}
-                                />
-                                <span className="text-white font-black text-sm md:text-base tracking-tight italic uppercase">
-                                    {match.home_team_name}
-                                </span>
-                                {match.home_score !== undefined && <span className="text-white font-black text-lg ml-auto">{match.home_score}</span>}
+                        <div className="relative p-6 flex items-center justify-between gap-6">
+
+                            {/* Left: Teams Section */}
+                            <div className="flex-1 flex items-center gap-4">
+                                <div className="flex flex-col gap-3">
+                                    {/* Home Team */}
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-shrink-0 w-12 h-12 bg-slate-950/80 rounded-lg border border-slate-700/50 group-hover:border-amber-500/50 p-2 flex items-center justify-center group-hover:shadow-[0_0_20px_rgba(251,146,60,0.2)] transition-all">
+                                            <LogoFallback
+                                                url={match.home_logo_url || match.home_logo}
+                                                name={match.home_team_name}
+                                                shortName={match.home_short_name}
+                                                sport={match.sport}
+                                                size={32}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-white font-black text-sm md:text-base tracking-tight italic uppercase leading-tight">
+                                                {match.home_team_name}
+                                            </span>
+                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{match.home_short_name || 'HOME'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Away Team */}
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-shrink-0 w-12 h-12 bg-slate-950/80 rounded-lg border border-slate-700/50 group-hover:border-amber-500/50 p-2 flex items-center justify-center group-hover:shadow-[0_0_20px_rgba(251,146,60,0.2)] transition-all">
+                                            <LogoFallback
+                                                url={match.away_logo_url || match.away_logo}
+                                                name={match.away_team_name}
+                                                shortName={match.away_short_name}
+                                                sport={match.sport}
+                                                size={32}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-white font-black text-sm md:text-base tracking-tight italic uppercase leading-tight">
+                                                {match.away_team_name}
+                                            </span>
+                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{match.away_short_name || 'AWAY'}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            {/* 客隊列 */}
-                            <div className="flex items-center gap-3">
-                                <LogoFallback
-                                    url={match.away_logo_url || match.away_logo}
-                                    name={match.away_team_name}
-                                    shortName={match.away_short_name}
-                                    sport={match.sport}
-                                    size={24}
-                                />
-                                <span className="text-white font-black text-sm md:text-base tracking-tight italic uppercase">
-                                    {match.away_team_name}
-                                </span>
-                                {match.away_score !== undefined && <span className="text-white font-black text-lg ml-auto">{match.away_score}</span>}
+
+                            {/* Center: Scores */}
+                            <div className="flex flex-col items-center gap-3 border-l border-r border-slate-700/50 px-6 py-2">
+                                <div className="text-center">
+                                    {match.home_score !== undefined ? (
+                                        <div className="text-4xl font-black text-white tracking-tighter">{match.home_score}</div>
+                                    ) : (
+                                        <div className="text-2xl text-amber-500 font-black">-</div>
+                                    )}
+                                </div>
+                                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">vs</span>
+                                <div className="text-center">
+                                    {match.away_score !== undefined ? (
+                                        <div className="text-4xl font-black text-white tracking-tighter">{match.away_score}</div>
+                                    ) : (
+                                        <div className="text-2xl text-amber-500 font-black">-</div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
 
-                        {/* 右側：賽事狀態與 AI 標籤 */}
-                        <div className="flex flex-col items-end justify-center gap-2 border-l border-slate-800/50 pl-6 min-w-[100px]">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic leading-none">
-                                {match.time || "19:00"}
-                            </span>
+                            {/* Right: Match Info & Status */}
+                            <div className="flex flex-col items-end justify-center gap-3 text-right min-w-fit">
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">
+                                        {match.time || "19:00"}
+                                    </span>
+                                    <span className="text-[8px] text-slate-600 font-bold uppercase tracking-widest mt-0.5">
+                                        {match.status || "SCHEDULED"}
+                                    </span>
+                                </div>
 
-                            <div className="flex gap-1">
-                                {match.tags?.includes("UPSET ALERT") && (
-                                    <span className="text-[8px] font-black text-amber-400 bg-amber-400/5 px-2 py-0.5 rounded border border-amber-400/20 uppercase tracking-wider italic">
-                                        🔥 UPSET
-                                    </span>
-                                )}
-                                {match.tags?.includes("SYSTEM LOCK") && (
-                                    <span className="text-[8px] font-black text-cyan-400 bg-cyan-400/5 px-2 py-0.5 rounded border border-cyan-400/20 uppercase tracking-wider italic">
-                                        🔒 LOCK
-                                    </span>
-                                )}
+                                {/* Tag Pills */}
+                                <div className="flex flex-col gap-1">
+                                    {match.tags?.includes("UPSET ALERT") && (
+                                        <span className="text-[7px] font-black text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-400/40 uppercase tracking-wider italic whitespace-nowrap">
+                                            🔥 UPSET ALERT
+                                        </span>
+                                    )}
+                                    {match.tags?.includes("SYSTEM LOCK") && (
+                                        <span className="text-[7px] font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-400/40 uppercase tracking-wider italic whitespace-nowrap">
+                                            🔒 SYSTEM LOCK
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </Link>
