@@ -44,7 +44,7 @@ export default function TeamStats({ team }: TeamStatsProps) {
             <span className="font-mono">{state.fatigue.toFixed(2)}</span>
           </div>
           <div className="w-full bg-gray-900 rounded-full h-1.5">
-            <div className="bg-orange-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, state.fatigue * 100)}%` }}></div>
+            <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, state.fatigue * 100)}%` }}></div>
           </div>
         </div>
 

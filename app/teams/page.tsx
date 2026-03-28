@@ -41,8 +41,8 @@ export default async function TeamsAnalyticsPage({
     <Link
       href={`/teams${value === 'ALL' ? '' : `?sport=${value}`}`}
       className={`px-6 py-2.5 rounded-lg border-2 text-xs font-black tracking-wider transition-all duration-300 uppercase flex items-center gap-2 ${active
-        ? 'bg-gradient-to-r from-amber-500 to-orange-500 border-amber-400 text-white shadow-[0_0_24px_rgba(251,146,60,0.4)]'
-        : 'bg-slate-900/60 border-slate-700/60 text-slate-400 hover:border-amber-500/50 hover:text-amber-400'
+        ? 'bg-gradient-to-r from-blue-500 to-cyan-500 border-blue-400 text-white shadow-[0_0_24px_rgba(59,130,246,0.4)]'
+        : 'bg-slate-900/60 border-slate-700/60 text-slate-400 hover:border-blue-500/50 hover:text-blue-400'
         }`}
     >
       {icon} {label}
@@ -52,10 +52,10 @@ export default async function TeamsAnalyticsPage({
   return (
     <div className="flex flex-col items-center px-4 py-8 min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-200">
       <div className="w-full max-w-7xl mb-12">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b-2 border-amber-500/40 pb-8">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b-2 border-blue-500/40 pb-8">
           <div>
             <h1 className="text-4xl md:text-6xl font-black text-white tracking-widest uppercase mb-2">
-              Teams <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">Vault</span>
+              Teams <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Vault</span>
             </h1>
             <p className="text-slate-500 text-[10px] md:text-xs font-mono uppercase tracking-[0.4em]">
               Squad Intelligence & Multi-Sport Intelligence Grid
@@ -92,10 +92,10 @@ export default async function TeamsAnalyticsPage({
                 className="group relative overflow-hidden"
               >
                 {/* Card background with gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-900/60 to-slate-950 border border-slate-800/60 rounded-2xl group-hover:from-slate-800/70 group-hover:to-slate-900/70 group-hover:border-amber-500/40 transition-all duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900/60 to-slate-950 border border-slate-800/60 rounded-2xl group-hover:from-slate-800/70 group-hover:to-slate-900/70 group-hover:border-blue-500/40 transition-all duration-300" />
                 
                 {/* Animated glow */}
-                <div className="absolute -inset-full top-0 right-0 h-80 w-80 bg-gradient-to-bl from-amber-500/8 to-transparent rounded-full blur-3xl group-hover:from-amber-500/15 transition-all duration-500 pointer-events-none" />
+                <div className="absolute -inset-full top-0 right-0 h-80 w-80 bg-gradient-to-bl from-blue-500/8 to-transparent rounded-full blur-3xl group-hover:from-blue-500/15 transition-all duration-500 pointer-events-none" />
 
                 <div className="relative p-6 flex flex-col h-full">
                   {/* Header with Logo */}
