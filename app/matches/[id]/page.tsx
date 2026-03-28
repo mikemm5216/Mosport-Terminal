@@ -118,16 +118,17 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                      <div className="h-px flex-1 bg-gradient-to-l from-transparent to-slate-900" />
                   </div>
 
-                  <div className="relative h-16 w-full bg-[#03060a] rounded-2xl border border-white/5 flex items-center p-2 overflow-hidden shadow-2xl">
+                  <div className="relative h-10 w-full bg-gradient-to-r from-slate-950 to-slate-900 rounded-xl border border-slate-800/50 flex items-center overflow-hidden shadow-xl">
+                     {/* Home team percentage bar */}
                      <div
-                        className="h-full bg-emerald-500 rounded-xl transition-all duration-[1500ms] flex items-center pl-8 shadow-[0_0_30px_rgba(16,185,129,0.3)]"
+                        className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-[1500ms] flex items-center justify-start pl-4 shadow-[0_0_20px_rgba(16,185,129,0.4)]"
                         style={{ width: `${finalHomePct}%` }}
                      >
-                        <span className="text-2xl font-black text-black italic">{finalHomePct}%</span>
+                        {finalHomePct > 15 && <span className="text-lg font-black text-white italic">{finalHomePct}%</span>}
                      </div>
-                     <div className="w-1 h-full bg-white/10 z-10" />
-                     <div className="h-full flex-1 flex items-center justify-end pr-8">
-                        <span className="text-2xl font-black text-red-500 italic">{100 - finalHomePct}%</span>
+                     {/* Away team percentage bar */}
+                     <div className="h-full flex-1 flex items-center justify-end pr-4 bg-gradient-to-r from-transparent to-slate-950">
+                        {100 - finalHomePct > 15 && <span className="text-lg font-black text-rose-500 italic">{100 - finalHomePct}%</span>}
                      </div>
                   </div>
                </div>
