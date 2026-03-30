@@ -420,6 +420,8 @@ enum LeagueType {
   CPBL
   NPB
   KBO
+  EPL
+  UCL
 
   @@schema("public_api")
 }
