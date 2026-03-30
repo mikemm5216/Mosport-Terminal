@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // ─── Centralized Team ID Normalization ────────────────────────────────────────
 const ESPN_TEAM_MAP: Record<string, string> = {
@@ -130,12 +131,16 @@ async function processLeague(
         }
         const sanitizedKey = engineKey.trim();
 
-        const quantRes = await fetch(`${sanitizedUrl}/api/v1/inference`, {
+        // ── Cache-Busting Protocol ──
+        const engineUrlWithTs = `${sanitizedUrl}/api/v1/inference?t=${Date.now()}`;
+
+        const quantRes = await fetch(engineUrlWithTs, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${sanitizedKey}`,
           },
+          cache: 'no-store', // Absolute cache bypass
           body: JSON.stringify({
             model_id: "latest",
             home_team: hTeamId,

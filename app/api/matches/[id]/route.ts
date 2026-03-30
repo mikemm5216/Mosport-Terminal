@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // ─── Sport Router: prefix → ESPN endpoint + sport slug ────────────────────────
 const SPORT_ROUTER: Record<string, {
@@ -149,9 +150,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
             }
             const engineKey = (process.env.FASTAPI_ENGINE_KEY || "").trim();
 
-            const quantRes = await fetch(`${engineUrl}/api/v1/inference`, {
+            // ── Cache-Busting Protocol ──
+            const engineUrlWithTs = `${engineUrl}/api/v1/inference?t=${Date.now()}`;
+
+            const quantRes = await fetch(engineUrlWithTs, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${engineKey}` },
+                cache: 'no-store', // Absolute cache bypass
                 body: JSON.stringify({ model_id: "latest", home_team: hTeamId, away_team: aTeamId, feature_vector: [homeScore, awayScore, 0, 0, 0, 0], model_type: "T-10min", chaos_test: false }),
                 signal: controller.signal,
             });
