@@ -143,11 +143,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
-            const engineUrl = process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000";
+            let engineUrl = (process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000").trim();
+            if (engineUrl && !engineUrl.startsWith('http')) {
+                engineUrl = `https://${engineUrl}`;
+            }
+            const engineKey = (process.env.FASTAPI_ENGINE_KEY || "").trim();
 
             const quantRes = await fetch(`${engineUrl}/api/v1/inference`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.FASTAPI_ENGINE_KEY || ""}` },
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${engineKey}` },
                 body: JSON.stringify({ model_id: "latest", home_team: hTeamId, away_team: aTeamId, feature_vector: [homeScore, awayScore, 0, 0, 0, 0], model_type: "T-10min", chaos_test: false }),
                 signal: controller.signal,
             });
