@@ -136,18 +136,18 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                         <div className="grid grid-cols-2 gap-4">
                                             {/* Home Key Player */}
                                             <div className="border-l-2 border-cyan-500/30 pl-3">
-                                                <div className="text-[10px] font-black text-slate-500 uppercase">#{match.home_key_player?.jersey || '8'} // {match.home_team?.short_name}</div>
-                                                <div className="text-lg font-black text-white italic uppercase leading-tight">{match.home_key_player?.name || 'S. Ohtani'}</div>
+                                                <div className="text-[10px] font-black text-slate-500 uppercase">#{match.home_key_player?.jersey_number || match.home_key_player?.jersey || '8'} // {match.home_team?.short_name}</div>
+                                                <div className="text-lg font-black text-white italic uppercase leading-tight">{match.home_key_player?.player_name || match.home_key_player?.name || `${match.home_team?.short_name} STAR`}</div>
                                                 <div className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                                                    {match.home_key_player?.height || "6'4"} / {match.home_key_player?.weight || "210 LBS"} • {match.home_key_player?.stats || "AVG .310 / HR 44"}
+                                                    {match.home_key_player?.height || "6'4"} / {match.home_key_player?.weight || "210 LBS"} • {match.home_key_player?.stats || "PROJECTED MVP"}
                                                 </div>
                                             </div>
                                             {/* Away Key Player */}
                                             <div className="border-l-2 border-slate-800 pl-3">
-                                                <div className="text-[10px] font-black text-slate-700 uppercase">#{match.away_key_player?.jersey || '99'} // {match.away_team?.short_name}</div>
-                                                <div className="text-lg font-black text-slate-400 italic uppercase leading-tight">{match.away_key_player?.name || 'A. Judge'}</div>
+                                                <div className="text-[10px] font-black text-slate-700 uppercase">#{match.away_key_player?.jersey_number || match.away_key_player?.jersey || '99'} // {match.away_team?.short_name}</div>
+                                                <div className="text-lg font-black text-slate-400 italic uppercase leading-tight">{match.away_key_player?.player_name || match.away_key_player?.name || `${match.away_team?.short_name} STAR`}</div>
                                                 <div className="text-[9px] font-bold text-slate-600 uppercase tracking-tighter">
-                                                    {match.away_key_player?.height || "6'7"} / {match.away_key_player?.weight || "282 LBS"} • {match.away_key_player?.stats || "AVG .267 / HR 37"}
+                                                    {match.away_key_player?.height || "6'7"} / {match.away_key_player?.weight || "282 LBS"} • {match.away_key_player?.stats || "PROJECTED MVP"}
                                                 </div>
                                             </div>
                                         </div>

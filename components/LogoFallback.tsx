@@ -12,43 +12,29 @@ interface LogoFallbackProps {
 }
 
 export default function LogoFallback({ url, name, shortName, size = 16, className = "", sport }: LogoFallbackProps) {
-    const [error, setError] = useState(false);
+    const [hasError, setHasError] = useState(false);
 
-    const getInitials = (n: string) => {
-        if (!n) return "??";
-        const words = n.split(" ");
-        if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
-        return n.substring(0, 2).toUpperCase();
-    };
+    // Patch 17.1: Strict rule to fallback to the Letter Shield if asset is known to be non-transparent
+    const forceFallback = ['LAL', 'CHA', 'SAS', 'MIN', 'ORL', 'UTA'].includes(shortName?.toUpperCase() || '');
 
-    const getColor = () => {
-        if (sport === 'football') return '#EF4444'; // Red for Footy
-        if (sport === 'basketball') return '#F59E0B'; // Amber for B-ball
-        if (sport === 'baseball') return '#3B82F6'; // Blue for Baseball
-        return '#64748B'; // Slate default
-    };
-
-    if (url && !error) {
+    if (url && !hasError && !forceFallback) {
         return (
             <img
                 src={url}
                 alt={name}
-                className={`object-contain ${className}`}
+                className={`object-contain mix-blend-multiply ${className}`}
                 style={{ width: size, height: size }}
-                onError={() => setError(true)}
+                onError={() => setHasError(true)}
             />
         );
     }
 
-    const initials = shortName || getInitials(name);
-    const color = getColor();
-
     return (
         <div
-            className={`flex items-center justify-center rounded-lg font-black text-white italic overflow-hidden border border-white/10 ${className}`}
-            style={{ width: size, height: size, backgroundColor: `${color}20`, color: color, fontSize: size * 0.4 }}
+            className={`flex items-center justify-center bg-slate-800 text-slate-300 font-bold rounded-md border border-slate-700 ${className}`}
+            style={{ width: size, height: size, fontSize: size ? size * 0.4 : 12 }}
         >
-            {initials.substring(0, 3)}
+            {shortName || name?.substring(0, 3)?.toUpperCase() || '?'}
         </div>
     );
 }
