@@ -253,8 +253,11 @@ export async function GET() {
     const validTeams = await (prisma as any).teams.findMany({ select: { team_id: true } });
     const validTeamIds = new Set<string>(validTeams.map((t: any) => t.team_id));
 
-    const engineUrl = process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000";
-    const engineKey = process.env.FASTAPI_ENGINE_KEY || "";
+    const engineUrl = (process.env.FASTAPI_ENGINE_URL || "").trim();
+    if (!engineUrl || engineUrl.includes('127.0.0.1')) {
+      console.error("CRITICAL: PRODUCTION TRYING TO HIT LOCALHOST OR UNSET ENGINE URL!");
+    }
+    const engineKey = (process.env.FASTAPI_ENGINE_KEY || "").trim();
 
     // ── Fix 3: Fetch all 4 leagues concurrently ──
     const [nbaMatches, mlbMatches, eplMatches, uclMatches] = await Promise.all([
