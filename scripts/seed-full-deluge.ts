@@ -71,20 +71,33 @@ async function main() {
         'MUN': { name: 'Manchester United', logo: 'https://www.thesportsdb.com/images/media/team/badge/6794.png' }
     };
 
+    const getEspnUrl = (id: string, type: LeagueType) => {
+        if (type === LeagueType.NBA) return `https://a.espncdn.com/i/teamlogos/nba/500/${id.toLowerCase()}.png`;
+        if (type === LeagueType.MLB) return `https://a.espncdn.com/i/teamlogos/mlb/500/${id.replace('_MLB', '').toLowerCase()}.png`;
+        const eplMap: Record<string, string> = { 'ARS': '359', 'AST': '362', 'CHE': '363', 'LIV': '364', 'MCI': '382', 'MUN': '360', 'CRY': '384', 'WHU': '371' };
+        return `https://a.espncdn.com/i/teamlogos/soccer/500/${eplMap[id] || '359'}.png`;
+    };
+
     const seedLeagueTeams = async (teams: Record<string, { name: string, logo: string }>, type: LeagueType) => {
-        const promises = Object.entries(teams).map(([id, data]) =>
-            retry(() => prisma.teams.upsert({
+        const promises = Object.entries(teams).map(([id, data]) => {
+            const cleanId = id.replace('_MLB', '');
+            const prefix = type === LeagueType.NBA ? 'nba' : type === LeagueType.MLB ? 'mlb' : 'epl';
+            const localUrl = `/logos/${prefix}_${cleanId.toLowerCase()}.png`;
+            const cdnUrl = getEspnUrl(id, type);
+            const dualUrl = `${localUrl}||${cdnUrl}`;
+
+            return retry(() => prisma.teams.upsert({
                 where: { full_name: data.name },
-                update: { team_id: id, short_name: id.replace('_MLB', ''), logo_url: data.logo },
+                update: { short_name: cleanId, logo_url: dualUrl },
                 create: {
-                    team_id: id,
+                    team_id: cleanId,
                     full_name: data.name,
-                    short_name: id.replace('_MLB', ''),
-                    logo_url: data.logo,
+                    short_name: cleanId,
+                    logo_url: dualUrl,
                     league_type: type
                 }
-            }))
-        );
+            }));
+        });
         await Promise.all(promises);
     }
 
