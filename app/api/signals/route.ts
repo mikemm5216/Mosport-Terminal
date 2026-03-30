@@ -36,6 +36,12 @@ const LEAGUES = [
     prefix: "EPL",
     espnUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard",
   },
+  {
+    sport: "soccer",
+    league: "ucl",
+    prefix: "UCL",
+    espnUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.champions/scoreboard",
+  },
 ];
 
 async function processLeague(
@@ -235,15 +241,16 @@ export async function GET() {
     const engineUrl = process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000";
     const engineKey = process.env.FASTAPI_ENGINE_KEY || "";
 
-    // ── Fix 3: Fetch all 3 leagues concurrently ──
-    const [nbaMatches, mlbMatches, eplMatches] = await Promise.all([
+    // ── Fix 3: Fetch all 4 leagues concurrently ──
+    const [nbaMatches, mlbMatches, eplMatches, uclMatches] = await Promise.all([
       processLeague(LEAGUES[0], validTeamIds, engineUrl, engineKey),
       processLeague(LEAGUES[1], validTeamIds, engineUrl, engineKey),
       processLeague(LEAGUES[2], validTeamIds, engineUrl, engineKey),
+      processLeague(LEAGUES[3], validTeamIds, engineUrl, engineKey),
     ]);
 
     // Merge and sort by start_time → unified timeline
-    const allMatches = [...nbaMatches, ...mlbMatches, ...eplMatches].sort(
+    const allMatches = [...nbaMatches, ...mlbMatches, ...eplMatches, ...uclMatches].sort(
       (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
     );
 
