@@ -22,14 +22,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
       console.warn("[WAR ROOM] Database unavailable.");
    }
 
-   if (!match && id !== 'EPL-CRY-WHU-001') {
-      return (
-         <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-8">
-            <h1 className="text-2xl font-black text-white uppercase tracking-widest mb-4 italic">Intelligence Missing</h1>
-            <Link href="/" className="text-cyan-400 font-mono text-xs uppercase tracking-widest hover:underline">Return to Radar</Link>
-         </div>
-      );
-   }
+   // Dynamic Route Fallback 404 removed for UI verification (Patch 17.1 mandate).
 
    // ALPHA INTEL FALLBACK FOR DEMO
    const mockMatch = {
