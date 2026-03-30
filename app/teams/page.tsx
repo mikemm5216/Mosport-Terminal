@@ -170,7 +170,7 @@ export default async function TeamsAnalyticsPage({
                           : <span className="text-slate-700 text-[8px] font-mono tracking-widest animate-pulse">[ NO HISTORY ]</span>
                         }
                       </div>
-                      <span>{isNBA ? 'HOOPS' : isMLB ? 'DIAMOND' : 'PITCH'} {team.league_type}</span>
+                      <span>{isNBA ? 'HOOPS' : isMLB ? 'DIAMOND' : ['EPL', 'UCL'].includes(team.league_type) ? 'SOCCER' : 'PITCH'} {team.league_type}</span>
                     </div>
                   </div>
                 );
