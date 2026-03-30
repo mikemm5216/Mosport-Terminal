@@ -50,7 +50,7 @@ export default async function TeamsAnalyticsPage({
   );
 
   return (
-    <div className="flex flex-col h-screen w-full overflow-hidden bg-[#020617] text-slate-200 selection:bg-cyan-500/30">
+    <div className="flex flex-col h-screen w-full min-w-[320px] overflow-x-auto bg-[#020617] text-slate-200 selection:bg-cyan-500/30">
       {/* HEADER SECTION - FIXED (NO SCROLL) */}
       <div className="w-full flex-none p-4 md:p-6 lg:p-8 border-b border-slate-800/80 bg-[#020617] z-10 shadow-md">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8 max-w-[1600px] mx-auto">

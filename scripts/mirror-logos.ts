@@ -45,7 +45,7 @@ async function mirrorAssets() {
 
     let success = 0;
     for (const item of downloadList) {
-        const filename = `${item.prefix}_${item.id.toLowerCase()}.png`;
+        const filename = `${item.prefix}_${item.id === 'UTA' ? 'utah' : item.id.toLowerCase()}.png`;
         const filepath = path.join(outDir, filename);
 
         try {
