@@ -54,25 +54,17 @@ export async function GET() {
 
       const validate = (val: any) => (val === null || val === undefined || val === "" || (Array.isArray(val) && val.length === 0)) ? "ERROR: Missing Schema" : val;
 
-      const mapPlayer = (p: any, sport: string) => {
-        if (!p) return { player_name: "ERROR: Missing Schema", jersey_number: "ERROR: Missing Schema", physical_profile: "ERROR: Missing Schema", season_stats: "ERROR: Missing Schema", role: "ERROR: Missing Schema" };
+      const homeKp = m.home_key_player;
+      const awayKp = m.away_key_player;
 
-        const stats = sport === 'baseball' ? p.stats_mlb : p.stats_nba;
-        let statStr = "ERROR: Missing Schema";
-        if (stats) {
-          if (sport === 'baseball') {
-            statStr = (stats.era !== null) ? `ERA: ${stats.era} / WHIP: 1.12` : `AVG: ${stats.avg} / HR: ${stats.hr}`;
-          } else {
-            statStr = `PTS: ${stats.pts} / REB: ${stats.reb} / AST: ${stats.ast}`;
-          }
-        }
-
+      const mapPlayer = (kp: any) => {
+        if (!kp) return { player_name: "ERROR: Missing Schema", jersey_number: "ERROR: Missing Schema", physical_profile: "ERROR: Missing Schema", season_stats: "ERROR: Missing Schema", role: "ERROR: Missing Schema" };
         return {
-          player_name: validate(p.display_name),
-          jersey_number: validate(p.rosters?.[0]?.jersey_number),
-          physical_profile: (p.height && p.weight) ? `${p.height} / ${p.weight}` : "ERROR: Missing Schema",
-          season_stats: statStr,
-          role: sport === 'baseball' ? "SP" : (p.player_id === 'P_LEBRON' ? "HOT_STREAK" : "INJURY_IMPACT")
+          player_name: validate(kp.player_name),
+          jersey_number: validate(kp.jersey_number),
+          physical_profile: validate(kp.physical_profile),
+          season_stats: validate(kp.season_stats),
+          role: validate(kp.role)
         };
       };
 
@@ -92,8 +84,8 @@ export async function GET() {
           home_win_prob: validate(pred?.homeWinProb),
           away_win_prob: validate(pred?.awayWinProb)
         },
-        home_key_player: mapPlayer(hPlayer, m.sport),
-        away_key_player: mapPlayer(aPlayer, m.sport),
+        home_key_player: mapPlayer(homeKp),
+        away_key_player: mapPlayer(awayKp),
         public_sentiment: {
           narrative: validate(sig?.narrative),
           crowd_sentiment_index: validate(sig?.crowd_sentiment_index)

@@ -116,6 +116,10 @@ model Match {
   baseballStats MatchStatsBaseball?
   footballStats MatchStatsFootball?
   nbaStats      MatchStatsNBA?
+  homeKeyPlayerId String?             @map("home_key_player_id") @unique
+  awayKeyPlayerId String?             @map("away_key_player_id") @unique
+  home_key_player KeyPlayerInfo?      @relation("HomeKeyPlayer", fields: [homeKeyPlayerId], references: [id])
+  away_key_player KeyPlayerInfo?      @relation("AwayKeyPlayer", fields: [awayKeyPlayerId], references: [id])
   away_team     Teams               @relation("AwayMatches", fields: [awayTeamId], references: [team_id])
   home_team     Teams               @relation("HomeMatches", fields: [homeTeamId], references: [team_id])
   league        League?             @relation(fields: [leagueId], references: [id])
@@ -417,5 +421,19 @@ enum LeagueType {
   NPB
   KBO
 
+  @@schema("public_api")
+}
+
+model KeyPlayerInfo {
+  id               String   @id @default(cuid())
+  player_name      String
+  jersey_number    String
+  physical_profile String
+  season_stats     String
+  role             String
+  
+  home_match       Match?   @relation("HomeKeyPlayer")
+  away_match       Match?   @relation("AwayKeyPlayer")
+  
   @@schema("public_api")
 }
