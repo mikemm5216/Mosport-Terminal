@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-[#0B0C10] text-gray-200 min-h-screen flex flex-col`}>
+      <body className={`${inter.className} bg-[#0B0C10] text-gray-200 min-h-screen flex flex-col min-w-[320px] overflow-x-auto`}>
         <Navbar />
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8">
           {children}

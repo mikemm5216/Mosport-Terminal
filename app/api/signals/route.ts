@@ -52,13 +52,13 @@ export async function GET() {
       const hPlayer = await fetchPlayer(homePlayerId, m.homeTeamId);
       const aPlayer = await fetchPlayer(awayPlayerId, m.awayTeamId);
 
-      const validate = (val: any) => (val === null || val === undefined || val === "" || (Array.isArray(val) && val.length === 0)) ? "ERROR: Missing Schema" : val;
+      const validate = (val: any) => (val === null || val === undefined || val === "" || (Array.isArray(val) && val.length === 0)) ? "[ INTELLIGENCE PENDING ]" : val;
 
       const homeKp = m.home_key_player;
       const awayKp = m.away_key_player;
 
       const mapPlayer = (kp: any) => {
-        if (!kp) return { player_name: "ERROR: Missing Schema", jersey_number: "ERROR: Missing Schema", physical_profile: "ERROR: Missing Schema", season_stats: "ERROR: Missing Schema", role: "ERROR: Missing Schema" };
+        if (!kp) return { player_name: "[ INTELLIGENCE PENDING ]", jersey_number: "00", physical_profile: "[ CLASSIFIED PHYSICALS ]", season_stats: "AWAITING METRICS", role: "UNKNOWN" };
         return {
           player_name: validate(kp.player_name),
           jersey_number: validate(kp.jersey_number),
@@ -81,8 +81,8 @@ export async function GET() {
           logo_url: validate(m.away_team?.logo_url)
         },
         win_probabilities: {
-          home_win_prob: validate(pred?.homeWinProb),
-          away_win_prob: validate(pred?.awayWinProb)
+          home_win_prob: typeof pred?.homeWinProb === 'number' && !isNaN(pred.homeWinProb) ? pred.homeWinProb : 0.5,
+          away_win_prob: typeof pred?.awayWinProb === 'number' && !isNaN(pred.awayWinProb) ? pred.awayWinProb : 0.5
         },
         home_key_player: mapPlayer(homeKp),
         away_key_player: mapPlayer(awayKp),
