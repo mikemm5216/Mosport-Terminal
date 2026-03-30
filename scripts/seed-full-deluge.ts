@@ -121,12 +121,12 @@ async function main() {
                         extId: matchId,
                         date: matchTime,
                         sport: league.sport,
-                        homeTeamId: home,
-                        awayTeamId: away,
+                        home_team: { connect: { team_id: home } },
+                        away_team: { connect: { team_id: away } },
                         homeTeamName: home,
                         awayTeamName: away,
                         status: 'live',
-                        leagueId: league.id,
+                        league: { connect: { id: league.id } },
                         home_key_player: {
                             create: {
                                 player_name: league.sport === 'baseball' ? "Gerrit Cole" : "LeBron James",
