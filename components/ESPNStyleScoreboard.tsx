@@ -111,15 +111,23 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                             <span className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest italic leading-tight">Win Probability Intelligence</span>
                                         </div>
                                         <div className="relative h-4 w-full bg-slate-900/50 rounded-full border border-white/5 overflow-hidden flex items-center">
-                                            <div
-                                                className="absolute inset-y-0 left-0 bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.6)] flex items-center pl-4 z-10"
-                                                style={{ width: `${(match.win_probabilities?.home_win_prob || 0.5) * 100}%` }}
-                                            >
-                                                <span className="text-xs font-black text-black italic">{(match.win_probabilities?.home_win_prob * 100).toFixed(0)}%</span>
-                                            </div>
-                                            <div className="flex-1 flex items-center justify-end pr-4">
-                                                <span className="text-xs font-black text-slate-500 italic">{(match.win_probabilities?.away_win_prob * 100).toFixed(0)}%</span>
-                                            </div>
+                                            {typeof match.win_probabilities?.home_win_prob === 'number' && !isNaN(match.win_probabilities.home_win_prob) ? (
+                                                <>
+                                                    <div
+                                                        className="absolute inset-y-0 left-0 bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.6)] flex items-center pl-4 z-10"
+                                                        style={{ width: `${Math.max(5, match.win_probabilities.home_win_prob * 100)}%` }}
+                                                    >
+                                                        <span className="text-xs font-black text-black italic">{(match.win_probabilities.home_win_prob * 100).toFixed(0)}%</span>
+                                                    </div>
+                                                    <div className="flex-1 flex items-center justify-end pr-4">
+                                                        <span className="text-xs font-black text-slate-500 italic">{(match.win_probabilities.away_win_prob * 100).toFixed(0)}%</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="flex-1 flex items-center justify-center w-full z-10 bg-slate-800/80">
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono">[ CALCULATING INCIDENCE... ]</span>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex justify-between px-1">
                                             <span className="text-[10px] md:text-xs font-black text-white italic uppercase tracking-widest">{match.home_team?.short_name} Alpha</span>
@@ -136,18 +144,26 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                         <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
                                             {/* Home Key Player */}
                                             <div className="border-l-2 border-cyan-500/30 pl-3">
-                                                <div className="text-[11px] md:text-xs font-black text-slate-500 uppercase leading-none mb-1">#{match.home_key_player?.jersey_number || match.home_key_player?.jersey || '8'} // {match.home_team?.short_name}</div>
-                                                <div className="text-lg md:text-xl font-black text-white italic uppercase leading-tight">{match.home_key_player?.player_name || match.home_key_player?.name || `${match.home_team?.short_name} STAR`}</div>
+                                                <div className="text-[11px] md:text-xs font-black text-slate-500 uppercase leading-none mb-1">
+                                                    #{match.home_key_player?.jersey_number || match.home_key_player?.jersey || '8'} // {match.home_team?.short_name}
+                                                </div>
+                                                <div className="text-lg md:text-xl font-black text-white italic uppercase leading-tight">
+                                                    {match.home_key_player?.player_name || match.home_key_player?.name || `[ GATHERING INTEL ]`}
+                                                </div>
                                                 <div className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-tighter leading-tight mt-1">
-                                                    {match.home_key_player?.height || "6'4"} / {match.home_key_player?.weight || "210 LBS"} • {match.home_key_player?.stats || "PROJECTED MVP"}
+                                                    {match.home_key_player?.height ? `${match.home_key_player.height} / ${match.home_key_player.weight}` : '[ CLASSIFIED PHYSICALS ]'} • {match.home_key_player?.stats || "PENDING METRICS"}
                                                 </div>
                                             </div>
                                             {/* Away Key Player */}
                                             <div className="border-l-2 border-slate-800 pl-3">
-                                                <div className="text-[11px] md:text-xs font-black text-slate-700 uppercase leading-none mb-1">#{match.away_key_player?.jersey_number || match.away_key_player?.jersey || '99'} // {match.away_team?.short_name}</div>
-                                                <div className="text-lg md:text-xl font-black text-slate-400 italic uppercase leading-tight">{match.away_key_player?.player_name || match.away_key_player?.name || `${match.away_team?.short_name} STAR`}</div>
+                                                <div className="text-[11px] md:text-xs font-black text-slate-700 uppercase leading-none mb-1">
+                                                    #{match.away_key_player?.jersey_number || match.away_key_player?.jersey || '99'} // {match.away_team?.short_name}
+                                                </div>
+                                                <div className="text-lg md:text-xl font-black text-slate-400 italic uppercase leading-tight">
+                                                    {match.away_key_player?.player_name || match.away_key_player?.name || `[ GATHERING INTEL ]`}
+                                                </div>
                                                 <div className="text-[11px] md:text-xs font-bold text-slate-600 uppercase tracking-tighter leading-tight mt-1">
-                                                    {match.away_key_player?.height || "6'7"} / {match.away_key_player?.weight || "282 LBS"} • {match.away_key_player?.stats || "PROJECTED MVP"}
+                                                    {match.away_key_player?.height ? `${match.away_key_player.height} / ${match.away_key_player.weight}` : '[ CLASSIFIED PHYSICALS ]'} • {match.away_key_player?.stats || "PENDING METRICS"}
                                                 </div>
                                             </div>
                                         </div>
