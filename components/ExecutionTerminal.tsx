@@ -39,23 +39,23 @@ export default function ExecutionTerminal({ signalId }: ExecutionTerminalProps) 
                     <p className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">Your decision trains the cognitive feedback loop.</p>
                 </div>
 
-                {/* 修正：將容器改為 flex 且內部按鈕全部設為 flex-1，確保完美等寬 */}
-                <div className="flex items-center gap-3 w-full md:max-w-xl">
+                {/* 絕對等寬網格 */}
+                <div className="grid grid-cols-3 gap-3 w-full md:max-w-xl">
                     <button
                         onClick={() => trackUserEvent("FOLLOW")}
-                        className="flex-1 flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-black py-4 rounded font-black text-[10px] md:text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]"
+                        className="w-full flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-black py-4 rounded font-black text-[10px] md:text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]"
                     >
                         <CheckCircle size={14} /> Follow Signal
                     </button>
                     <button
                         onClick={() => trackUserEvent("VIEW")}
-                        className="flex-1 flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 py-4 rounded font-black text-[10px] md:text-xs uppercase tracking-widest transition-all"
+                        className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 py-4 rounded font-black text-[10px] md:text-xs uppercase tracking-widest transition-all"
                     >
                         <Eye size={14} /> Watch Only
                     </button>
                     <button
                         onClick={() => trackUserEvent("IGNORE")}
-                        className="flex-1 flex items-center justify-center bg-slate-950 hover:bg-red-950/20 text-slate-600 hover:text-red-500 border border-slate-800 py-4 rounded font-black text-[10px] md:text-xs uppercase tracking-widest transition-all"
+                        className="w-full flex items-center justify-center bg-slate-950 hover:bg-red-950/20 text-slate-600 hover:text-red-500 border border-slate-800 py-4 rounded font-black text-[10px] md:text-xs uppercase tracking-widest transition-all"
                     >
                         <XCircle size={14} /> Ignore
                     </button>

@@ -21,7 +21,7 @@ export default function MatchTicker() {
   return (
     <div className="w-full bg-slate-900 border-b border-cyan-500/30 overflow-hidden h-10 flex items-center group relative z-50">
       {/* 修正：強制寫入 [animation-duration:60s] 讓跑馬燈變慢 */}
-      <div className="flex animate-marquee whitespace-nowrap group-hover:pause [animation-duration:60s]">
+      <div className="flex animate-marquee whitespace-nowrap group-hover:pause" style={{ animationDuration: '60s' }}>
         {matches.length > 0 ? matches.map((match, i) => (
           <div key={`${match.match_id}-${i}`} className="inline-flex items-center px-8 border-r border-slate-800/50">
             {match.status === "COMPLETED" || match.status === "FINISHED" ? (

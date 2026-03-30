@@ -53,7 +53,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                         {match.home_team?.short_name}
                                     </span>
                                     <LogoFallback
-                                        url={`/logos/${match.home_team?.short_name?.toLowerCase()}_hd.png`}
+                                        url={match.home_team?.logo_url}
                                         name={match.home_team?.short_name}
                                         shortName={match.home_team?.short_name}
                                         sport={match.sport}
@@ -70,7 +70,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                 {/* AWAY TEAM */}
                                 <div className="flex items-center justify-start gap-2 md:gap-4 flex-1">
                                     <LogoFallback
-                                        url={`/logos/${match.away_team?.short_name?.toLowerCase()}_hd.png`}
+                                        url={match.away_team?.logo_url}
                                         name={match.away_team?.short_name}
                                         shortName={match.away_team?.short_name}
                                         sport={match.sport}
