@@ -36,7 +36,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
    const signal = displayMatch.signals?.[0] || {};
 
    return (
-      <div className="min-h-screen pb-20 bg-[#020617] text-slate-200 font-sans selection:bg-cyan-500/30 overflow-x-hidden">
+      <div className="min-h-screen pb-20 bg-[#020617] text-slate-200 font-sans selection:bg-cyan-500/30">
          {/* V17 INTEL HEADER */}
          <div className="w-full bg-[#070c14] border-b border-slate-900 pt-8 pb-10 px-12 mb-8">
             <div className="max-w-7xl mx-auto">
@@ -45,15 +45,15 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                   Radar Feed
                </Link>
 
-               <div className="flex flex-row items-center justify-center w-full gap-4 md:gap-8 pt-4">
-                  <div className="flex-1 flex items-center justify-end gap-6 text-center">
-                     <LogoFallback url={displayMatch.home_team?.logo_url} name={displayMatch.home_team?.full_name} shortName={displayMatch.home_team?.short_name} size={80} />
-                     <h1 className="text-5xl md:text-7xl font-black text-white italic tracking-tighter uppercase leading-none">{displayMatch.home_team?.short_name}</h1>
+               <div className="flex flex-wrap items-center justify-center w-full gap-4 md:gap-8 pt-4">
+                  <div className="flex-1 flex items-center justify-center md:justify-end gap-4 md:gap-6 text-center min-w-[140px]">
+                     <LogoFallback url={displayMatch.home_team?.logo_url} name={displayMatch.home_team?.full_name} shortName={displayMatch.home_team?.short_name} size={60} className="w-12 h-12 md:w-20 md:h-20" />
+                     <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-white italic tracking-tighter uppercase leading-none truncate max-w-[160px] md:max-w-none">{displayMatch.home_team?.short_name}</h1>
                   </div>
-                  <span className="text-2xl font-black text-slate-800 italic px-2">⚔️</span>
-                  <div className="flex-1 flex flex-row-reverse items-center justify-end gap-6 text-center">
-                     <LogoFallback url={displayMatch.away_team?.logo_url} name={displayMatch.away_team?.full_name} shortName={displayMatch.away_team?.short_name} size={80} />
-                     <h1 className="text-5xl md:text-7xl font-black text-white italic tracking-tighter uppercase leading-none">{displayMatch.away_team?.short_name}</h1>
+                  <span className="text-2xl font-black text-slate-800 italic px-2 shrink-0">⚔️</span>
+                  <div className="flex-1 flex flex-row-reverse items-center justify-center md:justify-end gap-4 md:gap-6 text-center min-w-[140px]">
+                     <LogoFallback url={displayMatch.away_team?.logo_url} name={displayMatch.away_team?.full_name} shortName={displayMatch.away_team?.short_name} size={60} className="w-12 h-12 md:w-20 md:h-20" />
+                     <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-white italic tracking-tighter uppercase leading-none truncate max-w-[160px] md:max-w-none">{displayMatch.away_team?.short_name}</h1>
                   </div>
                </div>
             </div>

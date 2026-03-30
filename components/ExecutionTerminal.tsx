@@ -39,25 +39,25 @@ export default function ExecutionTerminal({ signalId }: ExecutionTerminalProps) 
                     <p className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">Your decision trains the cognitive feedback loop.</p>
                 </div>
 
-                {/* 絕對等寬網格 */}
-                <div className="grid grid-cols-3 gap-3 w-full md:max-w-xl">
+                {/* 絕對等寬網格 -> 防極限壓縮 (Stacked on tiny viewports) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:max-w-xl">
                     <button
                         onClick={() => trackUserEvent("FOLLOW")}
-                        className="w-full flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-black py-4 rounded font-black text-[10px] md:text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]"
+                        className="w-full flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-black py-4 rounded font-black text-[10px] md:text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] truncate px-2"
                     >
-                        <CheckCircle size={14} /> Follow Signal
+                        <CheckCircle size={14} className="shrink-0" /> <span className="truncate">Follow Signal</span>
                     </button>
                     <button
                         onClick={() => trackUserEvent("VIEW")}
-                        className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 py-4 rounded font-black text-[10px] md:text-xs uppercase tracking-widest transition-all"
+                        className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 py-4 rounded font-black text-[10px] md:text-xs uppercase tracking-widest transition-all truncate px-2"
                     >
-                        <Eye size={14} /> Watch Only
+                        <Eye size={14} className="shrink-0" /> <span className="truncate">Watch Only</span>
                     </button>
                     <button
                         onClick={() => trackUserEvent("IGNORE")}
-                        className="w-full flex items-center justify-center bg-slate-950 hover:bg-red-950/20 text-slate-600 hover:text-red-500 border border-slate-800 py-4 rounded font-black text-[10px] md:text-xs uppercase tracking-widest transition-all"
+                        className="w-full flex items-center justify-center bg-slate-950 hover:bg-red-950/20 text-slate-600 hover:text-red-500 border border-slate-800 py-4 rounded font-black text-[10px] md:text-xs uppercase tracking-widest transition-all truncate px-2"
                     >
-                        <XCircle size={14} /> Ignore
+                        <XCircle size={14} className="shrink-0" /> <span className="truncate">Ignore</span>
                     </button>
                 </div>
             </div>
