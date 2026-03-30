@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { prisma } from "@/lib/prisma";
 import LiveTicker from "@/components/LiveTicker";
 import { TrendingUp, AlertCircle, ShieldAlert } from "lucide-react";
