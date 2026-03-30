@@ -162,13 +162,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
             });
             clearTimeout(timeoutId);
 
-            if (quantRes.ok) {
-                const pjson = await quantRes.json();
-                if (typeof pjson.probability === "number" && !isNaN(pjson.probability)) homeWinProb = pjson.probability;
-                if (pjson.standard_analysis) standardAnalysis = pjson.standard_analysis;
-                if (pjson.tactical_matchup) tacticalMatchup = pjson.tactical_matchup;
-                if (pjson.x_factors) xFactors = pjson.x_factors;
+            if (!quantRes.ok) {
+                const errorText = await quantRes.text();
+                console.error(`[NEURAL LINK] FastAPI Rejected! Status: ${quantRes.status}, Reason: ${errorText}`);
+                throw new Error(`FastAPI Engine Failed: ${quantRes.status}`);
             }
+
+            const pjson = await quantRes.json();
+            if (typeof pjson.probability === "number" && !isNaN(pjson.probability)) homeWinProb = pjson.probability;
+            if (pjson.standard_analysis) standardAnalysis = pjson.standard_analysis;
+            if (pjson.tactical_matchup) tacticalMatchup = pjson.tactical_matchup;
+            if (pjson.x_factors) xFactors = pjson.x_factors;
         } catch (e: any) {
             homeWinProb = 0.5;
             standardAnalysis = ["[ CALCULATING ALPHA... ]", "AWAITING ENGINE RESTORE", "FALLBACK 50% EQUILIBRIUM"];
