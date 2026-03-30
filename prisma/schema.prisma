@@ -416,6 +416,8 @@ enum LeagueType {
   NBA
   MLB
   FOOTBALL
+  EPL
+  UCL
   FIBA
   CPBL
   NPB

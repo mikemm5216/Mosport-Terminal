@@ -144,7 +144,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
-            let engineUrl = (process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000").trim();
+            let engineUrl = (process.env.FASTAPI_ENGINE_URL || "").trim();
+            if (!engineUrl || engineUrl.includes('127.0.0.1')) {
+                console.error("CRITICAL: PRODUCTION TRYING TO HIT LOCALHOST OR UNSET ENGINE URL!");
+            }
             if (engineUrl && !engineUrl.startsWith('http')) {
                 engineUrl = `https://${engineUrl}`;
             }
