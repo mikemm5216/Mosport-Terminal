@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, Zap, Activity, Target, Users } from 'lucide-react';
 import LogoFallback from '@/components/LogoFallback';
+import ExecutionTerminal from '@/components/ExecutionTerminal';
 
 export const dynamic = 'force-dynamic';
 
@@ -242,16 +243,12 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
             </div>
 
             <div className="mt-8 shadow-2xl">
-               {/* ExecutionTerminal only mounts if dbMatch exists */}
-               {dbMatch?.id && (
-                  <div id="execution-terminal-mount">
-                     {/* ExecutionTerminal is a client component that needs the match id */}
-                     <div className="bg-[#0a111a] border border-slate-800 rounded-2xl p-6">
-                        <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2">Execution Terminal</div>
-                        <div className="text-xs font-mono text-slate-500">Signal ID: {dbMatch.id}</div>
-                     </div>
-                  </div>
-               )}
+               {dbMatch?.id
+                  ? <ExecutionTerminal signalId={dbMatch.id} />
+                  : liveData?.match_id
+                     ? <ExecutionTerminal signalId={liveData.match_id} />
+                     : null
+               }
             </div>
          </main>
       </div>

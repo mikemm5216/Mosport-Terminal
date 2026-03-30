@@ -3,37 +3,93 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = 'force-dynamic';
 
+// ─── Sport Router: prefix → ESPN endpoint + sport slug ────────────────────────
+const SPORT_ROUTER: Record<string, {
+    slug: string;          // used to strip the prefix
+    espnSport: string;
+    espnLeague: string;
+    sport: string;
+}> = {
+    "NBA-": { slug: "NBA-", espnSport: "basketball", espnLeague: "nba", sport: "basketball" },
+    "MLB-": { slug: "MLB-", espnSport: "baseball", espnLeague: "mlb", sport: "baseball" },
+    "EPL-": { slug: "EPL-", espnSport: "soccer", espnLeague: "eng.1", sport: "soccer" },
+    "UCL-": { slug: "UCL-", espnSport: "soccer", espnLeague: "uefa.champions", sport: "soccer" },
+};
+
+function resolveRouter(id: string) {
+    for (const prefix of Object.keys(SPORT_ROUTER)) {
+        if (id.startsWith(prefix)) {
+            return { ...SPORT_ROUTER[prefix], espnId: id.replace(prefix, "") };
+        }
+    }
+    // default → NBA
+    return { slug: "", espnSport: "basketball", espnLeague: "nba", sport: "basketball", espnId: id };
+}
+
+// ─── Team ID normalization ─────────────────────────────────────────────────────
+const ESPN_MAP: Record<string, string> = {
+    NO: "NOP", GS: "GSW", NY: "NYK", SA: "SAS", WSH: "WAS", UTAH: "UTA",
+};
+function normalizeId(raw: string) { return ESPN_MAP[raw] ?? raw; }
+
+// ─── Sport-aware key player extraction ────────────────────────────────────────
+function extractKeyPlayer(espnData: any, teamAbbr: string, sport: string) {
+    if (sport === "basketball") {
+        // NBA: boxscore.players → statistics[0].athletes[0]
+        const boxscore = espnData.boxscore?.players;
+        const box = boxscore?.find((b: any) =>
+            b.team?.abbreviation === teamAbbr || b.team?.abbreviation === ESPN_MAP[teamAbbr]
+        );
+        return box?.statistics?.[0]?.athletes?.[0]?.athlete ?? null;
+    }
+
+    if (sport === "soccer") {
+        // Soccer: rosters array with team.abbreviation
+        const rosters = espnData.rosters;
+        const roster = rosters?.find((r: any) =>
+            r.team?.abbreviation === teamAbbr || r.team?.abbreviation === ESPN_MAP[teamAbbr]
+        );
+        // Pick first starter (formation position 1)
+        const starters = roster?.roster?.filter((p: any) => p.starter) ?? [];
+        return starters[0]?.athlete ?? roster?.roster?.[0]?.athlete ?? null;
+    }
+
+    if (sport === "baseball") {
+        // MLB: boxscore.teams → team.abbreviation → batting leaders
+        const teams = espnData.boxscore?.teams;
+        const team = teams?.find((t: any) =>
+            t.team?.abbreviation === teamAbbr || t.team?.abbreviation === ESPN_MAP[teamAbbr]
+        );
+        return team?.statistics?.[0]?.athletes?.[0]?.athlete ?? null;
+    }
+
+    return null;
+}
+
 export async function GET(request: Request, { params }: { params: { id: string } }) {
     try {
         const { id } = await params;
 
-        // ESPN ID Extraction
-        const espnId = id.replace("NBA-", "");
+        // ── Phase 2: Dynamic sport router ──
+        const route = resolveRouter(id);
+        const summaryUrl = `https://site.api.espn.com/apis/site/v2/sports/${route.espnSport}/${route.espnLeague}/summary?event=${route.espnId}`;
 
-        // 1. Fetch Real Data from ESPN Summary API
-        const espnRes = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=${espnId}`, {
-            next: { revalidate: 30 } // Aggressive refresh for War Room
-        });
-
-        if (!espnRes.ok) {
-            throw new Error(`ESPN API failed with status: ${espnRes.status}`);
-        }
+        const espnRes = await fetch(summaryUrl, { next: { revalidate: 30 } });
+        if (!espnRes.ok) throw new Error(`ESPN ${route.espnLeague} summary API failed: ${espnRes.status}`);
 
         const espnData = await espnRes.json();
         const event = espnData.header?.competitions?.[0];
-
         if (!event) throw new Error("Match Summary Invalid");
 
-        // Pre-fetch valid teams to prevent Foreign Key crashes
         const validTeams = await (prisma as any).teams.findMany({ select: { team_id: true } });
         const validTeamIds = new Set(validTeams.map((t: any) => t.team_id));
 
-        const statusState = event.status?.type?.state; // 'pre', 'in', 'post'
-        const statusMap: Record<string, string> = { 'pre': 'SCHEDULED', 'in': 'IN_PLAY', 'post': 'COMPLETED' };
-        const systemStatus = statusMap[statusState] || 'SCHEDULED';
+        const statusState = event.status?.type?.state;
+        const statusMap: Record<string, string> = { pre: "SCHEDULED", in: "IN_PLAY", post: "COMPLETED" };
+        const systemStatus = statusMap[statusState] || "SCHEDULED";
 
-        const homeCompetitor = event.competitors.find((c: any) => c.homeAway === 'home');
-        const awayCompetitor = event.competitors.find((c: any) => c.homeAway === 'away');
+        const homeCompetitor = event.competitors.find((c: any) => c.homeAway === "home");
+        const awayCompetitor = event.competitors.find((c: any) => c.homeAway === "away");
 
         const homeTeam = homeCompetitor?.team;
         const awayTeam = awayCompetitor?.team;
@@ -41,108 +97,62 @@ export async function GET(request: Request, { params }: { params: { id: string }
         const homeScore = parseInt(homeCompetitor?.score || "0", 10);
         const awayScore = parseInt(awayCompetitor?.score || "0", 10);
 
-        let hTeamId = homeTeam?.abbreviation || "TBD";
-        let aTeamId = awayTeam?.abbreviation || "TBD";
-
-        if (hTeamId === "NO") hTeamId = "NOP";
-        if (aTeamId === "NO") aTeamId = "NOP";
-        if (hTeamId === "WSH") hTeamId = "WAS";
-        if (aTeamId === "WSH") aTeamId = "WAS";
-        if (hTeamId === "UTAH") hTeamId = "UTA";
-        if (aTeamId === "UTAH") aTeamId = "UTA";
-        if (hTeamId === "GS") hTeamId = "GSW";
-        if (aTeamId === "GS") aTeamId = "GSW";
-        if (hTeamId === "NY") hTeamId = "NYK";
-        if (aTeamId === "NY") aTeamId = "NYK";
-        if (hTeamId === "SA") hTeamId = "SAS";
-        if (aTeamId === "SA") aTeamId = "SAS";
+        const hTeamId = normalizeId(homeTeam?.abbreviation || "TBD");
+        const aTeamId = normalizeId(awayTeam?.abbreviation || "TBD");
 
         if (!validTeamIds.has(hTeamId) || !validTeamIds.has(aTeamId)) {
-            throw new Error(`Foreign Match Detected`);
+            throw new Error(`Foreign Match Detected: ${hTeamId} vs ${aTeamId}`);
         }
 
         // @ts-ignore
         const dbMatch = await (prisma as any).match.upsert({
             where: { extId: id },
-            update: {
-                status: systemStatus,
-                date: new Date(espnData.header?.season?.year ? event.date : new Date()),
-                homeScore,
-                awayScore
-            },
+            update: { status: systemStatus, date: new Date(event.date), homeScore, awayScore },
             create: {
                 extId: id,
-                date: new Date(espnData.header?.season?.year ? event.date : new Date()),
-                sport: "basketball",
+                date: new Date(event.date),
+                sport: route.sport,
                 homeTeamId: hTeamId,
                 awayTeamId: aTeamId,
                 homeTeamName: homeTeam?.name || "Unknown",
                 awayTeamName: awayTeam?.name || "Unknown",
                 homeScore,
                 awayScore,
-                status: systemStatus
-            }
+                status: systemStatus,
+            },
         });
 
+        // ── FastAPI Neural Link ──
         let homeWinProb = 0.5;
-        // Default / Fallback Matrices
-        let standardAnalysis = [
-            `INFERENCING XGBOOST VECTOR [${id}]`,
-            `ESPN CDN TRACE OBTAINED`,
-            `ALPHA ALIGNMENT: 50.0%`
-        ];
-        let tacticalMatchup = [
-            "COMPUTING SQUAD DEPTH...",
-            "READING TRANSITION STATES...",
-            "EDGE CALIBRATION NOMINAL"
-        ];
-        let xFactors = [
-            "TACTICAL_DEADLOCK",
-            "MOMENTUM CONSTRAINTS APPLIED",
-            "OUTLIER IDENTIFICATION ACTIVE"
-        ];
+        let standardAnalysis = [`INFERENCING XGBOOST [${id}]`, "ESPN CDN TRACE OBTAINED", "ALPHA ALIGNMENT: 50.0%"];
+        let tacticalMatchup = ["COMPUTING SQUAD DEPTH...", "READING TRANSITION STATES...", "EDGE CALIBRATION NOMINAL"];
+        let xFactors = ["TACTICAL_DEADLOCK", "MOMENTUM CONSTRAINTS APPLIED", "OUTLIER IDENTIFICATION ACTIVE"];
 
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
-
             const engineUrl = process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000";
+
             const quantRes = await fetch(`${engineUrl}/api/v1/inference`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${process.env.FASTAPI_ENGINE_KEY || ""}`
-                },
-                body: JSON.stringify({
-                    model_id: "latest",
-                    home_team: hTeamId,
-                    away_team: aTeamId,
-                    feature_vector: [homeScore, awayScore, 0, 0, 0, 0],
-                    model_type: "T-10min",
-                    chaos_test: false // Neural Link Active
-                }),
-                signal: controller.signal
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.FASTAPI_ENGINE_KEY || ""}` },
+                body: JSON.stringify({ model_id: "latest", home_team: hTeamId, away_team: aTeamId, feature_vector: [homeScore, awayScore, 0, 0, 0, 0], model_type: "T-10min", chaos_test: false }),
+                signal: controller.signal,
             });
             clearTimeout(timeoutId);
 
             if (quantRes.ok) {
                 const pjson = await quantRes.json();
-                if (typeof pjson.probability === 'number' && !isNaN(pjson.probability)) {
-                    homeWinProb = pjson.probability;
-                }
+                if (typeof pjson.probability === "number" && !isNaN(pjson.probability)) homeWinProb = pjson.probability;
                 if (pjson.standard_analysis) standardAnalysis = pjson.standard_analysis;
                 if (pjson.tactical_matchup) tacticalMatchup = pjson.tactical_matchup;
                 if (pjson.x_factors) xFactors = pjson.x_factors;
-            } else {
-                console.warn(`[NEURAL LINK] FastAPI Engine Reject: ${quantRes.status}`);
             }
         } catch (e: any) {
-            console.warn(`[NEURAL LINK] Inference Timeout or Severed: ${e.name === 'AbortError' ? 'TIME_OUT_3000MS' : e.message}`);
-            // Graceful Failover
             homeWinProb = 0.5;
-            standardAnalysis = ["[ CALCULATING ALPHA... ]", "AWAITING ENGINE RESTORE", "FALLBACK 50% EQUILIBRIUM ACTIVE"];
+            standardAnalysis = ["[ CALCULATING ALPHA... ]", "AWAITING ENGINE RESTORE", "FALLBACK 50% EQUILIBRIUM"];
             tacticalMatchup = ["[ CALCULATING TACTICS... ]", "SYSTEM OFFLINE", "NO EDGE DETECTED"];
-            xFactors = ["[ CALCULATING X-FACTORS... ]", "NEURAL LINK SEVERED", "MONITORING SYSTEM RESTORE"];
+            xFactors = ["[ CALCULATING X-FACTORS... ]", "NEURAL LINK SEVERED", "MONITORING RESTORE"];
         }
 
         const awayWinProb = 1.0 - homeWinProb;
@@ -151,64 +161,57 @@ export async function GET(request: Request, { params }: { params: { id: string }
         await (prisma as any).matchPrediction.upsert({
             where: { matchId: dbMatch.id },
             update: { homeWinProb, awayWinProb },
-            create: { matchId: dbMatch.id, homeWinProb, awayWinProb }
+            create: { matchId: dbMatch.id, homeWinProb, awayWinProb },
         });
 
-        const validate = (val: any) => (val === null || val === undefined || val === "" || (Array.isArray(val) && val.length === 0)) ? "[ INTELLIGENCE PENDING ]" : val;
+        const validate = (val: any) =>
+            val === null || val === undefined || val === "" ? "[ INTELLIGENCE PENDING ]" : val;
 
-        // ESPN Summary separates leaders into boxscore array
-        const boxscore = espnData.boxscore?.players;
-        const homeBox = boxscore?.find((b: any) => b.team?.abbreviation === homeTeam?.abbreviation);
-        const awayBox = boxscore?.find((b: any) => b.team?.abbreviation === awayTeam?.abbreviation);
-
-        // Pick top scorer as proxy for key player if available
-        const homeLeader = homeBox?.statistics?.[0]?.athletes?.[0]?.athlete;
-        const awayLeader = awayBox?.statistics?.[0]?.athletes?.[0]?.athlete;
+        // ── Phase 2: Sport-aware key player extraction ──
+        const homeAthleteRaw = extractKeyPlayer(espnData, homeTeam?.abbreviation, route.sport);
+        const awayAthleteRaw = extractKeyPlayer(espnData, awayTeam?.abbreviation, route.sport);
 
         const mapPlayer = (athlete: any) => {
-            if (!athlete) return { player_name: "[ INTELLIGENCE PENDING ]", jersey_number: "00", physical_profile: "[ CLASSIFIED PHYSICALS ]", season_stats: "AWAITING METRICS", role: "UNKNOWN" };
-            return {
-                player_name: validate(athlete.displayName),
-                jersey_number: validate(athlete.jersey),
+            if (!athlete) return {
+                player_name: "[ AWAITING BOXSCORE ]",
+                jersey_number: "—",
                 physical_profile: "[ CLASSIFIED PHYSICALS ]",
-                season_stats: "LIVE TARGET",
-                role: "STAR"
+                season_stats: "[ CALCULATING METRICS ]",
+                role: "STAR",
+            };
+            return {
+                player_name: validate(athlete.displayName || athlete.fullName),
+                jersey_number: validate(athlete.jersey),
+                physical_profile: [athlete.height, athlete.weight].filter(Boolean).join(" / ") || "[ CLASSIFIED PHYSICALS ]",
+                season_stats: validate(athlete.position?.abbreviation || athlete.displayValue || "LIVE TARGET"),
+                role: "STAR",
             };
         };
-
-        const signalBase = homeWinProb > 0.6 ? "ALPHA_ADVANTAGE_DETECTED" : "TACTICAL_DEADLOCK";
 
         return NextResponse.json({
             success: true,
             data: {
                 match_id: id,
+                sport: route.sport,
+                league: route.espnLeague,
                 start_time: event.date,
                 status: systemStatus,
-                home_team: {
-                    short_name: validate(hTeamId),
-                    logo_url: validate(homeTeam?.logos?.[0]?.href)
-                },
-                away_team: {
-                    short_name: validate(aTeamId),
-                    logo_url: validate(awayTeam?.logos?.[0]?.href)
-                },
+                home_team: { short_name: hTeamId, logo_url: validate(homeTeam?.logos?.[0]?.href || homeTeam?.logo) },
+                away_team: { short_name: aTeamId, logo_url: validate(awayTeam?.logos?.[0]?.href || awayTeam?.logo) },
                 home_score: homeScore,
                 away_score: awayScore,
-                win_probabilities: {
-                    home_win_prob: homeWinProb,
-                    away_win_prob: awayWinProb
-                },
-                home_key_player: mapPlayer(homeLeader),
-                away_key_player: mapPlayer(awayLeader),
+                win_probabilities: { home_win_prob: homeWinProb, away_win_prob: awayWinProb },
+                home_key_player: mapPlayer(homeAthleteRaw),
+                away_key_player: mapPlayer(awayAthleteRaw),
                 public_sentiment: {
-                    narrative: `ESPN Event Trace Generated. Model Evaluation: ${signalBase}`,
-                    crowd_sentiment_index: 0.5
+                    narrative: `${route.espnLeague.toUpperCase()} Event Trace. Model: ${homeWinProb > 0.6 ? "ALPHA_ADVANTAGE" : "TACTICAL_DEADLOCK"}`,
+                    crowd_sentiment_index: 0.5,
                 },
                 momentum_index: parseFloat(Math.abs(homeWinProb - 0.5).toFixed(3)),
                 standard_analysis: standardAnalysis,
                 tactical_matchup: tacticalMatchup,
-                x_factors: xFactors
-            }
+                x_factors: xFactors,
+            },
         });
 
     } catch (e: any) {
