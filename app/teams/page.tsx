@@ -15,7 +15,10 @@ export default async function TeamsAnalyticsPage({
   const { sport = 'SOCCER' } = await searchParams;
 
   // ── Phase 3: Pull teams WITH their real match history from matches_home/away ──
-  const allTeams = await (prisma as any).teams.findMany({
+  const teams = await (prisma as any).teams.findMany({
+    where: {
+      league_type: sport === 'SOCCER' ? 'EPL' : (sport as any)
+    },
     orderBy: { full_name: 'asc' },
     include: {
       matches_home: {
@@ -29,13 +32,6 @@ export default async function TeamsAnalyticsPage({
         select: { homeScore: true, awayScore: true, status: true, date: true },
       },
     },
-  });
-
-  const teams = allTeams.filter((t: any) => {
-    if (sport === 'NBA') return t.league_type === 'NBA';
-    if (sport === 'MLB') return t.league_type === 'MLB';
-    if (sport === 'SOCCER') return t.league_type === 'FOOTBALL';
-    return false;
   });
 
   const FilterButton = ({ label, value, active, icon }: { label: string, value: string, active: boolean, icon: string }) => (
@@ -139,10 +135,10 @@ export default async function TeamsAnalyticsPage({
                         )}
                         <div className="flex flex-col truncate min-w-0">
                           <span className="text-white font-black text-xl md:text-2xl tracking-tighter uppercase leading-none group-hover:text-cyan-400 transition-colors">
-                            {team.short_name || team.full_name.substring(0, 3).toUpperCase()}
+                            {team.full_name}
                           </span>
                           <span className="text-[10px] md:text-xs text-slate-500 font-bold truncate tracking-widest uppercase mt-1 leading-tight">
-                            {team.full_name}
+                            {team.team_id}
                           </span>
                         </div>
                       </div>
