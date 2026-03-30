@@ -127,7 +127,7 @@ async function main() {
         const promises = Object.entries(teams).map(([id, data]) => {
             const cleanId = id.replace('_MLB', '');
             const prefix = type === LeagueType.NBA ? 'nba' : type === LeagueType.MLB ? 'mlb' : 'epl';
-            const localUrl = `/logos/${prefix}_${cleanId.toLowerCase()}.png`;
+            const localUrl = `/logos/${prefix}_${id === 'UTA' ? 'utah' : cleanId.toLowerCase()}.png`;
             const cdnUrl = getEspnUrl(id, type);
             const dualUrl = `${localUrl}||${cdnUrl}`;
 
@@ -171,6 +171,7 @@ async function main() {
             const matchTime = new Date(baseDate.getTime() + (Math.random() * 14 * 24 * 60 * 60 * 1000));
 
             chunkMatchPromises.push(async () => {
+                // @ts-ignore
                 const match = await retry(() => prisma.match.upsert({
                     where: { extId: matchId },
                     update: { date: matchTime, status: 'live' },
@@ -205,28 +206,29 @@ async function main() {
                     }
                 }));
 
+                // @ts-ignore
                 await retry(() => prisma.matchSignal.upsert({
                     where: { matchId: match.id },
-                    update: { confidence: 0.85 + (Math.random() * 0.1), status: 'ACTIVE' },
+                    update: { confidence: 0.85 + (Math.random() * 0.1) },
                     create: {
                         matchId: match.id,
                         confidence: 0.85 + (Math.random() * 0.1),
-                        signal_type: 'SYSTEM',
-                        status: 'ACTIVE',
+                        signalLabel: 'SYSTEM',
+                        signalScore: 85.0,
                         standard_analysis: ["Primary Vector Initialized", "Domain Data Locked", "Alpha Synthesized"],
                         tactical_matchup: ["Squad Depth Evaluated", "Transition States Mapped", "Edge Confirmed"],
                         x_factors: ["Atmospherics Nominal", "Momentum Calibrated", "Outliers Isolated"]
                     }
                 }));
 
+                // @ts-ignore
                 await retry(() => prisma.matchPrediction.upsert({
                     where: { matchId: match.id },
-                    update: { home_win_prob: 0.4 + (Math.random() * 0.3) },
+                    update: { homeWinProb: 0.4 + (Math.random() * 0.3) },
                     create: {
                         matchId: match.id,
-                        home_win_prob: 0.4 + (Math.random() * 0.3),
-                        away_win_prob: 0.4 + (Math.random() * 0.3),
-                        expected_value: 0.05 + (Math.random() * 0.1)
+                        homeWinProb: 0.4 + (Math.random() * 0.3),
+                        awayWinProb: 0.4 + (Math.random() * 0.3)
                     }
                 }));
             });
