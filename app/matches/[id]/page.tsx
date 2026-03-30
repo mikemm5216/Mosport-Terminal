@@ -49,14 +49,14 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                   Radar Feed
                </Link>
 
-               <div className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-8 pt-4">
-                  <div className="flex items-center gap-6">
-                     <LogoFallback url={displayMatch.home_team?.logo_url || `/logos/${displayMatch.home_team?.short_name?.toLowerCase()}_hd.png`} name={displayMatch.home_team?.full_name} shortName={displayMatch.home_team?.short_name} size={80} />
+               <div className="flex flex-row items-center justify-center w-full gap-4 md:gap-8 pt-4">
+                  <div className="flex-1 flex items-center justify-end gap-6 text-center">
+                     <LogoFallback url={displayMatch.home_team?.logo_url} name={displayMatch.home_team?.full_name} shortName={displayMatch.home_team?.short_name} size={80} />
                      <h1 className="text-5xl md:text-7xl font-black text-white italic tracking-tighter uppercase leading-none">{displayMatch.home_team?.short_name}</h1>
                   </div>
-                  <span className="text-2xl font-black text-slate-800 italic">⚔️</span>
-                  <div className="flex flex-col md:flex-row-reverse items-center gap-6">
-                     <LogoFallback url={displayMatch.away_team?.logo_url || `/logos/${displayMatch.away_team?.short_name?.toLowerCase()}_hd.png`} name={displayMatch.away_team?.full_name} shortName={displayMatch.away_team?.short_name} size={80} />
+                  <span className="text-2xl font-black text-slate-800 italic px-2">⚔️</span>
+                  <div className="flex-1 flex flex-row-reverse items-center justify-end gap-6 text-center">
+                     <LogoFallback url={displayMatch.away_team?.logo_url} name={displayMatch.away_team?.full_name} shortName={displayMatch.away_team?.short_name} size={80} />
                      <h1 className="text-5xl md:text-7xl font-black text-white italic tracking-tighter uppercase leading-none">{displayMatch.away_team?.short_name}</h1>
                   </div>
                </div>
