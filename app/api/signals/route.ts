@@ -87,22 +87,60 @@ export async function GET() {
 
       // 4. FastAPI Quant Engine (Alpha Model) Request
       let homeWinProb = 0.5;
+      let standardAnalysis = [
+        `INFERENCING XGBOOST VECTOR [${matchId}]`,
+        `ESPN CDN TRACE OBTAINED`,
+        `ALPHA ALIGNMENT: 50.0%`
+      ];
+      let tacticalMatchup = [
+        "COMPUTING SQUAD DEPTH...",
+        "READING TRANSITION STATES...",
+        "EDGE CALIBRATION NOMINAL"
+      ];
+      let xFactors = [
+        "TACTICAL_DEADLOCK",
+        "MOMENTUM CONSTRAINTS APPLIED",
+        "OUTLIER IDENTIFICATION ACTIVE"
+      ];
+
       try {
-        const quantRes = await fetch("http://127.0.0.1:8000/predict", {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const engineUrl = process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000";
+
+        const quantRes = await fetch(`${engineUrl}/api/v1/inference`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model_id: "latest", feature_vector: [0, 0, 0, 0, 0, 0], model_type: "T-10min" }),
-          signal: AbortSignal.timeout(2000)
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.FASTAPI_ENGINE_KEY || ""}`
+          },
+          body: JSON.stringify({
+            model_id: "latest",
+            home_team: hTeamId,
+            away_team: aTeamId,
+            feature_vector: [homeScore, awayScore, 0, 0, 0, 0],
+            model_type: "T-10min",
+            chaos_test: false
+          }),
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
+
         if (quantRes.ok) {
           const pjson = await quantRes.json();
           if (typeof pjson.probability === 'number' && !isNaN(pjson.probability)) {
             homeWinProb = pjson.probability;
           }
+          if (pjson.standard_analysis) standardAnalysis = pjson.standard_analysis;
+          if (pjson.tactical_matchup) tacticalMatchup = pjson.tactical_matchup;
+          if (pjson.x_factors) xFactors = pjson.x_factors;
         }
-      } catch (e) {
-        // Fallback to strict float if Engine Offline
+      } catch (e: any) {
+        console.warn(`[NEURAL LINK] Feed Engine Severed: ${e.name}`);
         homeWinProb = 0.5;
+        standardAnalysis = ["[ CALCULATING ALPHA... ]", "AWAITING ENGINE RESTORE", "FALLBACK 50% EQUILIBRIUM ACTIVE"];
+        tacticalMatchup = ["[ CALCULATING TACTICS... ]", "SYSTEM OFFLINE", "NO EDGE DETECTED"];
+        xFactors = ["[ CALCULATING X-FACTORS... ]", "NEURAL LINK SEVERED", "MONITORING SYSTEM RESTORE"];
       }
 
       const awayWinProb = 1.0 - homeWinProb;
@@ -133,7 +171,6 @@ export async function GET() {
         };
       };
 
-      // Real Signal Arrays Mapping based on Model Probabilities
       const signalBase = homeWinProb > 0.6 ? "ALPHA_ADVANTAGE_DETECTED" : "TACTICAL_DEADLOCK";
 
       return {
@@ -158,22 +195,10 @@ export async function GET() {
           narrative: `ESPN Event Trace Generated. Model Evaluation: ${signalBase}`,
           crowd_sentiment_index: 0.5
         },
-        momentum_index: 0.5,
-        standard_analysis: [
-          `INFERENCING XGBOOST VECTOR [${matchId}]`,
-          `ESPN CDN TRACE OBTAINED`,
-          `ALPHA ALIGNMENT: ${(homeWinProb * 100).toFixed(1)}%`
-        ],
-        tactical_matchup: [
-          "COMPUTING SQUAD DEPTH...",
-          "READING TRANSITION STATES...",
-          "EDGE CALIBRATION NOMINAL"
-        ],
-        x_factors: [
-          signalBase,
-          "MOMENTUM CONSTRAINTS APPLIED",
-          "OUTLIER IDENTIFICATION ACTIVE"
-        ]
+        momentum_index: parseFloat(Math.abs(homeWinProb - 0.5).toFixed(3)),
+        standard_analysis: standardAnalysis,
+        tactical_matchup: tacticalMatchup,
+        x_factors: xFactors
       };
     }));
 
