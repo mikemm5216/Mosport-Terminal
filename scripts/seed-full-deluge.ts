@@ -126,7 +126,25 @@ async function main() {
                         homeTeamName: home,
                         awayTeamName: away,
                         status: 'live',
-                        leagueId: league.id
+                        leagueId: league.id,
+                        home_key_player: {
+                            create: {
+                                player_name: league.sport === 'baseball' ? "Gerrit Cole" : "LeBron James",
+                                jersey_number: league.sport === 'baseball' ? "45" : "23",
+                                physical_profile: "206cm / 113kg",
+                                season_stats: "Premium Alpha Status",
+                                role: league.sport === 'baseball' ? "SP" : "HOT_STREAK"
+                            }
+                        },
+                        away_key_player: {
+                            create: {
+                                player_name: league.sport === 'baseball' ? "Aaron Judge" : "Steph Curry",
+                                jersey_number: league.sport === 'baseball' ? "99" : "30",
+                                physical_profile: "191cm / 91kg",
+                                season_stats: "Premium Alpha Status",
+                                role: "STAR"
+                            }
+                        }
                     }
                 }));
 
