@@ -41,7 +41,9 @@ export default async function TeamsAnalyticsPage({
   const teams = allTeams.filter((t: any) => {
     if (sport === 'NBA') return t.league_type === 'NBA';
     if (sport === 'MLB') return t.league_type === 'MLB';
-    if (sport === 'SOCCER') return t.league_type === 'FOOTBALL';
+    if (sport === 'EPL') return t.league_type === 'EPL';
+    if (sport === 'UCL') return t.league_type === 'UCL';
+    if (sport === 'SOCCER') return ['FOOTBALL', 'EPL', 'UCL'].includes(t.league_type);
     return false;
   });
 
@@ -70,9 +72,11 @@ export default async function TeamsAnalyticsPage({
             </p>
           </div>
           <div className="flex items-center gap-2 md:gap-4 flex-wrap">
-            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="" />
+            <FilterButton label="EPL" value="EPL" active={sport === 'EPL'} icon="" />
+            <FilterButton label="UCL" value="UCL" active={sport === 'UCL'} icon="" />
             <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} icon="" />
             <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} icon="" />
+            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="" />
           </div>
         </div>
       </div>
