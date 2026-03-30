@@ -10,8 +10,8 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
    // 1. DATA INGESTION
    let match = null;
    try {
-      match = await (prisma as any).match.findUnique({
-         where: { id: id },
+      match = await (prisma as any).match.findFirst({
+         where: { extId: id },
          include: {
             home_team: true,
             away_team: true,
@@ -24,19 +24,15 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
 
    // Dynamic Route Fallback 404 removed for UI verification (Patch 17.1 mandate).
 
-   // ALPHA INTEL FALLBACK FOR DEMO
-   const mockMatch = {
-      id: 'EPL-CRY-WHU-001',
-      home_team: { full_name: 'Crystal Palace', short_name: 'CRY', logo_url: '/logos/cry_hd.png' },
-      away_team: { full_name: 'West Ham United', short_name: 'WHU', logo_url: '/logos/whu_hd.png' },
-      signals: [{
-         standard_analysis: ["Analysis 1", "Analysis 2", "Analysis 3"],
-         tactical_matchup: ["Tactical 1", "Tactical 2", "Tactical 3"],
-         x_factors: ["Factor 1", "Factor 2", "Factor 3"]
-      }]
-   };
+   if (!match) {
+      return (
+         <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+            <h1 className="text-2xl text-slate-500 font-mono uppercase tracking-[0.5em] animate-pulse">[ WAR ROOM OFFLINE: SIGNAL NOT FOUND ]</h1>
+         </div>
+      );
+   }
 
-   const displayMatch = match || mockMatch;
+   const displayMatch = match;
    const signal = displayMatch.signals?.[0] || {};
 
    return (

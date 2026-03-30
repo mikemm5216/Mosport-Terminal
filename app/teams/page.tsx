@@ -96,7 +96,7 @@ export default async function TeamsAnalyticsPage({
                 <div className="flex items-center gap-5 mb-6 border-b border-slate-800/40 pb-5">
                   {team.logo_url ? (
                     <img
-                      src={team.logo_url || '/logos/default-shield.png'}
+                      src={team.logo_url?.includes('||') ? team.logo_url.split('||')[1] : team.logo_url}
                       alt={team.full_name}
                       className="w-10 h-10 md:w-12 md:h-12 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-500"
                     />
