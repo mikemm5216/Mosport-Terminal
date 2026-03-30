@@ -5,7 +5,12 @@ import https from 'https';
 const getUrls = () => {
     const list: any[] = [];
     const nba = ['ATL', 'BOS', 'BKN', 'CHA', 'CHI', 'CLE', 'DAL', 'DEN', 'DET', 'GSW', 'HOU', 'IND', 'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN', 'NOP', 'NYK', 'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS'];
-    nba.forEach(id => list.push({ prefix: 'nba', id, url: `https://a.espncdn.com/i/teamlogos/nba/500/${id.toLowerCase()}.png` }));
+    nba.forEach(id => {
+        let espnId = id.toLowerCase();
+        if (id === 'UTA') espnId = 'utah';
+        if (id === 'NOP') espnId = 'no';
+        list.push({ prefix: 'nba', id, url: `https://a.espncdn.com/i/teamlogos/nba/500/${espnId}.png` });
+    });
 
     const mlb = ['ARI', 'ATL', 'BAL', 'BOS', 'CHC', 'CHW', 'LAD', 'NYY'];
     mlb.forEach(id => list.push({ prefix: 'mlb', id, url: `https://a.espncdn.com/i/teamlogos/mlb/500/${id.toLowerCase()}.png` }));

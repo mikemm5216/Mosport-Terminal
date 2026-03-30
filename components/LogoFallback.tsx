@@ -11,12 +11,24 @@ interface LogoFallbackProps {
     sport?: string;
 }
 
-export default function LogoFallback({ url, name, size = 16, className = "" }: LogoFallbackProps) {
+export default function LogoFallback({ url, name, shortName, size = 16, className = "" }: LogoFallbackProps) {
     const [failedLocal, setFailedLocal] = useState(false);
+    const [failedCdn, setFailedCdn] = useState(false);
 
     if (!url) return null;
     const [localAsset, cdnBackup] = url.split("||");
-    const targetSrc = failedLocal && cdnBackup ? cdnBackup : localAsset;
+    const targetSrc = failedLocal && cdnBackup && !failedCdn ? cdnBackup : localAsset;
+
+    if (failedLocal && (!cdnBackup || failedCdn)) {
+        return (
+            <div
+                className={`flex items-center justify-center bg-transparent border border-slate-700/50 text-slate-400 font-black rounded ${className}`}
+                style={{ width: size, height: size, fontSize: size ? size * 0.4 : 12 }}
+            >
+                {shortName || name?.substring(0, 3)?.toUpperCase() || '?'}
+            </div>
+        );
+    }
 
     return (
         <img
@@ -26,6 +38,7 @@ export default function LogoFallback({ url, name, size = 16, className = "" }: L
             style={{ width: size, height: size }}
             onError={() => {
                 if (!failedLocal) setFailedLocal(true);
+                else setFailedCdn(true);
             }}
         />
     );
