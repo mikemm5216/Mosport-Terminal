@@ -21,35 +21,23 @@ async function main() {
     { team_id: "GSW", full_name: "Golden State Warriors", short_name: "GSW", city: "San Francisco", league_type: LeagueType.NBA, logo_url: "/logos/gsw.png" },
     { team_id: "BKN", full_name: "Brooklyn Nets", short_name: "BKN", city: "Brooklyn", league_type: LeagueType.NBA, logo_url: "/logos/bkn.png" },
     { team_id: "NYY", full_name: "New York Yankees", short_name: "NYY", city: "New York", league_type: LeagueType.MLB, logo_url: "/logos/nyy.png" },
-    { team_id: "CRY", full_name: "Crystal Palace", short_name: "CRY", city: "London", league_type: LeagueType.EPL, logo_url: "/logos/cry.png" },
-    { team_id: "WHU", full_name: "West Ham United", short_name: "WHU", city: "London", league_type: LeagueType.EPL, logo_url: "/logos/whu.png" },
+    { team_id: "CRY", full_name: "Crystal Palace", short_name: "CRY", city: "London", league_type: LeagueType.SOCCER, logo_url: "/logos/cry.png" },
+    { team_id: "WHU", full_name: "West Ham United", short_name: "WHU", city: "London", league_type: LeagueType.SOCCER, logo_url: "/logos/whu.png" },
     { team_id: "DOD", full_name: "Los Angeles Dodgers", short_name: "DOD", city: "Los Angeles", league_type: LeagueType.MLB, logo_url: "/logos/dodgers.png" },
-    { team_id: "LIV", full_name: "Liverpool", short_name: "LIV", city: "Liverpool", league_type: LeagueType.EPL, logo_url: null },
-    { team_id: "OPP", full_name: "Opponent", short_name: "OPP", city: "Unknown", league_type: LeagueType.EPL, logo_url: null },
-    { team_id: "TRP", full_name: "Trap Team", short_name: "TRP", city: "Trap City", league_type: LeagueType.EPL, logo_url: null },
-    { team_id: "BAT", full_name: "Bait Team", short_name: "BAT", city: "Bait Town", league_type: LeagueType.EPL, logo_url: null },
-    { team_id: "SHL", full_name: "Stale Home", short_name: "SHL", city: "Stale Port", league_type: LeagueType.EPL, logo_url: null },
-    { team_id: "SAL", full_name: "Stale Away", short_name: "SAL", city: "Stale Berg", league_type: LeagueType.EPL, logo_url: null },
+    { team_id: "LIV", full_name: "Liverpool", short_name: "LIV", city: "Liverpool", league_type: LeagueType.SOCCER, logo_url: null },
+    { team_id: "OPP", full_name: "Opponent", short_name: "OPP", city: "Unknown", league_type: LeagueType.SOCCER, logo_url: null },
+    { team_id: "TRP", full_name: "Trap Team", short_name: "TRP", city: "Trap City", league_type: LeagueType.SOCCER, logo_url: null },
+    { team_id: "BAT", full_name: "Bait Team", short_name: "BAT", city: "Bait Town", league_type: LeagueType.SOCCER, logo_url: null },
+    { team_id: "SHL", full_name: "Stale Home", short_name: "SHL", city: "Stale Port", league_type: LeagueType.SOCCER, logo_url: null },
+    { team_id: "SAL", full_name: "Stale Away", short_name: "SAL", city: "Stale Berg", league_type: LeagueType.SOCCER, logo_url: null },
   ];
 
   for (const team of teams) {
+    const { team_id, ...data } = team;
     await prisma.teams.upsert({
-      where: { team_id: team.team_id },
-      update: {
-        league_type: team.league_type,
-        full_name: team.full_name,
-        short_name: team.short_name,
-        city: team.city,
-        logo_url: team.logo_url
-      },
-      create: {
-        team_id: team.team_id,
-        league_type: team.league_type,
-        full_name: team.full_name,
-        short_name: team.short_name,
-        city: team.city,
-        logo_url: team.logo_url
-      }
+      where: { team_id: team_id },
+      update: data,
+      create: team
     });
     console.log(`[SEEDED TEAM] ${team.full_name}`);
   }

@@ -144,10 +144,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
-            let engineUrl = (process.env.FASTAPI_ENGINE_URL || "").trim();
-            if (!engineUrl || engineUrl.includes('127.0.0.1')) {
-                console.error("CRITICAL: PRODUCTION TRYING TO HIT LOCALHOST OR UNSET ENGINE URL!");
-            }
+            let engineUrl = (process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000").trim();
             if (engineUrl && !engineUrl.startsWith('http')) {
                 engineUrl = `https://${engineUrl}`;
             }
@@ -165,17 +162,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
             });
             clearTimeout(timeoutId);
 
-            if (!quantRes.ok) {
-                const errorText = await quantRes.text();
-                console.error(`[NEURAL LINK] FastAPI Rejected! Status: ${quantRes.status}, Reason: ${errorText}`);
-                throw new Error(`FastAPI Engine Failed: ${quantRes.status}`);
+            if (quantRes.ok) {
+                const pjson = await quantRes.json();
+                if (typeof pjson.probability === "number" && !isNaN(pjson.probability)) homeWinProb = pjson.probability;
+                if (pjson.standard_analysis) standardAnalysis = pjson.standard_analysis;
+                if (pjson.tactical_matchup) tacticalMatchup = pjson.tactical_matchup;
+                if (pjson.x_factors) xFactors = pjson.x_factors;
             }
-
-            const pjson = await quantRes.json();
-            if (typeof pjson.probability === "number" && !isNaN(pjson.probability)) homeWinProb = pjson.probability;
-            if (pjson.standard_analysis) standardAnalysis = pjson.standard_analysis;
-            if (pjson.tactical_matchup) tacticalMatchup = pjson.tactical_matchup;
-            if (pjson.x_factors) xFactors = pjson.x_factors;
         } catch (e: any) {
             homeWinProb = 0.5;
             standardAnalysis = ["[ CALCULATING ALPHA... ]", "AWAITING ENGINE RESTORE", "FALLBACK 50% EQUILIBRIUM"];

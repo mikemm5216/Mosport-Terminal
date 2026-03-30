@@ -153,19 +153,15 @@ async function processLeague(
         });
         clearTimeout(timeoutId);
 
-        if (!quantRes.ok) {
-          const errorText = await quantRes.text();
-          console.error(`[NEURAL LINK:${leagueDef.prefix}] FastAPI Rejected! Status: ${quantRes.status}, Reason: ${errorText}`);
-          throw new Error(`FastAPI Engine Failed: ${quantRes.status}`);
+        if (quantRes.ok) {
+          const pjson = await quantRes.json();
+          if (typeof pjson.probability === "number" && !isNaN(pjson.probability)) {
+            homeWinProb = pjson.probability;
+          }
+          if (pjson.standard_analysis) standardAnalysis = pjson.standard_analysis;
+          if (pjson.tactical_matchup) tacticalMatchup = pjson.tactical_matchup;
+          if (pjson.x_factors) xFactors = pjson.x_factors;
         }
-
-        const pjson = await quantRes.json();
-        if (typeof pjson.probability === "number" && !isNaN(pjson.probability)) {
-          homeWinProb = pjson.probability;
-        }
-        if (pjson.standard_analysis) standardAnalysis = pjson.standard_analysis;
-        if (pjson.tactical_matchup) tacticalMatchup = pjson.tactical_matchup;
-        if (pjson.x_factors) xFactors = pjson.x_factors;
       } catch (e: any) {
         console.warn(`[NEURAL LINK:${leagueDef.prefix}] Severed: ${e.name}`);
         homeWinProb = 0.5;
@@ -253,11 +249,8 @@ export async function GET() {
     const validTeams = await (prisma as any).teams.findMany({ select: { team_id: true } });
     const validTeamIds = new Set<string>(validTeams.map((t: any) => t.team_id));
 
-    const engineUrl = (process.env.FASTAPI_ENGINE_URL || "").trim();
-    if (!engineUrl || engineUrl.includes('127.0.0.1')) {
-      console.error("CRITICAL: PRODUCTION TRYING TO HIT LOCALHOST OR UNSET ENGINE URL!");
-    }
-    const engineKey = (process.env.FASTAPI_ENGINE_KEY || "").trim();
+    const engineUrl = process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000";
+    const engineKey = process.env.FASTAPI_ENGINE_KEY || "";
 
     // ── Fix 3: Fetch all 4 leagues concurrently ──
     const [nbaMatches, mlbMatches, eplMatches, uclMatches] = await Promise.all([
