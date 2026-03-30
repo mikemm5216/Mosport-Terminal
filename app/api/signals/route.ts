@@ -238,9 +238,7 @@ export async function GET() {
     const validTeams = await (prisma as any).teams.findMany({ select: { team_id: true } });
     const validTeamIds = new Set<string>(validTeams.map((t: any) => t.team_id));
 
-    const engineUrl = process.env.FASTAPI_ENGINE_URL;
-    if (!engineUrl) throw new Error("FASTAPI_ENGINE_URL MISSING IN SIGNALS");
-
+    const engineUrl = process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000";
     const engineKey = process.env.FASTAPI_ENGINE_KEY || "";
 
     // ── Fix 3: Fetch all 4 leagues concurrently ──
