@@ -124,17 +124,11 @@ async function processLeague(
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-        let sanitizedUrl = engineUrl.trim();
-        if (sanitizedUrl && !sanitizedUrl.startsWith('http')) {
-          sanitizedUrl = `https://${sanitizedUrl}`;
-        }
-        const sanitizedKey = engineKey.trim();
-
-        const quantRes = await fetch(`${sanitizedUrl}/api/v1/inference`, {
+        const quantRes = await fetch(`${engineUrl}/api/v1/inference`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${sanitizedKey}`,
+            Authorization: `Bearer ${engineKey}`,
           },
           body: JSON.stringify({
             model_id: "latest",
