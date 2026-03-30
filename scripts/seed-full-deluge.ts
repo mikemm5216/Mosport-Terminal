@@ -14,61 +14,95 @@ const retry = async <T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promis
 };
 
 async function main() {
-    console.log("--- [GENESIS 8.0] THE FULL DELUGE (EXTERNAL HD LOGOS) ---");
+    console.log("--- [GENESIS 9.0] THE FULL 80-TEAM DELUGE ---");
 
     const nbaTeams = {
-        'ATL': { name: 'Atlanta Hawks', logo: 'https://www.thesportsdb.com/images/media/team/badge/7178.png' },
-        'BOS': { name: 'Boston Celtics', logo: 'https://www.thesportsdb.com/images/media/team/badge/9d26s61584033282.png' },
-        'BKN': { name: 'Brooklyn Nets', logo: 'https://www.thesportsdb.com/images/media/team/badge/9vsmue1523190863.png' },
-        'CHA': { name: 'Charlotte Hornets', logo: 'https://www.thesportsdb.com/images/media/team/badge/9179.png' },
-        'CHI': { name: 'Chicago Bulls', logo: 'https://www.thesportsdb.com/images/media/team/badge/6797.png' },
-        'CLE': { name: 'Cleveland Cavaliers', logo: 'https://www.thesportsdb.com/images/media/team/badge/7180.png' },
-        'DAL': { name: 'Dallas Mavericks', logo: 'https://www.thesportsdb.com/images/media/team/badge/p7sqo31522867824.png' },
-        'DEN': { name: 'Denver Nuggets', logo: 'https://www.thesportsdb.com/images/media/team/badge/193ve81523191147.png' },
-        'DET': { name: 'Detroit Pistons', logo: 'https://www.thesportsdb.com/images/media/team/badge/1647891523190987.png' },
-        'GSW': { name: 'Golden State Warriors', logo: 'https://www.thesportsdb.com/images/media/team/badge/5679.png' },
-        'HOU': { name: 'Houston Rockets', logo: 'https://www.thesportsdb.com/images/media/team/badge/8000.png' },
-        'IND': { name: 'Indiana Pacers', logo: 'https://www.thesportsdb.com/images/media/team/badge/7181.png' },
-        'LAC': { name: 'Los Angeles Clippers', logo: 'https://www.thesportsdb.com/images/media/team/badge/8182.png' },
-        'LAL': { name: 'Los Angeles Lakers', logo: 'https://www.thesportsdb.com/images/media/team/badge/l06m871523190899.png' },
-        'MEM': { name: 'Memphis Grizzlies', logo: 'https://www.thesportsdb.com/images/media/team/badge/7183.png' },
-        'MIA': { name: 'Miami Heat', logo: 'https://www.thesportsdb.com/images/media/team/badge/8001.png' },
-        'MIL': { name: 'Milwaukee Bucks', logo: 'https://www.thesportsdb.com/images/media/team/badge/7184.png' },
-        'MIN': { name: 'Minnesota Timberwolves', logo: 'https://www.thesportsdb.com/images/media/team/badge/7185.png' },
-        'NOP': { name: 'New Orleans Pelicans', logo: 'https://www.thesportsdb.com/images/media/team/badge/8002.png' },
-        'NYK': { name: 'New York Knicks', logo: 'https://www.thesportsdb.com/images/media/team/badge/7186.png' },
-        'OKC': { name: 'Oklahoma City Thunder', logo: 'https://www.thesportsdb.com/images/media/team/badge/7187.png' },
-        'ORL': { name: 'Orlando Magic', logo: 'https://www.thesportsdb.com/images/media/team/badge/p3p6s71523191295.png' },
-        'PHI': { name: 'Philadelphia 76ers', logo: 'https://www.thesportsdb.com/images/media/team/badge/7188.png' },
-        'PHX': { name: 'Phoenix Suns', logo: 'https://www.thesportsdb.com/images/media/team/badge/8003.png' },
-        'POR': { name: 'Portland Trail Blazers', logo: 'https://www.thesportsdb.com/images/media/team/badge/7189.png' },
-        'SAC': { name: 'Sacramento Kings', logo: 'https://www.thesportsdb.com/images/media/team/badge/7190.png' },
-        'SAS': { name: 'San Antonio Spurs', logo: 'https://www.thesportsdb.com/images/media/team/badge/7191.png' },
-        'TOR': { name: 'Toronto Raptors', logo: 'https://www.thesportsdb.com/images/media/team/badge/8004.png' },
-        'UTA': { name: 'Utah Jazz', logo: 'https://www.thesportsdb.com/images/media/team/badge/7192.png' },
-        'WAS': { name: 'Washington Wizards', logo: 'https://www.thesportsdb.com/images/media/team/badge/8005.png' }
+        'ATL': { name: 'Atlanta Hawks', logo: '' },
+        'BOS': { name: 'Boston Celtics', logo: '' },
+        'BKN': { name: 'Brooklyn Nets', logo: '' },
+        'CHA': { name: 'Charlotte Hornets', logo: '' },
+        'CHI': { name: 'Chicago Bulls', logo: '' },
+        'CLE': { name: 'Cleveland Cavaliers', logo: '' },
+        'DAL': { name: 'Dallas Mavericks', logo: '' },
+        'DEN': { name: 'Denver Nuggets', logo: '' },
+        'DET': { name: 'Detroit Pistons', logo: '' },
+        'GSW': { name: 'Golden State Warriors', logo: '' },
+        'HOU': { name: 'Houston Rockets', logo: '' },
+        'IND': { name: 'Indiana Pacers', logo: '' },
+        'LAC': { name: 'Los Angeles Clippers', logo: '' },
+        'LAL': { name: 'Los Angeles Lakers', logo: '' },
+        'MEM': { name: 'Memphis Grizzlies', logo: '' },
+        'MIA': { name: 'Miami Heat', logo: '' },
+        'MIL': { name: 'Milwaukee Bucks', logo: '' },
+        'MIN': { name: 'Minnesota Timberwolves', logo: '' },
+        'NOP': { name: 'New Orleans Pelicans', logo: '' },
+        'NYK': { name: 'New York Knicks', logo: '' },
+        'OKC': { name: 'Oklahoma City Thunder', logo: '' },
+        'ORL': { name: 'Orlando Magic', logo: '' },
+        'PHI': { name: 'Philadelphia 76ers', logo: '' },
+        'PHX': { name: 'Phoenix Suns', logo: '' },
+        'POR': { name: 'Portland Trail Blazers', logo: '' },
+        'SAC': { name: 'Sacramento Kings', logo: '' },
+        'SAS': { name: 'San Antonio Spurs', logo: '' },
+        'TOR': { name: 'Toronto Raptors', logo: '' },
+        'UTA': { name: 'Utah Jazz', logo: '' },
+        'WAS': { name: 'Washington Wizards', logo: '' }
     };
 
     const mlbTeams = {
-        'ARI_MLB': { name: 'Arizona Diamondbacks', logo: 'https://www.thesportsdb.com/images/media/team/badge/rsqqrq1422055655.png' },
-        'ATL_MLB': { name: 'Atlanta Braves', logo: 'https://www.thesportsdb.com/images/media/team/badge/7y4q3r1422055805.png' },
-        'BAL_MLB': { name: 'Baltimore Orioles', logo: 'https://www.thesportsdb.com/images/media/team/badge/vuyqrx1422055836.png' },
-        'BOS_MLB': { name: 'Boston Red Sox', logo: 'https://www.thesportsdb.com/images/media/team/badge/1m99f11550917223.png' },
-        'CHC_MLB': { name: 'Chicago Cubs', logo: 'https://www.thesportsdb.com/images/media/team/badge/uvwxsw1422056023.png' },
-        'CHW_MLB': { name: 'Chicago White Sox', logo: 'https://www.thesportsdb.com/images/media/team/badge/uwtyxv1422056037.png' },
-        'LAD_MLB': { name: 'Los Angeles Dodgers', logo: 'https://www.thesportsdb.com/images/media/team/badge/7560.png' },
-        'NYY_MLB': { name: 'New York Yankees', logo: 'https://www.thesportsdb.com/images/media/team/badge/1k856z1550918090.png' },
+        'ARI_MLB': { name: 'Arizona Diamondbacks', logo: '' },
+        'ATL_MLB': { name: 'Atlanta Braves', logo: '' },
+        'BAL_MLB': { name: 'Baltimore Orioles', logo: '' },
+        'BOS_MLB': { name: 'Boston Red Sox', logo: '' },
+        'CHC_MLB': { name: 'Chicago Cubs', logo: '' },
+        'CHW_MLB': { name: 'Chicago White Sox', logo: '' },
+        'CIN_MLB': { name: 'Cincinnati Reds', logo: '' },
+        'CLE_MLB': { name: 'Cleveland Guardians', logo: '' },
+        'COL_MLB': { name: 'Colorado Rockies', logo: '' },
+        'DET_MLB': { name: 'Detroit Tigers', logo: '' },
+        'HOU_MLB': { name: 'Houston Astros', logo: '' },
+        'KC_MLB': { name: 'Kansas City Royals', logo: '' },
+        'LAA_MLB': { name: 'Los Angeles Angels', logo: '' },
+        'LAD_MLB': { name: 'Los Angeles Dodgers', logo: '' },
+        'MIA_MLB': { name: 'Miami Marlins', logo: '' },
+        'MIL_MLB': { name: 'Milwaukee Brewers', logo: '' },
+        'MIN_MLB': { name: 'Minnesota Twins', logo: '' },
+        'NYM_MLB': { name: 'New York Mets', logo: '' },
+        'NYY_MLB': { name: 'New York Yankees', logo: '' },
+        'OAK_MLB': { name: 'Oakland Athletics', logo: '' },
+        'PHI_MLB': { name: 'Philadelphia Phillies', logo: '' },
+        'PIT_MLB': { name: 'Pittsburgh Pirates', logo: '' },
+        'SD_MLB': { name: 'San Diego Padres', logo: '' },
+        'SEA_MLB': { name: 'Seattle Mariners', logo: '' },
+        'SF_MLB': { name: 'San Francisco Giants', logo: '' },
+        'STL_MLB': { name: 'St. Louis Cardinals', logo: '' },
+        'TB_MLB': { name: 'Tampa Bay Rays', logo: '' },
+        'TEX_MLB': { name: 'Texas Rangers', logo: '' },
+        'TOR_MLB': { name: 'Toronto Blue Jays', logo: '' },
+        'WAS_MLB': { name: 'Washington Nationals', logo: '' }
     };
 
     const eplTeams = {
-        'ARS': { name: 'Arsenal', logo: 'https://www.thesportsdb.com/images/media/team/badge/8965.png' },
-        'AST': { name: 'Aston Villa', logo: 'https://www.thesportsdb.com/images/media/team/badge/kf766y1420741913.png' },
-        'CHE': { name: 'Chelsea', logo: 'https://www.thesportsdb.com/images/media/team/badge/6792.png' },
-        'CRY': { name: 'Crystal Palace', logo: 'https://www.thesportsdb.com/images/media/team/badge/8983.png' },
-        'LIV': { name: 'Liverpool', logo: 'https://www.thesportsdb.com/images/media/team/badge/6791.png' },
-        'MCI': { name: 'Manchester City', logo: 'https://www.thesportsdb.com/images/media/team/badge/6796.png' },
-        'WHU': { name: 'West Ham United', logo: 'https://www.thesportsdb.com/images/media/team/badge/8964.png' },
-        'MUN': { name: 'Manchester United', logo: 'https://www.thesportsdb.com/images/media/team/badge/6794.png' }
+        'ARS': { name: 'Arsenal', logo: '' },
+        'AST': { name: 'Aston Villa', logo: '' },
+        'BOU': { name: 'Bournemouth', logo: '' },
+        'BRE': { name: 'Brentford', logo: '' },
+        'BHA': { name: 'Brighton & Hove Albion', logo: '' },
+        'CHE': { name: 'Chelsea', logo: '' },
+        'CRY': { name: 'Crystal Palace', logo: '' },
+        'EVE': { name: 'Everton', logo: '' },
+        'FUL': { name: 'Fulham', logo: '' },
+        'IPS': { name: 'Ipswich Town', logo: '' },
+        'LEI': { name: 'Leicester City', logo: '' },
+        'LIV': { name: 'Liverpool', logo: '' },
+        'MCI': { name: 'Manchester City', logo: '' },
+        'MUN': { name: 'Manchester United', logo: '' },
+        'NEW': { name: 'Newcastle United', logo: '' },
+        'NFO': { name: 'Nottingham Forest', logo: '' },
+        'SOU': { name: 'Southampton', logo: '' },
+        'TOT': { name: 'Tottenham Hotspur', logo: '' },
+        'WHU': { name: 'West Ham United', logo: '' },
+        'WOL': { name: 'Wolverhampton Wanderers', logo: '' }
     };
 
     await Promise.all([
@@ -85,7 +119,7 @@ async function main() {
             return `https://a.espncdn.com/i/teamlogos/nba/500/${espnId}.png`;
         }
         if (type === LeagueType.MLB) return `https://a.espncdn.com/i/teamlogos/mlb/500/${id.replace('_MLB', '').toLowerCase()}.png`;
-        const eplMap: Record<string, string> = { 'ARS': '359', 'AST': '362', 'CHE': '363', 'LIV': '364', 'MCI': '382', 'MUN': '360', 'CRY': '384', 'WHU': '371' };
+        const eplMap: Record<string, string> = { 'ARS': '359', 'AST': '362', 'BOU': '349', 'BRE': '337', 'BHA': '331', 'CHE': '363', 'CRY': '384', 'EVE': '368', 'FUL': '370', 'IPS': '394', 'LEI': '375', 'LIV': '364', 'MCI': '382', 'MUN': '360', 'NEW': '361', 'NFO': '393', 'SOU': '376', 'TOT': '367', 'WHU': '371', 'WOL': '380' };
         return `https://a.espncdn.com/i/teamlogos/soccer/500/${eplMap[id] || '359'}.png`;
     };
 
@@ -133,7 +167,7 @@ async function main() {
             let away = league.keys[Math.floor(Math.random() * league.keys.length)];
             while (away === home) away = league.keys[Math.floor(Math.random() * league.keys.length)];
 
-            const matchId = `${league.id}-F26-${home}-${away}-${i}`;
+            const matchId = `${league.id}-F26-${home.replace('_MLB', '')}-${away.replace('_MLB', '')}-${i}`;
             const matchTime = new Date(baseDate.getTime() + (Math.random() * 14 * 24 * 60 * 60 * 1000));
 
             chunkMatchPromises.push(async () => {

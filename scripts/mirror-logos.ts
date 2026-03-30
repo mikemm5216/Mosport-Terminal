@@ -12,10 +12,10 @@ const getUrls = () => {
         list.push({ prefix: 'nba', id, url: `https://a.espncdn.com/i/teamlogos/nba/500/${espnId}.png` });
     });
 
-    const mlb = ['ARI', 'ATL', 'BAL', 'BOS', 'CHC', 'CHW', 'LAD', 'NYY'];
+    const mlb = ['ARI', 'ATL', 'BAL', 'BOS', 'CHC', 'CHW', 'CIN', 'CLE', 'COL', 'DET', 'HOU', 'KC', 'LAA', 'LAD', 'MIA', 'MIL', 'MIN', 'NYM', 'NYY', 'OAK', 'PHI', 'PIT', 'SD', 'SEA', 'SF', 'STL', 'TB', 'TEX', 'TOR', 'WAS'];
     mlb.forEach(id => list.push({ prefix: 'mlb', id, url: `https://a.espncdn.com/i/teamlogos/mlb/500/${id.toLowerCase()}.png` }));
 
-    const eplMap: Record<string, string> = { 'ARS': '359', 'AST': '362', 'CHE': '363', 'LIV': '364', 'MCI': '382', 'MUN': '360', 'CRY': '384', 'WHU': '371' };
+    const eplMap: Record<string, string> = { 'ARS': '359', 'AST': '362', 'BOU': '349', 'BRE': '337', 'BHA': '331', 'CHE': '363', 'CRY': '384', 'EVE': '368', 'FUL': '370', 'IPS': '394', 'LEI': '375', 'LIV': '364', 'MCI': '382', 'MUN': '360', 'NEW': '361', 'NFO': '393', 'SOU': '376', 'TOT': '367', 'WHU': '371', 'WOL': '380' };
     Object.entries(eplMap).forEach(([id, espnId]) => list.push({ prefix: 'epl', id, url: `https://a.espncdn.com/i/teamlogos/soccer/500/${espnId}.png` }));
 
     return list;
