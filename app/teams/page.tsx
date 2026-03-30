@@ -33,7 +33,8 @@ export default async function TeamsAnalyticsPage({
       },
     });
   } catch (e) {
-    console.error("Teams Vault critical fetch error:", e);
+    console.error("--- THE CULPRIT: Teams Data Fetch Failed ---");
+    console.error(e);
     // Return empty or error state
   }
 

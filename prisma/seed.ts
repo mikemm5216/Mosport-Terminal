@@ -21,15 +21,15 @@ async function main() {
     { team_id: "GSW", full_name: "Golden State Warriors", short_name: "GSW", city: "San Francisco", league_type: LeagueType.NBA, logo_url: "/logos/gsw.png" },
     { team_id: "BKN", full_name: "Brooklyn Nets", short_name: "BKN", city: "Brooklyn", league_type: LeagueType.NBA, logo_url: "/logos/bkn.png" },
     { team_id: "NYY", full_name: "New York Yankees", short_name: "NYY", city: "New York", league_type: LeagueType.MLB, logo_url: "/logos/nyy.png" },
-    { team_id: "CRY", full_name: "Crystal Palace", short_name: "CRY", city: "London", league_type: LeagueType.SOCCER, logo_url: "/logos/cry.png" },
-    { team_id: "WHU", full_name: "West Ham United", short_name: "WHU", city: "London", league_type: LeagueType.SOCCER, logo_url: "/logos/whu.png" },
+    { team_id: "CRY", full_name: "Crystal Palace", short_name: "CRY", city: "London", league_type: LeagueType.EPL, logo_url: "/logos/cry.png" },
+    { team_id: "WHU", full_name: "West Ham United", short_name: "WHU", city: "London", league_type: LeagueType.EPL, logo_url: "/logos/whu.png" },
     { team_id: "DOD", full_name: "Los Angeles Dodgers", short_name: "DOD", city: "Los Angeles", league_type: LeagueType.MLB, logo_url: "/logos/dodgers.png" },
-    { team_id: "LIV", full_name: "Liverpool", short_name: "LIV", city: "Liverpool", league_type: LeagueType.SOCCER, logo_url: null },
-    { team_id: "OPP", full_name: "Opponent", short_name: "OPP", city: "Unknown", league_type: LeagueType.SOCCER, logo_url: null },
-    { team_id: "TRP", full_name: "Trap Team", short_name: "TRP", city: "Trap City", league_type: LeagueType.SOCCER, logo_url: null },
-    { team_id: "BAT", full_name: "Bait Team", short_name: "BAT", city: "Bait Town", league_type: LeagueType.SOCCER, logo_url: null },
-    { team_id: "SHL", full_name: "Stale Home", short_name: "SHL", city: "Stale Port", league_type: LeagueType.SOCCER, logo_url: null },
-    { team_id: "SAL", full_name: "Stale Away", short_name: "SAL", city: "Stale Berg", league_type: LeagueType.SOCCER, logo_url: null },
+    { team_id: "LIV", full_name: "Liverpool", short_name: "LIV", city: "Liverpool", league_type: LeagueType.EPL, logo_url: null },
+    { team_id: "TOT", full_name: "Tottenham Hotspur", short_name: "TOT", city: "London", league_type: LeagueType.EPL, logo_url: null },
+    { team_id: "NFO", full_name: "Nottingham Forest", short_name: "NFO", city: "Nottingham", league_type: LeagueType.EPL, logo_url: null },
+    { team_id: "MIL", full_name: "Milwaukee Bucks", short_name: "MIL", city: "Milwaukee", league_type: LeagueType.NBA, logo_url: null },
+    { team_id: "LAC", full_name: "LA Clippers", short_name: "LAC", city: "Los Angeles", league_type: LeagueType.NBA, logo_url: null },
+    { team_id: "OPP", full_name: "Opponent", short_name: "OPP", city: "Unknown", league_type: LeagueType.FOOTBALL, logo_url: null },
   ];
 
   for (const team of teams) {
