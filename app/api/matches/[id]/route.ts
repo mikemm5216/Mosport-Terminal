@@ -44,26 +44,14 @@ function extractKeyPlayer(espnData: any, teamAbbr: string, sport: string) {
     }
 
     if (sport === "soccer") {
-        // Path A: rosters (common for summary)
+        // Soccer: rosters array with team.abbreviation
         const rosters = espnData.rosters;
         const roster = rosters?.find((r: any) =>
             r.team?.abbreviation === teamAbbr || r.team?.abbreviation === ESPN_MAP[teamAbbr]
         );
+        // Pick first starter (formation position 1)
         const starters = roster?.roster?.filter((p: any) => p.starter) ?? [];
-        if (starters[0]?.athlete) return starters[0].athlete;
-        if (roster?.roster?.[0]?.athlete) return roster.roster[0].athlete;
-
-        // Path B: boxscore.players (common for specialized boxscores)
-        const boxscore = espnData.boxscore?.players;
-        const box = boxscore?.find((b: any) =>
-            b.team?.abbreviation === teamAbbr || b.team?.abbreviation === ESPN_MAP[teamAbbr]
-        );
-        const athlete = box?.statistics?.[0]?.athletes?.[0]?.athlete;
-        if (athlete) return athlete;
-
-        // Path C: standings or general statistics summary
-        const teamSummary = espnData.boxscore?.teams?.find((t: any) => t.team?.abbreviation === teamAbbr);
-        return teamSummary?.statistics?.[0]?.athletes?.[0]?.athlete ?? null;
+        return starters[0]?.athlete ?? roster?.roster?.[0]?.athlete ?? null;
     }
 
     if (sport === "baseball") {
@@ -143,9 +131,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
-            const engineUrl = process.env.FASTAPI_ENGINE_URL;
-            if (!engineUrl) throw new Error("FASTAPI_ENGINE_URL MISSING");
-
+            const engineUrl = process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000";
 
             const quantRes = await fetch(`${engineUrl}/api/v1/inference`, {
                 method: "POST",

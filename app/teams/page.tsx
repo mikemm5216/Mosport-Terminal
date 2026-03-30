@@ -15,35 +15,26 @@ export default async function TeamsAnalyticsPage({
   const { sport = 'SOCCER' } = await searchParams;
 
   // ── Phase 3: Pull teams WITH their real match history from matches_home/away ──
-  let allTeams = [];
-  try {
-    allTeams = await (prisma as any).teams.findMany({
-      orderBy: { full_name: 'asc' },
-      include: {
-        matches_home: {
-          take: 20,
-          orderBy: { date: 'desc' },
-          select: { homeScore: true, awayScore: true, status: true, date: true },
-        },
-        matches_away: {
-          take: 20,
-          orderBy: { date: 'desc' },
-          select: { homeScore: true, awayScore: true, status: true, date: true },
-        },
+  const allTeams = await (prisma as any).teams.findMany({
+    orderBy: { full_name: 'asc' },
+    include: {
+      matches_home: {
+        take: 20,
+        orderBy: { date: 'desc' },
+        select: { homeScore: true, awayScore: true, status: true, date: true },
       },
-    });
-  } catch (e) {
-    console.error("--- THE CULPRIT: Teams Data Fetch Failed ---");
-    console.error(e);
-    // Return empty or error state
-  }
+      matches_away: {
+        take: 20,
+        orderBy: { date: 'desc' },
+        select: { homeScore: true, awayScore: true, status: true, date: true },
+      },
+    },
+  });
 
   const teams = allTeams.filter((t: any) => {
     if (sport === 'NBA') return t.league_type === 'NBA';
     if (sport === 'MLB') return t.league_type === 'MLB';
-    if (sport === 'EPL') return t.league_type === 'EPL';
-    if (sport === 'UCL') return t.league_type === 'UCL';
-    if (sport === 'SOCCER') return ['FOOTBALL', 'EPL', 'UCL'].includes(t.league_type);
+    if (sport === 'SOCCER') return t.league_type === 'FOOTBALL';
     return false;
   });
 
@@ -72,11 +63,9 @@ export default async function TeamsAnalyticsPage({
             </p>
           </div>
           <div className="flex items-center gap-2 md:gap-4 flex-wrap">
-            <FilterButton label="EPL" value="EPL" active={sport === 'EPL'} icon="" />
-            <FilterButton label="UCL" value="UCL" active={sport === 'UCL'} icon="" />
+            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="" />
             <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} icon="" />
             <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} icon="" />
-            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="" />
           </div>
         </div>
       </div>
@@ -174,7 +163,7 @@ export default async function TeamsAnalyticsPage({
                           : <span className="text-slate-700 text-[8px] font-mono tracking-widest animate-pulse">[ NO HISTORY ]</span>
                         }
                       </div>
-                      <span>{isNBA ? 'HOOPS' : isMLB ? 'DIAMOND' : ['EPL', 'UCL'].includes(team.league_type) ? 'SOCCER' : 'PITCH'} {team.league_type}</span>
+                      <span>{isNBA ? 'HOOPS' : isMLB ? 'DIAMOND' : 'PITCH'} {team.league_type}</span>
                     </div>
                   </div>
                 );
