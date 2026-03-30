@@ -158,11 +158,17 @@ function MetricBar({ label, value, color, hasData }: { label: string, value: num
     <div className="flex flex-col gap-1.5">
       <div className="flex justify-between items-end leading-none">
         <span className="text-[10px] md:text-xs text-slate-500 font-black tracking-[0.1em] uppercase">{label}</span>
-        <span className={`text-[10px] md:text-xs font-black font-mono leading-none ${textClass}`}>{hasData ? `${Math.round(value * 100)}%` : 'N/A'}</span>
+        <span className={`text-[10px] md:text-xs font-black font-mono leading-none ${hasData ? textClass : 'text-slate-700'}`}>
+          {hasData ? `${Math.round(value * 100)}%` : '[ CALCULATING ]'}
+        </span>
       </div>
       <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden p-[1px] border border-slate-900">
-        <div className={`h-full ${bgClass} rounded-full transition-all duration-1000`} style={{ width: hasData ? `${value * 100}%` : '0%' }} />
+        <div
+          className={`h-full rounded-full transition-all duration-1000 ${hasData ? bgClass : 'bg-slate-800 animate-pulse'}`}
+          style={{ width: hasData ? `${value * 100}%` : '30%' }}
+        />
       </div>
     </div>
   );
 }
+
