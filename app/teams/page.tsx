@@ -15,21 +15,27 @@ export default async function TeamsAnalyticsPage({
   const { sport = 'SOCCER' } = await searchParams;
 
   // ── Phase 3: Pull teams WITH their real match history from matches_home/away ──
-  const allTeams = await (prisma as any).teams.findMany({
-    orderBy: { full_name: 'asc' },
-    include: {
-      matches_home: {
-        take: 20,
-        orderBy: { date: 'desc' },
-        select: { homeScore: true, awayScore: true, status: true, date: true },
+  let allTeams = [];
+  try {
+    allTeams = await (prisma as any).teams.findMany({
+      orderBy: { full_name: 'asc' },
+      include: {
+        matches_home: {
+          take: 20,
+          orderBy: { date: 'desc' },
+          select: { homeScore: true, awayScore: true, status: true, date: true },
+        },
+        matches_away: {
+          take: 20,
+          orderBy: { date: 'desc' },
+          select: { homeScore: true, awayScore: true, status: true, date: true },
+        },
       },
-      matches_away: {
-        take: 20,
-        orderBy: { date: 'desc' },
-        select: { homeScore: true, awayScore: true, status: true, date: true },
-      },
-    },
-  });
+    });
+  } catch (e) {
+    console.error("Teams Vault critical fetch error:", e);
+    // Return empty or error state
+  }
 
   const teams = allTeams.filter((t: any) => {
     if (sport === 'NBA') return t.league_type === 'NBA';

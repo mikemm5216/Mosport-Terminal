@@ -143,7 +143,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
-            const engineUrl = process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000";
+            const engineUrl = process.env.FASTAPI_ENGINE_URL;
+            if (!engineUrl) throw new Error("FASTAPI_ENGINE_URL MISSING");
+
 
             const quantRes = await fetch(`${engineUrl}/api/v1/inference`, {
                 method: "POST",
