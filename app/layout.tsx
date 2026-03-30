@@ -22,6 +22,12 @@ export default function RootLayout({
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8">
           {children}
         </main>
+        {/* V17.2 Deployment Verification Tag */}
+        <div className="fixed bottom-2 right-2 px-2 py-0.5 bg-slate-900 border border-slate-800 rounded-sm opacity-20 hover:opacity-100 transition-opacity pointer-events-none z-[9999]">
+          <span className="text-[8px] font-black tracking-widest text-slate-500 uppercase italic">
+            Mosport Terminal // V17.2 // Quantum Sync Active
+          </span>
+        </div>
       </body>
     </html>
   )
