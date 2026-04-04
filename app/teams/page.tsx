@@ -168,7 +168,7 @@ export default async function TeamsAnalyticsPage({
                           : <span className="text-slate-800 text-[7px] font-mono tracking-widest animate-pulse">[ NO RECENT DATA ]</span>
                         }
                       </div>
-                      <span>{isNBA ? 'NBA' : isMLB ? 'MLB' : 'EPL'} {team.league_type}</span>
+                      <span>{team.league_type === 'NBA' ? 'HOOPS' : team.league_type === 'MLB' ? 'DIAMOND' : 'PITCH'} {team.league_type}</span>
                     </div>
                   </div>
                 );
