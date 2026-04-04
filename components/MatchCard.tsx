@@ -13,7 +13,7 @@ export const narrativeThemes: Record<string, { border: string, text: string, lab
   },
   scandal: {
     border: 'border-orange-500',
-    text: 'text-orange-500', 
+    text: 'text-orange-500',
     label: 'Off-Court Storm'
   },
   news_driven: {
@@ -51,17 +51,17 @@ export default function MatchCard({ match }: { match: any }) {
       // 試著從不同可能的欄位名稱提取，若無則預設 50/50 
       const rawHb = featureData?.bio_battery_home ?? featureData?.h_bio ?? featureData?.home_energy;
       const rawAb = featureData?.bio_battery_away ?? featureData?.a_bio ?? featureData?.away_energy;
-      
+
       if (typeof rawHb === 'number') hb = rawHb;
       if (typeof rawAb === 'number') ab = rawAb;
     }
-    
+
     // 將預測或原始數值轉為加總100的比例，以作為 UI 長條圖顯示
     const total = hb + ab;
     if (total > 0) {
-      return { 
-        homeBattery: Math.round((hb / total) * 100), 
-        awayBattery: Math.round((ab / total) * 100) 
+      return {
+        homeBattery: Math.round((hb / total) * 100),
+        awayBattery: Math.round((ab / total) * 100)
       };
     }
     return { homeBattery: 50, awayBattery: 50 };
@@ -69,7 +69,7 @@ export default function MatchCard({ match }: { match: any }) {
 
   const homeTeamName = match?.home_team?.team_name || match?.home_team?.full_name || match?.home_team_id || "Home Team";
   const awayTeamName = match?.away_team?.team_name || match?.away_team?.full_name || match?.away_team_id || "Away Team";
-  
+
   const homeCity = match?.home_team?.home_city || "City";
   const awayCity = match?.away_team?.home_city || "City";
 
@@ -92,11 +92,11 @@ export default function MatchCard({ match }: { match: any }) {
   const renderLogo = (url: string | null, initials: string, isHome: boolean) => {
     if (url) {
       return (
-        <img 
-          src={url} 
-          alt="" 
-          className="w-full h-full object-contain" 
-          onError={() => isHome ? setHomeError(true) : setAwayError(true)} 
+        <img
+          src={url}
+          alt=""
+          className="w-full h-full object-contain"
+          onError={() => isHome ? setHomeError(true) : setAwayError(true)}
         />
       );
     }
@@ -113,7 +113,7 @@ export default function MatchCard({ match }: { match: any }) {
 
   return (
     <div className="w-full max-w-[90vw] sm:max-w-md md:max-w-lg lg:max-w-xl relative group">
-      
+
       {/* Date floating badge (optional design touch) */}
       <div className="absolute -top-3 left-6 z-10 px-3 py-1 bg-slate-950 border border-slate-700/50 rounded-full text-[10px] font-mono text-slate-400 group-hover:border-cyan-500/30 transition-colors">
         {dateStr} {timeStr}
@@ -181,47 +181,58 @@ export default function MatchCard({ match }: { match: any }) {
           </div>
         </div>
 
-        {/* Bio-Battery Section */}
-        <div className="mb-4 sm:mb-6 bg-slate-950/50 p-3 sm:p-4 rounded-xl border border-slate-800/50">
-          {/* Battery Labels */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              <span className="text-xs sm:text-sm">🔋</span>
-              <span className="text-xs sm:text-sm font-bold text-emerald-400">{homeBattery}%</span>
+        {/* Bio-Battery Section / Final Score Settlement (Patch 17.14) */}
+        {match?.status === "COMPLETED" ? (
+          <div className="mb-4 sm:mb-6 bg-slate-950/50 p-3 sm:p-4 rounded-xl border border-slate-800/50 flex flex-col items-center justify-center">
+            <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mb-1">FINAL SCORE</span>
+            <div className="text-3xl font-black text-white font-mono">
+              {match.home_score ?? 0} <span className="text-slate-600 px-2">-</span> {match.away_score ?? 0}
             </div>
-            <div className="flex items-center justify-center">
-              <span className="text-[10px] text-slate-600 font-mono tracking-widest uppercase">Bio-Battery / Rest</span>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              <span className="text-xs sm:text-sm font-bold text-red-400">{awayBattery}%</span>
-              <span className="text-xs sm:text-sm">🪫</span>
-            </div>
+            {/* Historical Prediction Settlement */}
+            {match.predicted_home_win_rate && (
+              <div className="mt-2 text-[10px] text-slate-400 font-mono flex items-center gap-1.5 border-t border-slate-800/50 pt-2 w-full justify-center">
+                <span className="text-cyan-500">SYS PRED:</span>
+                <span>{Math.round(match.predicted_home_win_rate * 100)}% {homeInitials}</span>
+              </div>
+            )}
           </div>
+        ) : (
+          <div className="mb-4 sm:mb-6 bg-slate-950/50 p-3 sm:p-4 rounded-xl border border-slate-800/50">
+            {/* Battery Labels */}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs sm:text-sm">🔋</span>
+                <span className="text-xs sm:text-sm font-bold text-emerald-400">{homeBattery}%</span>
+              </div>
+              <div className="flex items-center justify-center">
+                <span className="text-[10px] text-slate-600 font-mono tracking-widest uppercase">Bio-Battery / Rest</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs sm:text-sm font-bold text-red-400">{awayBattery}%</span>
+                <span className="text-xs sm:text-sm">🪫</span>
+              </div>
+            </div>
 
-          {/* Dual Progress Bar */}
-          <div className="relative h-2 sm:h-3 bg-slate-800 rounded-full overflow-hidden shadow-inner flex">
-            {/* Left Side - Green */}
-            <div 
-              className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-1000 ease-out"
-              style={{ width: `${homeBattery}%` }}
-            />
-            
-            {/* Right Side - Red */}
-            <div 
-              className="h-full bg-gradient-to-l from-red-600 to-red-400 transition-all duration-1000 ease-out"
-              style={{ width: `${awayBattery}%` }}
-            />
-            
-            {/* Center Anchor */}
-            <div className="absolute left-1/2 top-0 w-[1px] h-full bg-slate-300/20 z-10 -translate-x-1/2" />
-          </div>
+            {/* Dual Progress Bar */}
+            <div className="relative h-2 sm:h-3 bg-slate-800 rounded-full overflow-hidden shadow-inner flex">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-1000 ease-out"
+                style={{ width: `${homeBattery}%` }}
+              />
+              <div
+                className="h-full bg-gradient-to-l from-red-600 to-red-400 transition-all duration-1000 ease-out"
+                style={{ width: `${awayBattery}%` }}
+              />
+              <div className="absolute left-1/2 top-0 w-[1px] h-full bg-slate-300/20 z-10 -translate-x-1/2" />
+            </div>
 
-          {/* Team Labels Under Bar */}
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-[10px] sm:text-xs text-slate-500 font-semibold tracking-wide">{homeInitials}</span>
-            <span className="text-[10px] sm:text-xs text-slate-500 font-semibold tracking-wide">{awayInitials}</span>
+            {/* Team Labels Under Bar */}
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-[10px] sm:text-xs text-slate-500 font-semibold tracking-wide">{homeInitials}</span>
+              <span className="text-[10px] sm:text-xs text-slate-500 font-semibold tracking-wide">{awayInitials}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Bottom Narrative Box - Intelligence Panel Style */}
         <div className={`bg-slate-800/50 rounded-r-xl rounded-l-sm p-3 sm:p-4 border-l-4 ${theme.border} relative overflow-hidden group-hover:bg-slate-800 transition-colors`}>
@@ -238,14 +249,14 @@ export default function MatchCard({ match }: { match: any }) {
         <div className="flex justify-between items-end mt-4 sm:mt-5 pt-3 border-t border-slate-800/50">
           <div className="flex gap-2">
             {match?.signal_pick && (
-               <span className="px-2 py-0.5 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[10px] uppercase rounded tracking-wider shadow-[0_0_10px_rgba(99,102,241,0.2)]">
-                 PICK: {match.signal_pick}
-               </span>
+              <span className="px-2 py-0.5 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[10px] uppercase rounded tracking-wider shadow-[0_0_10px_rgba(99,102,241,0.2)]">
+                PICK: {match.signal_pick}
+              </span>
             )}
             {match?.signal_conf && (
-               <span className="px-2 py-0.5 bg-slate-800 border border-slate-700 text-slate-400 text-[10px] font-mono rounded tracking-wider">
-                 CONF: {match.signal_conf}%
-               </span>
+              <span className="px-2 py-0.5 bg-slate-800 border border-slate-700 text-slate-400 text-[10px] font-mono rounded tracking-wider">
+                CONF: {match.signal_conf}%
+              </span>
             )}
           </div>
           <span className="text-[8px] sm:text-[9px] text-slate-600 tracking-wider font-mono">
