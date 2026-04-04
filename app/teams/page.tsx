@@ -142,8 +142,8 @@ export default async function TeamsAnalyticsPage({
                             {team.short_name?.[0] || team.full_name[0]}
                           </div>
                         )}
-                        <div className="flex flex-col truncate min-w-0">
-                          <span className="text-white font-black text-xl md:text-2xl tracking-tighter uppercase leading-none group-hover:text-cyan-400 transition-colors">
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="text-white font-black text-lg md:text-xl tracking-tighter uppercase leading-tight group-hover:text-cyan-400 transition-colors break-words whitespace-normal line-clamp-2">
                             {team.full_name}
                           </span>
                           <span className="text-[10px] md:text-xs text-slate-500 font-bold truncate tracking-widest uppercase mt-1 leading-tight">
@@ -193,8 +193,8 @@ function MetricBar({ label, value, color, hasData }: { label: string, value: num
     <div className="flex flex-col gap-1.5">
       <div className="flex justify-between items-end leading-none">
         <span className="text-[10px] md:text-xs text-slate-500 font-black tracking-[0.1em] uppercase">{label}</span>
-        <span className={`text-[10px] md:text-xs font-black font-mono leading-none ${hasData ? textClass : 'text-slate-700'}`}>
-          {hasData ? `${Math.round(value * 100)}%` : '[ CALCULATING ]'}
+        <span className={`text-[9px] md:text-[10px] font-black font-mono leading-none whitespace-nowrap ${hasData ? textClass : 'text-slate-700'}`}>
+          {hasData ? `${Math.round(value * 100)}%` : '[ CALC ]'}
         </span>
       </div>
       <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden p-[1px] border border-slate-900">
