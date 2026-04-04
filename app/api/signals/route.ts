@@ -185,12 +185,19 @@ async function processLeague(
           season_stats: "AWAITING METRICS",
           role: "UNKNOWN",
         };
+
+        const height = athlete.displayHeight || athlete.height || "--";
+        const weight = athlete.displayWeight || athlete.weight || "--";
+        const physicalProfile = (height !== "--" || weight !== "--")
+          ? `${height}, ${weight}`
+          : "[ DATA PENDING ]";
+
         return {
           player_name: validate(athlete.displayName),
           jersey_number: validate(athlete.jersey),
-          physical_profile: "[ CLASSIFIED PHYSICALS ]",
+          physical_profile: physicalProfile,
           season_stats: validate(athlete.displayValue),
-          role: "STAR",
+          role: athlete.position?.abbreviation || "STAR",
         };
       };
 

@@ -14,7 +14,6 @@ export default async function TeamsAnalyticsPage({
 }) {
   const { sport = 'SOCCER' } = await searchParams;
 
-  // ── Phase 3: Pull teams WITH their real match history from matches_home/away ──
   const teams = await (prisma as any).teams.findMany({
     where: {
       league_type: sport === 'SOCCER' ? 'EPL' : (sport as any)
@@ -22,14 +21,20 @@ export default async function TeamsAnalyticsPage({
     orderBy: { full_name: 'asc' },
     include: {
       matches_home: {
-        take: 20,
+        take: 30,
         orderBy: { date: 'desc' },
-        select: { homeScore: true, awayScore: true, status: true, date: true },
+        select: {
+          homeScore: true, awayScore: true, status: true, date: true,
+          predictionCorrect: true, predictedHomeWinRate: true
+        },
       },
       matches_away: {
-        take: 20,
+        take: 30,
         orderBy: { date: 'desc' },
-        select: { homeScore: true, awayScore: true, status: true, date: true },
+        select: {
+          homeScore: true, awayScore: true, status: true, date: true,
+          predictionCorrect: true, predictedHomeWinRate: true
+        },
       },
     },
   });
@@ -75,32 +80,36 @@ export default async function TeamsAnalyticsPage({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8 w-full">
               {teams.map((team: any) => {
-                // ── Aggregate directly from matches_home / matches_away ──
                 const homeGames = (team.matches_home || []).filter((m: any) => m.status === 'COMPLETED');
                 const awayGames = (team.matches_away || []).filter((m: any) => m.status === 'COMPLETED');
 
                 const allGames = [
-                  ...homeGames.map((m: any) => ({ scored: m.homeScore ?? 0, conceded: m.awayScore ?? 0 })),
-                  ...awayGames.map((m: any) => ({ scored: m.awayScore ?? 0, conceded: m.homeScore ?? 0 })),
+                  ...homeGames.map((m: any) => ({
+                    scored: m.homeScore ?? 0, conceded: m.awayScore ?? 0,
+                    correct: m.predictionCorrect
+                  })),
+                  ...awayGames.map((m: any) => ({
+                    scored: m.awayScore ?? 0, conceded: m.homeScore ?? 0,
+                    correct: m.predictionCorrect
+                  })),
                 ];
 
                 const total = allGames.length;
                 const wins = allGames.filter(g => g.scored > g.conceded).length;
-                const draws = allGames.filter(g => g.scored === g.conceded).length;
 
-                const avgScored = total > 0 ? allGames.reduce((s, g) => s + g.scored, 0) / total : 0;
-                const avgConceded = total > 0 ? allGames.reduce((s, g) => s + g.conceded, 0) / total : 0;
+                // Settlement Accuracy
+                const settledGames = allGames.filter(g => g.correct !== null);
+                const modelAccuracy = settledGames.length > 0
+                  ? settledGames.filter(g => g.correct === true).length / settledGames.length
+                  : 0;
 
                 const winRate = total > 0 ? wins / total : 0;
-                const strengthRatio = avgConceded > 0 ? avgScored / avgConceded : (avgScored > 0 ? 1.5 : 1.0);
-                // momentum = last-3 win rate
                 const momentum = total >= 3
                   ? allGames.slice(0, 3).filter(g => g.scored > g.conceded).length / 3
                   : winRate;
 
                 const hasData = total > 0;
 
-                // last 5 results
                 const last5 = allGames.slice(0, 5).map(g => ({
                   won: g.scored > g.conceded,
                   draw: g.scored === g.conceded,
@@ -145,7 +154,7 @@ export default async function TeamsAnalyticsPage({
 
                       <div className="space-y-3">
                         <MetricBar label="Momentum" value={momentum} color="cyan" hasData={hasData} />
-                        <MetricBar label="Strength Ratio" value={Math.min(strengthRatio / 3, 1)} color="amber" hasData={hasData} />
+                        <MetricBar label="Model Accuracy" value={modelAccuracy} color="emerald" hasData={settledGames.length > 0} />
                         <MetricBar label="Win Rate" value={winRate} color="rose" hasData={hasData} />
                       </div>
                     </div>
@@ -175,7 +184,7 @@ export default async function TeamsAnalyticsPage({
 function MetricBar({ label, value, color, hasData }: { label: string, value: number, color: string, hasData: boolean }) {
   const colorMap: any = {
     cyan: 'bg-cyan-500 text-cyan-400',
-    amber: 'bg-amber-500 text-amber-500',
+    emerald: 'bg-emerald-500 text-emerald-400',
     rose: 'bg-rose-500 text-rose-400',
   };
   const [bgClass, textClass] = colorMap[color].split(' ');

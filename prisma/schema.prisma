@@ -125,6 +125,11 @@ model Match {
   league        League?             @relation(fields: [leagueId], references: [id])
   odds          Odds[]
 
+  // Settlement Tracking Protocol (Patch 17.13)
+  predictedHomeWinRate Float?      @map("predicted_home_win_rate")
+  actualWinner         String?     @map("actual_winner")
+  predictionCorrect    Boolean?    @map("prediction_correct")
+
   @@index([sport, date])
   @@map("Matches")
   @@schema("quant_internal")
