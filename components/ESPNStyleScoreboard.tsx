@@ -116,9 +116,9 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                             </div>
 
                             {/* 2. TEAMS (HORIZONTAL PIVOT - Patch 17.18 Gap Refinement) */}
-                            <div className="flex-1 grid grid-cols-[1fr_24px_70px_24px_1fr] md:grid-cols-[1fr_48px_140px_48px_1fr] gap-3 md:gap-8 items-center px-2 md:px-8">
+                            <div className="flex-1 grid grid-cols-[minmax(0,1fr)_24px_70px_24px_minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_48px_140px_48px_minmax(0,1fr)] gap-3 md:gap-8 items-center px-2 md:px-8">
                                 {/* HOME TEAM (RIGHT) */}
-                                <div className="text-right flex items-center justify-end overflow-hidden pr-1 md:pr-4">
+                                <div className="text-right flex items-center justify-end overflow-hidden pr-2 md:pr-4">
                                     <span className="text-xl md:text-4xl lg:text-5xl font-black text-white italic uppercase tracking-tighter truncate leading-none">
                                         {match.home_team?.short_name}
                                     </span>
