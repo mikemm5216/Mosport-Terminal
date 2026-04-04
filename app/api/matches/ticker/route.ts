@@ -33,7 +33,9 @@ export async function GET() {
         match_id: m.id,
         match_date: m.date,
         home_team_name: m.home_team?.full_name || m.homeTeamName,
-        away_team_name: m.away_team?.full_name || m.awayTeamName
+        away_team_name: m.away_team?.full_name || m.awayTeamName,
+        home_score: m.homeScore,
+        away_score: m.awayScore
       }))
     });
   } catch (error: any) {

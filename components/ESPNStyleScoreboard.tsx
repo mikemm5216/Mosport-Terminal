@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, Activity, Zap } from 'lucide-react';
+import { ChevronDown, Activity, Zap, Shield } from 'lucide-react';
 import LogoFallback from './LogoFallback';
 
 // ─── League Color Palette ──────────────────────────────────────────────────────
@@ -115,39 +115,62 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                 </span>
                             </div>
 
-                            {/* 2. TEAMS (HORIZONTAL PIVOT) */}
-                            <div className="flex-1 flex items-center justify-center gap-2 md:gap-12 px-2 md:px-10">
-                                {/* HOME TEAM */}
-                                <div className="flex items-center justify-end gap-2 md:gap-4 flex-1">
-                                    <span className="text-xl md:text-4xl lg:text-5xl font-black text-white italic uppercase tracking-tighter leading-none transition-colors group-hover:text-white text-right">
+                            {/* 2. TEAMS (HORIZONTAL PIVOT - Patch 17.18 Gap Refinement) */}
+                            <div className="flex-1 grid grid-cols-[1fr_24px_70px_24px_1fr] md:grid-cols-[1fr_48px_140px_48px_1fr] gap-3 md:gap-8 items-center px-2 md:px-8">
+                                {/* HOME TEAM (RIGHT) */}
+                                <div className="text-right flex items-center justify-end overflow-hidden pr-1 md:pr-4">
+                                    <span className="text-xl md:text-4xl lg:text-5xl font-black text-white italic uppercase tracking-tighter truncate leading-none">
                                         {match.home_team?.short_name}
                                     </span>
+                                </div>
+
+                                {/* HOME LOGO */}
+                                <div className="justify-self-center">
                                     <LogoFallback
                                         url={match.home_team?.logo_url}
                                         name={match.home_team?.short_name}
                                         shortName={match.home_team?.short_name}
                                         sport={match.sport}
-                                        size={40}
-                                        className="w-6 h-6 md:w-10 md:h-10"
+                                        size={48}
+                                        className="w-6 h-6 md:w-11 md:h-11 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                                     />
                                 </div>
 
-                                {/* VS */}
-                                <div className="flex items-center justify-center px-1 md:px-4">
-                                    <span className="text-lg md:text-2xl font-black text-slate-800 italic opacity-50 text-center">⚔️</span>
+                                {/* SCORE / TIME (CENTER) */}
+                                <div className="justify-self-center flex flex-col items-center min-w-[70px] md:min-w-[120px]">
+                                    {match.status === "COMPLETED" || match.status === "post" || match.status?.toLowerCase() === "final" ? (
+                                        <div className="text-xl md:text-5xl font-black text-white font-mono tracking-tighter tabular-nums flex items-center">
+                                            {match.home_score ?? 0}<span className="text-slate-700 mx-1 md:mx-2">-</span>{match.away_score ?? 0}
+                                        </div>
+                                    ) : match.status === "IN_PLAY" || isLive ? (
+                                        <div className="flex flex-col items-center">
+                                            <div className="text-xl md:text-5xl font-black text-red-500 font-mono tracking-tighter tabular-nums flex items-center">
+                                                {match.home_score ?? 0}<span className="text-slate-700 mx-1 md:mx-2">-</span>{match.away_score ?? 0}
+                                            </div>
+                                            <span className="text-[8px] md:text-[10px] text-red-500 font-black animate-pulse tracking-[0.3em] mt-1">LIVE</span>
+                                        </div>
+                                    ) : (
+                                        <div className="text-sm md:text-3xl font-black text-slate-400 font-mono tracking-tight tabular-nums bg-slate-900/50 px-2 md:px-4 py-1 rounded">
+                                            {match.time || (match.start_time ? new Date(match.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "TBD")}
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* AWAY TEAM */}
-                                <div className="flex items-center justify-start gap-2 md:gap-4 flex-1">
+                                {/* AWAY LOGO */}
+                                <div className="justify-self-center">
                                     <LogoFallback
                                         url={match.away_team?.logo_url}
                                         name={match.away_team?.short_name}
                                         shortName={match.away_team?.short_name}
                                         sport={match.sport}
-                                        size={40}
-                                        className="w-6 h-6 md:w-10 md:h-10"
+                                        size={48}
+                                        className="w-6 h-6 md:w-11 md:h-11 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                                     />
-                                    <span className="text-xl md:text-4xl lg:text-5xl font-black text-white italic uppercase tracking-tighter leading-none transition-colors group-hover:text-white text-left">
+                                </div>
+
+                                {/* AWAY TEAM (LEFT) */}
+                                <div className="text-left flex items-center justify-start overflow-hidden pl-1 md:pl-4">
+                                    <span className="text-xl md:text-4xl lg:text-5xl font-black text-white italic uppercase tracking-tighter truncate leading-none">
                                         {match.away_team?.short_name}
                                     </span>
                                 </div>
@@ -172,82 +195,98 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                             </div>
                         </div>
 
-                        {/* ACCORDION */}
+                        {/* ACCORDION (Patch 17.16 - CTO Refactoring) */}
                         {isExpanded && (
                             <div className={`border-t border-slate-900 ${theme.glow} p-6 animate-in slide-in-from-top-1 duration-200`}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl mx-auto">
-
-                                    {/* BLOCK 1: WIN PROBABILITY */}
-                                    <div className="space-y-4 max-w-sm mx-auto w-full">
-                                        <div className="flex items-center gap-2 justify-center md:justify-start">
-                                            <Activity size={12} className={theme.badge} />
-                                            <span className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest italic leading-tight">Win Probability Intelligence</span>
+                                {match.status === "COMPLETED" || match.status === "post" || match.status?.toLowerCase() === "final" ? (
+                                    <div className="text-center py-10 flex flex-col items-center justify-center space-y-4">
+                                        <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                                            <Shield size={20} className="text-emerald-500" />
                                         </div>
-                                        <div className="relative h-4 w-full bg-slate-900/50 rounded-full border border-white/5 overflow-hidden flex items-center">
-                                            {typeof match.win_probabilities?.home_win_prob === 'number' && !isNaN(match.win_probabilities.home_win_prob) ? (
-                                                <>
-                                                    <div
-                                                        className={`absolute inset-y-0 left-0 ${theme.barColor} ${theme.barShadow} flex items-center pl-4 z-10 transition-all duration-700`}
-                                                        style={{ width: `${Math.max(5, match.win_probabilities.home_win_prob * 100)}%` }}
-                                                    >
-                                                        <span className="text-xs font-black text-black italic">{(match.win_probabilities.home_win_prob * 100).toFixed(0)}%</span>
-                                                    </div>
-                                                    <div className="flex-1 flex items-center justify-end pr-4">
-                                                        <span className="text-xs font-black text-slate-500 italic">{(match.win_probabilities.away_win_prob * 100).toFixed(0)}%</span>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="flex-1 flex items-center justify-center w-full z-10 bg-slate-800/80">
-                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono">[ CALCULATING INCIDENCE... ]</span>
-                                                </div>
-                                            )}
+                                        <div className="flex flex-col">
+                                            <span className="text-emerald-400 font-black tracking-[0.4em] text-xs md:text-sm uppercase italic">MATCH CONCLUDED</span>
+                                            <span className="text-slate-500 text-[9px] md:text-[11px] mt-2 font-mono uppercase tracking-widest">
+                                                FINAL SCORE LOCKED // AI PREDICTION ACCURACY TABULATED
+                                            </span>
                                         </div>
-                                        <div className="flex justify-between px-1">
-                                            <span className={`text-[10px] md:text-xs font-black italic uppercase tracking-widest ${theme.badge}`}>{match.home_team?.short_name} Alpha</span>
-                                            <span className="text-[10px] md:text-xs font-black text-slate-600 italic uppercase tracking-widest">{match.away_team?.short_name}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* BLOCK 2: KEY PLAYERS */}
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-2 justify-center md:justify-start">
-                                            <Zap size={12} className={theme.badge} />
-                                            <span className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest italic leading-tight">Physical Intelligence</span>
-                                        </div>
-                                        <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
-                                            {/* Home Key Player */}
-                                            <div className={`border-l-2 pl-3`} style={{ borderColor: 'inherit' }}>
-                                                <div className="border-l-2 border-current pl-3">
-                                                    <div className="text-[11px] md:text-xs font-black text-slate-500 uppercase leading-none mb-1">
-                                                        #{match.home_key_player?.jersey_number || '—'} // {match.home_team?.short_name}
-                                                    </div>
-                                                    <div className="text-lg md:text-xl font-black text-white italic uppercase leading-tight">
-                                                        {match.home_key_player?.player_name || '[ GATHERING INTEL ]'}
-                                                    </div>
-                                                    <div className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-tighter leading-tight mt-1">
-                                                        {match.home_key_player?.physical_profile || '[ CLASSIFIED PHYSICALS ]'} • {match.home_key_player?.season_stats || 'PENDING'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {/* Away Key Player */}
-                                            <div className="border-l-2 border-slate-800 pl-3">
-                                                <div className="text-[11px] md:text-xs font-black text-slate-700 uppercase leading-none mb-1">
-                                                    #{match.away_key_player?.jersey_number || '—'} // {match.away_team?.short_name}
-                                                </div>
-                                                <div className="text-lg md:text-xl font-black text-slate-400 italic uppercase leading-tight">
-                                                    {match.away_key_player?.player_name || '[ GATHERING INTEL ]'}
-                                                </div>
-                                                <div className="text-[11px] md:text-xs font-bold text-slate-600 uppercase tracking-tighter leading-tight mt-1">
-                                                    {match.away_key_player?.physical_profile || '[ CLASSIFIED PHYSICALS ]'} • {match.away_key_player?.season_stats || 'PENDING'}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <Link href={`/matches/${uniqueId}`} className="flex items-center justify-center gap-2 w-full py-2 md:py-3 bg-slate-900 border border-slate-800 rounded-sm hover:bg-slate-800 transition-all group/btn">
-                                            <span className="text-[11px] md:text-xs font-black text-white uppercase tracking-[0.4em] group-hover/btn:tracking-[0.6em] transition-all">ENTER WAR ROOM ⚔️</span>
+                                        <Link href={`/matches/${uniqueId}`} className="mt-4 px-6 py-2 bg-slate-900 border border-slate-800 rounded-sm hover:bg-slate-800 transition-all">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">VIEW SETTLEMENT DETAILS</span>
                                         </Link>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl mx-auto">
+                                        {/* BLOCK 1: WIN PROBABILITY */}
+                                        <div className="space-y-4 max-w-sm mx-auto w-full">
+                                            <div className="flex items-center gap-2 justify-center md:justify-start">
+                                                <Activity size={12} className={theme.badge} />
+                                                <span className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest italic leading-tight">Win Probability Intelligence</span>
+                                            </div>
+                                            <div className="relative h-4 w-full bg-slate-900/50 rounded-full border border-white/5 overflow-hidden flex items-center">
+                                                {typeof match.win_probabilities?.home_win_prob === 'number' && !isNaN(match.win_probabilities.home_win_prob) ? (
+                                                    <>
+                                                        <div
+                                                            className={`absolute inset-y-0 left-0 ${theme.barColor} ${theme.barShadow} flex items-center pl-4 z-10 transition-all duration-700`}
+                                                            style={{ width: `${Math.max(5, match.win_probabilities.home_win_prob * 100)}%` }}
+                                                        >
+                                                            <span className="text-xs font-black text-black italic">{(match.win_probabilities.home_win_prob * 100).toFixed(0)}%</span>
+                                                        </div>
+                                                        <div className="flex-1 flex items-center justify-end pr-4">
+                                                            <span className="text-xs font-black text-slate-500 italic">{(match.win_probabilities.away_win_prob * 100).toFixed(0)}%</span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex-1 flex items-center justify-center w-full z-10 bg-slate-800/80">
+                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono">[ CALCULATING INCIDENCE... ]</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex justify-between px-1">
+                                                <span className={`text-[10px] md:text-xs font-black italic uppercase tracking-widest ${theme.badge}`}>{match.home_team?.short_name} Alpha</span>
+                                                <span className="text-[10px] md:text-xs font-black text-slate-600 italic uppercase tracking-widest">{match.away_team?.short_name}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* BLOCK 2: KEY PLAYERS */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2 justify-center md:justify-start">
+                                                <Zap size={12} className={theme.badge} />
+                                                <span className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest italic leading-tight">Physical Intelligence</span>
+                                            </div>
+                                            <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
+                                                {/* Home Key Player */}
+                                                <div className={`border-l-2 pl-3`} style={{ borderColor: 'inherit' }}>
+                                                    <div className="border-l-2 border-current pl-3">
+                                                        <div className="text-[11px] md:text-xs font-black text-slate-500 uppercase leading-none mb-1">
+                                                            #{match.home_key_player?.jersey_number || '—'} // {match.home_team?.short_name}
+                                                        </div>
+                                                        <div className="text-lg md:text-xl font-black text-white italic uppercase leading-tight">
+                                                            {match.home_key_player?.player_name || '[ GATHERING INTEL ]'}
+                                                        </div>
+                                                        <div className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-tighter leading-tight mt-1">
+                                                            {match.home_key_player?.physical_profile || '[ CLASSIFIED PHYSICALS ]'} • {match.home_key_player?.season_stats || 'PENDING'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {/* Away Key Player */}
+                                                <div className="border-l-2 border-slate-800 pl-3">
+                                                    <div className="text-[11px] md:text-xs font-black text-slate-700 uppercase leading-none mb-1">
+                                                        #{match.away_key_player?.jersey_number || '—'} // {match.away_team?.short_name}
+                                                    </div>
+                                                    <div className="text-lg md:text-xl font-black text-slate-400 italic uppercase leading-tight">
+                                                        {match.away_key_player?.player_name || '[ GATHERING INTEL ]'}
+                                                    </div>
+                                                    <div className="text-[11px] md:text-xs font-bold text-slate-600 uppercase tracking-tighter leading-tight mt-1">
+                                                        {match.away_key_player?.physical_profile || '[ CLASSIFIED PHYSICALS ]'} • {match.away_key_player?.season_stats || 'PENDING'}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <Link href={`/matches/${uniqueId}`} className="flex items-center justify-center gap-2 w-full py-2 md:py-3 bg-slate-900 border border-slate-800 rounded-sm hover:bg-slate-800 transition-all group/btn">
+                                                <span className="text-[11px] md:text-xs font-black text-white uppercase tracking-[0.4em] group-hover/btn:tracking-[0.6em] transition-all">ENTER WAR ROOM ⚔️</span>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
