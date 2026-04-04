@@ -14,10 +14,13 @@ import { getXGBoostInference } from "../lib/inference";
 
 const prisma = new PrismaClient();
 
-const ESPN_TEAM_MAP: Record<string, string> = {
-    NO: "NOP", GS: "GSW", NY: "NYK", SA: "SAS", WSH: "WAS", UTAH: "UTA",
-};
-function norm(raw: string) { return ESPN_TEAM_MAP[raw] ?? raw; }
+function norm(raw: string, leagueType: string) {
+    if (raw === "NY") return leagueType === "NBA" ? "NYK" : "NYY";
+    const map: Record<string, string> = {
+        NO: "NOP", GS: "GSW", SA: "SAS", WSH: "WAS", UTAH: "UTA",
+    };
+    return map[raw] || raw;
+}
 
 const LEAGUES = [
     { sport: "basketball", league: "nba", prefix: "NBA", leagueType: "NBA" },
@@ -110,8 +113,8 @@ async function fetchAndUpsertDate(
             if (!hC || !aC) continue;
 
             // ── Fix 2: Namespace ID to prevent cross-league collisions (NBA_WAS vs MLB_WAS) ──
-            const hRaw = norm(hC.team?.abbreviation || "TBD");
-            const aRaw = norm(aC.team?.abbreviation || "TBD");
+            const hRaw = norm(hC.team?.abbreviation || "TBD", leagueType);
+            const aRaw = norm(aC.team?.abbreviation || "TBD", leagueType);
             const hId = `${leagueType}_${hRaw}`;
             const aId = `${leagueType}_${aRaw}`;
 
@@ -131,8 +134,11 @@ async function fetchAndUpsertDate(
             const awayScore = parseInt(aC.score || "0", 10);
             const extId = `${prefix}-${event.id}`;
 
-            // ── Patch 17.20 Neural Link (Real XGBoost) ──
-            const predictedHomeWinRate = await getXGBoostInference(hId, aId, sport);
+            // ── Patch 17.21 Shadow Bridge ──
+            const espnProb = hC.winProbability ? parseFloat(hC.winProbability) / 100 :
+                (comp.odds?.[0]?.homeWinProbability ? parseFloat(comp.odds[0].homeWinProbability) / 100 :
+                    (comp.predictor?.homeTeam?.winProbability ? parseFloat(comp.predictor.homeTeam.winProbability) / 100 : undefined));
+            const predictedHomeWinRate = await getXGBoostInference(hId, aId, sport, espnProb);
             if (predictedHomeWinRate === -1.0) {
                 console.warn(`[MODEL_OFFLINE] Skipping settlement for ${extId}`);
                 continue; // CTO mandated no random proxies

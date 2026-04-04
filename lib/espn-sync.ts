@@ -1,11 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { getXGBoostInference } from "./inference";
 
-const ESPN_TEAM_MAP: Record<string, string> = {
-    NO: "NOP", GS: "GSW", NY: "NYK", SA: "SAS",
-    WSH: "WAS", UTAH: "UTA", PHX: "PHX", CLE: "CLE",
-    KC: "KC",
-};
+function norm(raw: string, league: string) {
+    if (raw === "NY") return league === "NBA" ? "NYK" : "NYY";
+    const map: Record<string, string> = {
+        NO: "NOP", GS: "GSW", SA: "SAS", WSH: "WAS", UTAH: "UTA", PHX: "PHX", CLE: "CLE", KC: "KC"
+    };
+    return map[raw] || raw;
+}
 
 export async function syncLeagues(daysOffset: number = 0) {
     const targetDate = new Date();
@@ -38,15 +40,18 @@ export async function syncLeagues(daysOffset: number = 0) {
                 const hComp = comp?.competitors?.find((c: any) => c.homeAway === "home");
                 const aComp = comp?.competitors?.find((c: any) => c.homeAway === "away");
 
-                const hRaw = ESPN_TEAM_MAP[hComp?.team?.abbreviation] || hComp?.team?.abbreviation || "TBD";
-                const aRaw = ESPN_TEAM_MAP[aComp?.team?.abbreviation] || aComp?.team?.abbreviation || "TBD";
+                const hRaw = norm(hComp?.team?.abbreviation, league.prefix);
+                const aRaw = norm(aComp?.team?.abbreviation, league.prefix);
                 const hTeamId = `${league.prefix}_${hRaw}`;
                 const aTeamId = `${league.prefix}_${aRaw}`;
 
                 if (!validTeamIds.has(hTeamId) || !validTeamIds.has(aTeamId)) continue;
 
-                // ── Patch 17.20 Neural Link ──
-                const predictedHomeWinRate = await getXGBoostInference(hTeamId, aTeamId, league.sport);
+                // ── Patch 17.21 Shadow Bridge ──
+                const espnProb = hComp?.winProbability ? parseFloat(hComp.winProbability) / 100 :
+                    (comp.odds?.[0]?.homeWinProbability ? parseFloat(comp.odds[0].homeWinProbability) / 100 :
+                        (comp.predictor?.homeTeam?.winProbability ? parseFloat(comp.predictor.homeTeam.winProbability) / 100 : undefined));
+                const predictedHomeWinRate = await getXGBoostInference(hTeamId, aTeamId, league.sport, espnProb);
 
                 await (prisma as any).match.upsert({
                     where: { extId: matchId },
