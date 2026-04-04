@@ -16,10 +16,9 @@ export default function LogoFallback({ url, name, shortName, size = 16, classNam
     const [failedCdn, setFailedCdn] = useState(false);
 
     if (!url) return null;
-    const [localAsset, cdnBackup] = url.split("||");
-    const targetSrc = failedLocal && cdnBackup && !failedCdn ? cdnBackup : localAsset;
+    const targetSrc = url;
 
-    if (failedLocal && (!cdnBackup || failedCdn)) {
+    if (failedLocal) {
         return (
             <div
                 className={`flex items-center justify-center bg-transparent border border-slate-700/50 text-slate-400 font-black rounded ${className}`}
