@@ -67,8 +67,8 @@ export default function MatchCard({ match }: { match: any }) {
     return { homeBattery: 50, awayBattery: 50 };
   }, [match]);
 
-  const homeTeamName = match?.home_team?.team_name || match?.home_team?.full_name || match?.home_team_id || "Home Team";
-  const awayTeamName = match?.away_team?.team_name || match?.away_team?.full_name || match?.away_team_id || "Away Team";
+  const homeTeamName = match?.home_team?.short_name || match?.home_team?.team_name || match?.home_team?.full_name || "Home Team";
+  const awayTeamName = match?.away_team?.short_name || match?.away_team?.team_name || match?.away_team?.full_name || "Away Team";
 
   const homeCity = match?.home_team?.home_city || "City";
   const awayCity = match?.away_team?.home_city || "City";
@@ -162,11 +162,20 @@ export default function MatchCard({ match }: { match: any }) {
             <span className="text-[10px] sm:text-xs text-slate-500 mt-1 truncate max-w-full">{homeCity}</span>
           </div>
 
-          {/* VS Badge */}
+          {/* VS / Score Badge (Patch 17.15) */}
           <div className="flex flex-col items-center px-2 sm:px-4 shrink-0">
-            <div className="px-2 py-0.5 sm:px-3 sm:py-1 bg-slate-800 rounded-full border border-slate-700">
-              <span className="text-[10px] sm:text-xs font-bold text-slate-400 tracking-wider">VS</span>
-            </div>
+            {match?.status === "COMPLETED" || match?.status === "post" ? (
+              <div className="flex flex-col items-center">
+                <div className="text-3xl md:text-4xl font-black text-white font-mono tracking-tighter">
+                  {match.home_score ?? 0} <span className="text-slate-600 px-1">-</span> {match.away_score ?? 0}
+                </div>
+                <span className="text-[9px] text-emerald-400 mt-1 uppercase tracking-widest font-black">FINAL</span>
+              </div>
+            ) : (
+              <div className="px-2 py-0.5 sm:px-3 sm:py-1 bg-slate-800 rounded-full border border-slate-700">
+                <span className="text-[10px] sm:text-xs font-bold text-slate-400 tracking-wider">VS</span>
+              </div>
+            )}
           </div>
 
           {/* Right Team */}

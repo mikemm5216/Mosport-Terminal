@@ -23,9 +23,9 @@ export default function MatchTicker() {
       <div className="flex animate-marquee whitespace-nowrap" style={{ animationDuration: '240s' }}>
         {matches.length > 0 ? matches.map((match, i) => (
           <div key={`${match.match_id}-${i}`} className="inline-flex items-center px-8 border-r border-slate-800/50">
-            {match.status === "COMPLETED" || match.status === "FINISHED" ? (
+            {match.status === "COMPLETED" || match.status === "FINISHED" || match.status === "post" ? (
               <span className="text-[10px] font-mono tracking-widest text-slate-300 uppercase">
-                <span className="text-cyan-400 font-black mr-2">FINAL</span> | {match.home_team_name} {match.home_score} <span className="text-cyan-500 px-2 font-black">◀▶</span> {match.away_score} {match.away_team_name}
+                <span className="text-cyan-400 font-black mr-2">FINAL</span> | {match.home_team_name} {match.home_score} <span className="text-slate-600 px-1">-</span> {match.away_score} {match.away_team_name}
               </span>
             ) : (
               <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">

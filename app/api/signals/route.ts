@@ -73,9 +73,11 @@ async function processLeague(
       const homeScore = parseInt(homeCompetitor?.score || "0", 10);
       const awayScore = parseInt(awayCompetitor?.score || "0", 10);
 
-      // ── Fix 1: use normalized IDs everywhere including the payload ──
-      const hTeamId = normalizeTeamId(homeTeam?.abbreviation || "TBD");
-      const aTeamId = normalizeTeamId(awayTeam?.abbreviation || "TBD");
+      // ── Fix 2: Namespace ID to prevent cross-league collisions (NBA_WAS vs MLB_WAS) ──
+      const hRaw = normalizeTeamId(homeTeam?.abbreviation || "TBD");
+      const aRaw = normalizeTeamId(awayTeam?.abbreviation || "TBD");
+      const hTeamId = `${leagueDef.prefix}_${hRaw}`;
+      const aTeamId = `${leagueDef.prefix}_${aRaw}`;
 
       // Skip if team not in our DB (avoids FK crash)
       if (!validTeamIds.has(hTeamId) || !validTeamIds.has(aTeamId)) {
@@ -210,11 +212,11 @@ async function processLeague(
         // ── Fix 1: short_name now uses the CLEANED hTeamId/aTeamId ──
         home_team: {
           short_name: hTeamId,
-          logo_url: validate(homeTeam?.logo || homeTeam?.logos?.[0]?.href),
+          logo_url: `/logos/${leagueDef.league}_${hRaw.toLowerCase()}.png`,
         },
         away_team: {
           short_name: aTeamId,
-          logo_url: validate(awayTeam?.logo || awayTeam?.logos?.[0]?.href),
+          logo_url: `/logos/${leagueDef.league}_${aRaw.toLowerCase()}.png`,
         },
         home_score: homeScore,
         away_score: awayScore,
@@ -242,29 +244,93 @@ async function processLeague(
 // ─── Main GET ─────────────────────────────────────────────────────────────────
 export async function GET() {
   try {
-    const validTeams = await (prisma as any).teams.findMany({ select: { team_id: true } });
-    const validTeamIds = new Set<string>(validTeams.map((t: any) => t.team_id));
+    // 1. Fetch all teams to build a lookup dictionary (CTO Requirement: Mask Namespace)
+    const teams = await (prisma as any).teams.findMany({
+      select: { team_id: true, short_name: true, logo_url: true }
+    });
 
-    const engineUrl = process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000";
-    const engineKey = process.env.FASTAPI_ENGINE_KEY || "";
+    const teamDict: Record<string, { short_name: string, logo_url: string }> = {};
+    teams.forEach((t: any) => {
+      teamDict[t.team_id] = {
+        short_name: t.short_name,
+        logo_url: t.logo_url
+      };
+    });
 
-    // ── Fix 3: Fetch all 4 leagues concurrently ──
-    const [nbaMatches, mlbMatches, eplMatches, uclMatches] = await Promise.all([
-      processLeague(LEAGUES[0], validTeamIds, engineUrl, engineKey),
-      processLeague(LEAGUES[1], validTeamIds, engineUrl, engineKey),
-      processLeague(LEAGUES[2], validTeamIds, engineUrl, engineKey),
-      processLeague(LEAGUES[3], validTeamIds, engineUrl, engineKey),
-    ]);
+    // 2. Fetch matches from DB (CTO Requirement: DB is Single Source of Truth)
+    // Range: Today - 1 day to catch yesterday's finals + future matches
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
 
-    // Merge and sort by start_time → unified timeline
-    const allMatches = [...nbaMatches, ...mlbMatches, ...eplMatches, ...uclMatches].sort(
-      (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-    );
+    // @ts-ignore
+    const dbMatches = await (prisma as any).match.findMany({
+      where: {
+        date: { gte: yesterday }
+      },
+      include: {
+        predictions: true,
+        signals: true,
+        home_key_player: true,
+        away_key_player: true
+      },
+      orderBy: { date: 'asc' }
+    });
 
-    return NextResponse.json({ success: true, data: allMatches, count: allMatches.length });
+    const matches = dbMatches.map((m: any) => {
+      const hInfo = teamDict[m.homeTeamId] || { short_name: m.homeTeamId, logo_url: "" };
+      const aInfo = teamDict[m.awayTeamId] || { short_name: m.awayTeamId, logo_url: "" };
+
+      return {
+        match_id: m.extId,
+        sport: m.sport,
+        league: m.homeTeamId.split('_')[0] || "PRO",
+        start_time: m.date,
+        status: m.status,
+        home_team: {
+          short_name: hInfo.short_name,
+          logo_url: hInfo.logo_url,
+        },
+        away_team: {
+          short_name: aInfo.short_name,
+          logo_url: aInfo.logo_url,
+        },
+        home_score: m.homeScore,
+        away_score: m.awayScore,
+        win_probabilities: {
+          home_win_prob: m.predictions?.homeWinProb ?? 0.5,
+          away_win_prob: m.predictions?.awayWinProb ?? 0.5
+        },
+        home_key_player: m.home_key_player || {
+          player_name: "[ GATHERING INTEL ]",
+          jersey_number: "00",
+          physical_profile: "[ CLASSIFIED PHYSICALS ]",
+          season_stats: "AWAITING METRICS",
+          role: "STAR",
+        },
+        away_key_player: m.away_key_player || {
+          player_name: "[ GATHERING INTEL ]",
+          jersey_number: "00",
+          physical_profile: "[ CLASSIFIED PHYSICALS ]",
+          season_stats: "AWAITING METRICS",
+          role: "STAR",
+        },
+        public_sentiment: {
+          narrative: m.signals?.narrative || "System Trace Active.",
+          crowd_sentiment_index: m.signals?.crowd_sentiment_index ?? 0.5,
+        },
+        momentum_index: m.signals?.momentum_index ?? 0.0,
+        standard_analysis: m.signals?.standard_analysis || ["[ CALCULATING... ]"],
+        tactical_matchup: m.signals?.tactical_matchup || ["[ CALCULATING... ]"],
+        x_factors: m.signals?.x_factors || ["[ CALCULATING... ]"],
+      };
+    });
+
+    return NextResponse.json({ success: true, data: matches, count: matches.length });
   } catch (e: any) {
+    console.error("GET FAIL:", e);
     return NextResponse.json(
-      { success: false, error: "CRITICAL_NODE_FAILURE", details: e.message },
+      { success: false, error: "DB_RETRIEVAL_FAILURE", details: e.message },
       { status: 500 }
     );
   }

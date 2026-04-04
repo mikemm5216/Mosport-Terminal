@@ -143,11 +143,11 @@ export default async function TeamsAnalyticsPage({
                           </div>
                         )}
                         <div className="flex flex-col min-w-0 flex-1">
-                          <span className="text-white font-black text-lg md:text-xl tracking-tighter uppercase leading-tight group-hover:text-cyan-400 transition-colors break-words whitespace-normal line-clamp-2">
-                            {team.full_name}
+                          <span className="text-cyan-400 font-black text-2xl md:text-3xl tracking-tighter uppercase leading-none group-hover:text-white transition-colors truncate">
+                            {team.short_name}
                           </span>
-                          <span className="text-[10px] md:text-xs text-slate-500 font-bold truncate tracking-widest uppercase mt-1 leading-tight">
-                            {team.team_id}
+                          <span className="text-[9px] md:text-[10px] text-slate-500 font-bold truncate tracking-widest uppercase mt-0.5 leading-tight italic">
+                            {team.full_name}
                           </span>
                         </div>
                       </div>
@@ -159,16 +159,16 @@ export default async function TeamsAnalyticsPage({
                       </div>
                     </div>
 
-                    <div className="mt-5 pt-3 border-t border-slate-800/40 flex justify-between items-center text-[10px] md:text-xs font-black text-slate-500 tracking-[0.2em] uppercase leading-none">
-                      <div className="flex gap-1.5">
+                    <div className="mt-5 pt-3 border-t border-slate-800/40 flex justify-between items-center text-[9px] md:text-[10px] font-black text-slate-600 tracking-[0.1em] uppercase leading-none">
+                      <div className="flex gap-1">
                         {hasData
                           ? last5.map((h, i) => (
-                            <div key={i} className={`w-2 md:w-2.5 h-2 md:h-2.5 rounded-full ${getResultColor(h.won, h.draw)}`} />
+                            <div key={i} className={`w-1.5 md:w-2 h-1.5 md:h-2 rounded-full ${getResultColor(h.won, h.draw)}`} />
                           ))
-                          : <span className="text-slate-700 text-[8px] font-mono tracking-widest animate-pulse">[ NO HISTORY ]</span>
+                          : <span className="text-slate-800 text-[7px] font-mono tracking-widest animate-pulse">[ NO RECENT DATA ]</span>
                         }
                       </div>
-                      <span>{isNBA ? 'HOOPS' : isMLB ? 'DIAMOND' : 'PITCH'} {team.league_type}</span>
+                      <span>{isNBA ? 'NBA' : isMLB ? 'MLB' : 'EPL'} {team.league_type}</span>
                     </div>
                   </div>
                 );

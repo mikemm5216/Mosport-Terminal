@@ -41,18 +41,26 @@ function pastDates(days: number): string[] {
 
 async function ensureTeam(teamId: string, name: string, leagueType: string, logo?: string) {
     try {
+        const uniqueName = name ? `${name} (${leagueType})` : teamId;
         await (prisma as any).teams.upsert({
             where: { team_id: teamId },
-            update: {},
+            update: {
+                full_name: uniqueName,
+                short_name: teamId.split('_')[1] || teamId,
+                logo_url: logo ?? null
+            },
             create: {
                 team_id: teamId,
-                full_name: name || teamId,
-                short_name: teamId,
+                full_name: uniqueName,
+                short_name: teamId.split('_')[1] || teamId,
                 league_type: leagueType,
                 logo_url: logo ?? null,
             },
         });
-    } catch (e) { }
+    } catch (e: any) {
+        console.error(`  [TEAM_ERR] ${teamId}: ${e.message}`);
+        throw e;
+    }
 }
 
 async function upsertAthlete(athlete: any) {
@@ -100,11 +108,17 @@ async function fetchAndUpsertDate(
             const aC = comp?.competitors?.find((c: any) => c.homeAway === "away");
             if (!hC || !aC) continue;
 
-            const hId = norm(hC.team?.abbreviation || "TBD");
-            const aId = norm(aC.team?.abbreviation || "TBD");
+            // ── Fix 2: Namespace ID to prevent cross-league collisions (NBA_WAS vs MLB_WAS) ──
+            const hRaw = norm(hC.team?.abbreviation || "TBD");
+            const aRaw = norm(aC.team?.abbreviation || "TBD");
+            const hId = `${leagueType}_${hRaw}`;
+            const aId = `${leagueType}_${aRaw}`;
 
-            await ensureTeam(hId, hC.team?.displayName || hId, leagueType, hC.team?.logo);
-            await ensureTeam(aId, aC.team?.displayName || aId, leagueType, aC.team?.logo);
+            const hLogo = `/logos/${leagueType.toLowerCase()}_${hRaw.toLowerCase()}.png`;
+            const aLogo = `/logos/${leagueType.toLowerCase()}_${aRaw.toLowerCase()}.png`;
+
+            await ensureTeam(hId, hC.team?.displayName || hId, leagueType, hLogo);
+            await ensureTeam(aId, aC.team?.displayName || aId, leagueType, aLogo);
 
             // ── Athlete Physicals Ingestion ──
             const hAthlete = comp.leaders?.[0]?.leaders?.[0]?.athlete;
