@@ -16,7 +16,7 @@ export default function LogoFallback({ url, name, shortName, size = 16, classNam
     const [failedCdn, setFailedCdn] = useState(false);
 
     if (!url) return null;
-    const targetSrc = `${url}?v=patch17.26`;
+    const targetSrc = `${url}?v=patch17.29`;
 
     if (failedLocal) {
         return (
