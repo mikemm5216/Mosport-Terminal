@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getXGBoostInference } from "./inference";
 
 const ESPN_TEAM_MAP: Record<string, string> = {
     NO: "NOP", GS: "GSW", NY: "NYK", SA: "SAS",
@@ -44,13 +45,17 @@ export async function syncLeagues(daysOffset: number = 0) {
 
                 if (!validTeamIds.has(hTeamId) || !validTeamIds.has(aTeamId)) continue;
 
+                // ── Patch 17.20 Neural Link ──
+                const predictedHomeWinRate = await getXGBoostInference(hTeamId, aTeamId, league.sport);
+
                 await (prisma as any).match.upsert({
                     where: { extId: matchId },
                     update: {
                         status: systemStatus,
                         date: new Date(event.date),
                         homeScore: parseInt(hComp?.score || "0"),
-                        awayScore: parseInt(aComp?.score || "0")
+                        awayScore: parseInt(aComp?.score || "0"),
+                        predictedHomeWinRate: predictedHomeWinRate !== -1.0 ? predictedHomeWinRate : undefined
                     },
                     create: {
                         extId: matchId,
@@ -62,7 +67,8 @@ export async function syncLeagues(daysOffset: number = 0) {
                         awayTeamName: aComp?.team?.name || "Unknown",
                         homeScore: parseInt(hComp?.score || "0"),
                         awayScore: parseInt(aComp?.score || "0"),
-                        status: systemStatus
+                        status: systemStatus,
+                        predictedHomeWinRate: predictedHomeWinRate !== -1.0 ? predictedHomeWinRate : undefined
                     }
                 });
             }

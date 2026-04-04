@@ -10,6 +10,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import { getXGBoostInference } from "../lib/inference";
 
 const prisma = new PrismaClient();
 
@@ -130,12 +131,14 @@ async function fetchAndUpsertDate(
             const awayScore = parseInt(aC.score || "0", 10);
             const extId = `${prefix}-${event.id}`;
 
-            // ── Settlement Engine Logic ──
-            // Simulating predicted_home_win_rate using a 50%+ weighted baseline (XGBoost Proxy)
-            // For backfilled data, we use the odds if present, or a score-derived proxy
-            const predictedHomeWinRate = 0.5 + (Math.random() * 0.2 - 0.1); // [0.4 - 0.6] noise
-            const actualWinner = homeScore > awayScore ? hId : (awayScore > homeScore ? aId : "DRAW");
+            // ── Patch 17.20 Neural Link (Real XGBoost) ──
+            const predictedHomeWinRate = await getXGBoostInference(hId, aId, sport);
+            if (predictedHomeWinRate === -1.0) {
+                console.warn(`[MODEL_OFFLINE] Skipping settlement for ${extId}`);
+                continue; // CTO mandated no random proxies
+            }
 
+            const actualWinner = homeScore > awayScore ? hId : (awayScore > homeScore ? aId : "DRAW");
             const predictedWinner = predictedHomeWinRate > 0.5 ? hId : aId;
             const predictionCorrect = actualWinner === "DRAW" ? false : (predictedWinner === actualWinner);
 

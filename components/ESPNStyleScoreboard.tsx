@@ -88,7 +88,8 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                 const league = match.league as string | undefined;
                 const theme = getTheme(league);
                 const isLive = match.status === 'IN_PLAY' || match.status === 'live' || match.status === 'LIVE';
-                const hasUpset = match.signal_label?.includes("UPSET") || (match.confidence > 0.8 && match.win_probabilities?.home_win_prob < 0.4);
+                const winProb = match.predictedHomeWinRate ?? -1.0;
+                const hasUpset = match.signal_label?.includes("UPSET") || (match.confidence > 0.8 && (winProb !== -1.0 && winProb < 0.4));
 
                 return (
                     <div
@@ -117,9 +118,9 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
 
                             {/* 2. TEAMS (HORIZONTAL PIVOT - Patch 17.18 Gap Refinement) */}
                             <div className="flex-1 grid grid-cols-[minmax(0,1fr)_24px_70px_24px_minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_48px_140px_48px_minmax(0,1fr)] gap-3 md:gap-8 items-center px-2 md:px-8">
-                                {/* HOME TEAM (RIGHT) */}
+                                {/* HOME TEAM (RIGHT) - Patch 17.20 Typography Downscale */}
                                 <div className="text-right flex items-center justify-end overflow-hidden pr-2 md:pr-4">
-                                    <span className="text-xl md:text-4xl lg:text-5xl font-black text-white italic uppercase tracking-tighter truncate leading-none">
+                                    <span className="text-lg md:text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter whitespace-normal break-words leading-none">
                                         {match.home_team?.short_name}
                                     </span>
                                 </div>
@@ -132,25 +133,25 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                         shortName={match.home_team?.short_name}
                                         sport={match.sport}
                                         size={48}
-                                        className="w-6 h-6 md:w-11 md:h-11 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
+                                        className="w-8 h-8 md:w-12 md:h-12 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                                     />
                                 </div>
 
                                 {/* SCORE / TIME (CENTER) */}
-                                <div className="justify-self-center flex flex-col items-center min-w-[70px] md:min-w-[120px]">
+                                <div className="justify-self-center flex flex-col items-center min-w-[70px] md:min-w-[140px]">
                                     {match.status === "COMPLETED" || match.status === "post" || match.status?.toLowerCase() === "final" ? (
-                                        <div className="text-xl md:text-5xl font-black text-white font-mono tracking-tighter tabular-nums flex items-center">
+                                        <div className="text-xl md:text-4xl font-black text-white font-mono tracking-tighter tabular-nums flex items-center">
                                             {match.home_score ?? 0}<span className="text-slate-700 mx-1 md:mx-2">-</span>{match.away_score ?? 0}
                                         </div>
                                     ) : match.status === "IN_PLAY" || isLive ? (
                                         <div className="flex flex-col items-center">
-                                            <div className="text-xl md:text-5xl font-black text-red-500 font-mono tracking-tighter tabular-nums flex items-center">
+                                            <div className="text-xl md:text-4xl font-black text-red-500 font-mono tracking-tighter tabular-nums flex items-center">
                                                 {match.home_score ?? 0}<span className="text-slate-700 mx-1 md:mx-2">-</span>{match.away_score ?? 0}
                                             </div>
                                             <span className="text-[8px] md:text-[10px] text-red-500 font-black animate-pulse tracking-[0.3em] mt-1">LIVE</span>
                                         </div>
                                     ) : (
-                                        <div className="text-sm md:text-3xl font-black text-slate-400 font-mono tracking-tight tabular-nums bg-slate-900/50 px-2 md:px-4 py-1 rounded">
+                                        <div className="text-sm md:text-2xl font-black text-slate-400 font-mono tracking-tight tabular-nums bg-slate-900/50 px-2 md:px-4 py-1 rounded">
                                             {match.time || (match.start_time ? new Date(match.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "TBD")}
                                         </div>
                                     )}
@@ -164,13 +165,13 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                         shortName={match.away_team?.short_name}
                                         sport={match.sport}
                                         size={48}
-                                        className="w-6 h-6 md:w-11 md:h-11 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
+                                        className="w-8 h-8 md:w-12 md:h-12 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                                     />
                                 </div>
 
                                 {/* AWAY TEAM (LEFT) */}
-                                <div className="text-left flex items-center justify-start overflow-hidden pl-1 md:pl-4">
-                                    <span className="text-xl md:text-4xl lg:text-5xl font-black text-white italic uppercase tracking-tighter truncate leading-none">
+                                <div className="text-left flex items-center justify-start overflow-hidden pl-2 md:pl-4">
+                                    <span className="text-lg md:text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter whitespace-normal break-words leading-none">
                                         {match.away_team?.short_name}
                                     </span>
                                 </div>
@@ -221,29 +222,38 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                                 <Activity size={12} className={theme.badge} />
                                                 <span className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest italic leading-tight">Win Probability Intelligence</span>
                                             </div>
-                                            <div className="relative h-4 w-full bg-slate-900/50 rounded-full border border-white/5 overflow-hidden flex items-center">
-                                                {typeof match.win_probabilities?.home_win_prob === 'number' && !isNaN(match.win_probabilities.home_win_prob) ? (
-                                                    <>
-                                                        <div
-                                                            className={`absolute inset-y-0 left-0 ${theme.barColor} ${theme.barShadow} flex items-center pl-4 z-10 transition-all duration-700`}
-                                                            style={{ width: `${Math.max(5, match.win_probabilities.home_win_prob * 100)}%` }}
-                                                        >
-                                                            <span className="text-xs font-black text-black italic">{(match.win_probabilities.home_win_prob * 100).toFixed(0)}%</span>
-                                                        </div>
-                                                        <div className="flex-1 flex items-center justify-end pr-4">
-                                                            <span className="text-xs font-black text-slate-500 italic">{(match.win_probabilities.away_win_prob * 100).toFixed(0)}%</span>
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <div className="flex-1 flex items-center justify-center w-full z-10 bg-slate-800/80">
-                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono">[ CALCULATING INCIDENCE... ]</span>
+
+                                            {winProb === -1.0 ? (
+                                                <div className="flex flex-col items-center justify-center py-6 bg-red-950/20 border border-red-500/20 rounded">
+                                                    <span className="text-red-500 font-mono font-black animate-pulse tracking-widest text-[10px] md:text-xs mb-1">
+                                                        [ MODEL OFFLINE ]
+                                                    </span>
+                                                    <span className="text-red-900 text-[7px] md:text-[8px] font-black uppercase tracking-widest text-center px-4">
+                                                        NEURAL LINK TERMINATED // NO DETERMINISTIC ALPHA
+                                                    </span>
+                                                </div>
+                                            ) : typeof winProb === 'number' && !isNaN(winProb) ? (
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between items-center px-1">
+                                                        <span className={`text-[10px] md:text-xs font-black italic uppercase tracking-widest ${theme.badge}`}>{match.home_team?.short_name} Alpha</span>
+                                                        <span className="text-cyan-400 font-mono text-xs md:text-sm font-black">{(winProb * 100).toFixed(0)}%</span>
                                                     </div>
-                                                )}
-                                            </div>
-                                            <div className="flex justify-between px-1">
-                                                <span className={`text-[10px] md:text-xs font-black italic uppercase tracking-widest ${theme.badge}`}>{match.home_team?.short_name} Alpha</span>
-                                                <span className="text-[10px] md:text-xs font-black text-slate-600 italic uppercase tracking-widest">{match.away_team?.short_name}</span>
-                                            </div>
+                                                    <div className="h-4 md:h-6 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-800 shadow-inner flex">
+                                                        <div
+                                                            className={`h-full ${theme.barColor} rounded-l-full transition-all duration-1000`}
+                                                            style={{ width: `${winProb * 100}%` }}
+                                                        />
+                                                        <div
+                                                            className="h-full bg-slate-800 transition-all duration-1000"
+                                                            style={{ width: `${(1 - winProb) * 100}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-center h-10 bg-slate-900/50 rounded animate-pulse">
+                                                    <span className="text-[9px] font-black text-slate-700 uppercase tracking-[0.3em] font-mono">[ CALCULATING... ]</span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* BLOCK 2: KEY PLAYERS */}
@@ -252,38 +262,32 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                                 <Zap size={12} className={theme.badge} />
                                                 <span className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest italic leading-tight">Physical Intelligence</span>
                                             </div>
-                                            <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
-                                                {/* Home Key Player */}
-                                                <div className={`border-l-2 pl-3`} style={{ borderColor: 'inherit' }}>
-                                                    <div className="border-l-2 border-current pl-3">
-                                                        <div className="text-[11px] md:text-xs font-black text-slate-500 uppercase leading-none mb-1">
+                                            <div className="flex flex-col gap-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {/* Home Key Player */}
+                                                    <div className="border-l-2 border-current pl-3" style={{ color: 'inherit' }}>
+                                                        <div className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-tighter leading-none mb-1">
                                                             #{match.home_key_player?.jersey_number || '—'} // {match.home_team?.short_name}
                                                         </div>
-                                                        <div className="text-lg md:text-xl font-black text-white italic uppercase leading-tight">
-                                                            {match.home_key_player?.player_name || '[ GATHERING INTEL ]'}
+                                                        <div className="text-base md:text-lg font-black text-white italic uppercase leading-none truncate">
+                                                            {match.home_key_player?.player_name || '[ GATHERING ]'}
                                                         </div>
-                                                        <div className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-tighter leading-tight mt-1">
-                                                            {match.home_key_player?.physical_profile || '[ CLASSIFIED PHYSICALS ]'} • {match.home_key_player?.season_stats || 'PENDING'}
+                                                    </div>
+                                                    {/* Away Key Player */}
+                                                    <div className="border-l-2 border-slate-800 pl-3">
+                                                        <div className="text-[9px] md:text-[10px] font-black text-slate-600 uppercase tracking-tighter leading-none mb-1">
+                                                            #{match.away_key_player?.jersey_number || '—'} // {match.away_team?.short_name}
+                                                        </div>
+                                                        <div className="text-base md:text-lg font-black text-slate-400 italic uppercase leading-none truncate">
+                                                            {match.away_key_player?.player_name || '[ GATHERING ]'}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                {/* Away Key Player */}
-                                                <div className="border-l-2 border-slate-800 pl-3">
-                                                    <div className="text-[11px] md:text-xs font-black text-slate-700 uppercase leading-none mb-1">
-                                                        #{match.away_key_player?.jersey_number || '—'} // {match.away_team?.short_name}
-                                                    </div>
-                                                    <div className="text-lg md:text-xl font-black text-slate-400 italic uppercase leading-tight">
-                                                        {match.away_key_player?.player_name || '[ GATHERING INTEL ]'}
-                                                    </div>
-                                                    <div className="text-[11px] md:text-xs font-bold text-slate-600 uppercase tracking-tighter leading-tight mt-1">
-                                                        {match.away_key_player?.physical_profile || '[ CLASSIFIED PHYSICALS ]'} • {match.away_key_player?.season_stats || 'PENDING'}
-                                                    </div>
-                                                </div>
-                                            </div>
 
-                                            <Link href={`/matches/${uniqueId}`} className="flex items-center justify-center gap-2 w-full py-2 md:py-3 bg-slate-900 border border-slate-800 rounded-sm hover:bg-slate-800 transition-all group/btn">
-                                                <span className="text-[11px] md:text-xs font-black text-white uppercase tracking-[0.4em] group-hover/btn:tracking-[0.6em] transition-all">ENTER WAR ROOM ⚔️</span>
-                                            </Link>
+                                                <Link href={`/matches/${uniqueId}`} className="flex items-center justify-center gap-2 w-full py-2 bg-slate-900 border border-slate-800 rounded-sm hover:bg-slate-800 transition-all group/btn mt-2">
+                                                    <span className="text-[10px] md:text-[11px] font-black text-white uppercase tracking-[0.3em] group-hover/btn:tracking-[0.4em] transition-all">ENTER WAR ROOM ⚔️</span>
+                                                </Link>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
