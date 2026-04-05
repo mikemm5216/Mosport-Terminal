@@ -33,7 +33,15 @@ export const TEAM_META: Record<
   NBA_TOR: { name: "Toronto Raptors", logo: "/logos/nba/tor.png", version: 1 },
   NBA_UTA: { name: "Utah Jazz", logo: "/logos/nba/uta.png", version: 1 },
   NBA_WAS: { name: "Washington Wizards", logo: "/logos/nba/was.png", version: 1 },
-
+  // NBA 防呆別名 (Alias Mappings)
+  NBA_BRK: { name: "Brooklyn Nets", logo: "/logos/nba/bkn.png", version: 1 },       // 常見衝突: BRK vs BKN
+  NBA_CHO: { name: "Charlotte Hornets", logo: "/logos/nba/cha.png", version: 1 },   // 常見衝突: CHO vs CHA
+  NBA_PHO: { name: "Phoenix Suns", logo: "/logos/nba/phx.png", version: 1 },        // 常見衝突: PHO vs PHX
+  NBA_GS: { name: "Golden State Warriors", logo: "/logos/nba/gsw.png", version: 1 }, // 常見衝突: GS vs GSW
+  NBA_SA: { name: "San Antonio Spurs", logo: "/logos/nba/sas.png", version: 1 },   // 常見衝突: SA vs SAS
+  NBA_NO: { name: "New Orleans Pelicans", logo: "/logos/nba/nop.png", version: 1 },// 常見衝突: NO vs NOP
+  NBA_NY: { name: "New York Knicks", logo: "/logos/nba/nyk.png", version: 1 },     // 常見衝突: NY vs NYK
+  NBA_UT: { name: "Utah Jazz", logo: "/logos/nba/uta.png", version: 1 },           // 常見衝突: UT vs UTA
   // ===== MLB (30) =====
   MLB_ARI: { name: "Arizona Diamondbacks", logo: "/logos/mlb/ari.png", version: 1 },
   MLB_ATL: { name: "Atlanta Braves", logo: "/logos/mlb/atl.png", version: 1 },
@@ -61,10 +69,20 @@ export const TEAM_META: Record<
   MLB_SEA: { name: "Seattle Mariners", logo: "/logos/mlb/sea.png", version: 1 },
   MLB_SF: { name: "San Francisco Giants", logo: "/logos/mlb/sf.png", version: 1 },
   MLB_STL: { name: "St. Louis Cardinals", logo: "/logos/mlb/stl.png", version: 1 },
-  MLB_TB: { name: "Tampa Bay Rays", logo: "/logos/mlb/tb.png", version: 1 },
+  MLB_: { name: "Tampa Bay Rays", logo: "/logos/mlb/tb.png", version: 1 },
   MLB_TEX: { name: "Texas Rangers", logo: "/logos/mlb/tex.png", version: 1 },
   MLB_TOR: { name: "Toronto Blue Jays", logo: "/logos/mlb/tor.png", version: 1 },
   MLB_WAS: { name: "Washington Nationals", logo: "/logos/mlb/was.png", version: 1 },
+  MLB_ATH: { name: "Athletics", logo: "/logos/mlb/oak.png", version: 1 },
+  MLB_CHW: { name: "Chicago White Sox", logo: "/logos/mlb/cws.png", version: 1 },
+  // MLB 防呆別名 (Alias Mappings)
+  MLB_ATH: { name: "Athletics", logo: "/logos/mlb/oak.png", version: 1 },
+  MLB_CHW: { name: "Chicago White Sox", logo: "/logos/mlb/cws.png", version: 1 },
+  MLB_WSH: { name: "Washington Nationals", logo: "/logos/mlb/was.png", version: 1 }, // 常見衝突: WSH vs WAS
+  MLB_SDP: { name: "San Diego Padres", logo: "/logos/mlb/sd.png", version: 1 },   // 常見衝突: SDP vs SD
+  MLB_SFG: { name: "San Francisco Giants", logo: "/logos/mlb/sf.png", version: 1 }, // 常見衝突: SFG vs SF
+  MLB_KCR: { name: "Kansas City Royals", logo: "/logos/mlb/kc.png", version: 1 },   // 常見衝突: KCR vs KC
+  MLB_TAM: { name: "Tampa Bay Rays", logo: "/logos/mlb/tb.png", version: 1 },     // 常見衝突: TAM vs TB
 
   // ===== EPL (20+) =====
   EPL_ARS: { name: "Arsenal", logo: "/logos/epl/ars.png", version: 1 },
@@ -90,4 +108,10 @@ export const TEAM_META: Record<
   EPL_TOT: { name: "Tottenham Hotspur", logo: "/logos/epl/tot.png", version: 1 },
   EPL_WHU: { name: "West Ham United", logo: "/logos/epl/whu.png", version: 1 },
   EPL_WOL: { name: "Wolves", logo: "/logos/epl/wol.png", version: 1 },
+  // EPL 防呆別名 (Alias Mappings)
+  EPL_MAN: { name: "Manchester United", logo: "/logos/epl/mun.png", version: 1 }, // 常見衝突: MAN vs MUN
+  EPL_NOT: { name: "Nottingham Forest", logo: "/logos/epl/nfo.png", version: 1 }, // 常見衝突: NOT vs NFO
+  EPL_WWFC: { name: "Wolverhampton", logo: "/logos/epl/wol.png", version: 1 },     // 常見衝突: WWFC vs WOL
+  EPL_NEWC: { name: "Newcastle", logo: "/logos/epl/new.png", version: 1 },         // 常見衝突: NEWC vs NEW
+  EPL_SPR: { name: "Tottenham Hotspur", logo: "/logos/epl/tot.png", version: 1 }, // 常見衝突: SPR vs TOT
 };
