@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from 'react';
-import TeamLogo from '@/components/TeamLogo';
+import TeamLogo from '@/src/components/TeamLogo';
 
 // Narrative theme types for dynamic coloring
 export type NarrativeTheme = 'energy' | 'drama' | 'record' | 'standard';

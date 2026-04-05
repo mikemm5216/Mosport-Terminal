@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import DisclaimerModal from "@/components/DisclaimerModal";
+import DisclaimerModal from "@/src/components/DisclaimerModal";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,19 +20,19 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-white tracking-widest">MOSPORT</h1>
           <p className="text-secondary-text mt-2">Quantitative Sports Intelligence</p>
         </div>
-        
+
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-secondary-text mb-2">Access Key</label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               required
               className="w-full bg-background border border-grid rounded-lg px-4 py-3 text-white focus:outline-none focus:border-signal-blue transition-colors min-h-[44px]"
               placeholder="Enter system key..."
             />
           </div>
-          
-          <button 
+
+          <button
             type="submit"
             className="w-full h-[44px] bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-colors"
           >

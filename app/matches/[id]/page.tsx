@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft, Zap, Activity, Target, Users } from 'lucide-react';
-import TeamLogo from '@/components/TeamLogo';
-import ExecutionTerminal from '@/components/ExecutionTerminal';
+import TeamLogo from '@/src/components/TeamLogo';
+import ExecutionTerminal from '@/src/components/ExecutionTerminal';
 
 export const dynamic = 'force-dynamic';
 

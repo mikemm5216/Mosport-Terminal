@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Navigation from "@/components/Navigation";
+import Navigation from "@/src/components/Navigation";
 
 export default function SignalsPage() {
   const [signals, setSignals] = useState<any[]>([]);
@@ -31,7 +31,7 @@ export default function SignalsPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold text-white">Quant Signals</h1>
@@ -85,7 +85,7 @@ export default function SignalsPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Link 
+                        <Link
                           href={`/match/${signal.match_id}`}
                           className="text-signal-blue hover:text-blue-400 font-medium px-4 py-2 hover:bg-signal-blue/10 rounded-lg transition-colors min-h-[44px]"
                         >
