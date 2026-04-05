@@ -1,4 +1,4 @@
-import TeamLogo from "@/src/components/TeamLogo";
+import TeamLogo from "@/components/TeamLogo";
 import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
 
