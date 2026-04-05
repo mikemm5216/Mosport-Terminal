@@ -42,8 +42,6 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
    // Prefer live API data, fall back to DB
    const homeShort = liveData?.home_team?.short_name || dbMatch?.home_team?.short_name || id;
    const awayShort = liveData?.away_team?.short_name || dbMatch?.away_team?.short_name || '';
-   const homeLogo = liveData?.home_team?.logo_url || dbMatch?.home_team?.logo_url;
-   const awayLogo = liveData?.away_team?.logo_url || dbMatch?.away_team?.logo_url;
    const homeScore = liveData?.home_score ?? dbMatch?.homeScore;
    const awayScore = liveData?.away_score ?? dbMatch?.awayScore;
    const status = liveData?.status || dbMatch?.status || 'SCHEDULED';

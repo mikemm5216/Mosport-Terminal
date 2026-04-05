@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
 import { WorldEngine } from "@/lib/world-engine";
 import { ArrowLeft, Activity, Zap, Shield, Target, Search, Filter } from 'lucide-react';
+import TeamLogo from "@/src/components/TeamLogo";
 
 export default async function TeamVaultPage({ params, searchParams }: { params: { id: string }, searchParams: { sport?: string } }) {
   const { id } = await params;
@@ -72,9 +73,10 @@ function TeamCard({ team }: { team: any }) {
 
         {/* IDENTITY BOX */}
         <div className="flex items-center gap-6">
-          <div className="w-20 h-20 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-2xl overflow-hidden bg-cover bg-center" style={{ backgroundImage: team.logo_url ? `url(${team.logo_url})` : 'none' }}>
-            {!team.logo_url && <span className="text-4xl font-black text-slate-700 italic">{team.short_name?.[0] || 'T'}</span>}
-          </div>
+          <TeamLogo
+            code={`${team.league_type}_${team.short_name}`}
+            className="w-20 h-20 rounded-full flex-shrink-0 group-hover:scale-110 transition-transform shadow-2xl object-contain"
+          />
           <div className="flex flex-col">
             <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">{team.short_name || 'TEAM'}</h3>
             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest mt-1">{team.full_name}</span>
