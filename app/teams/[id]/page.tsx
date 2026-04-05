@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
 import { WorldEngine } from "@/lib/world-engine";
 import { ArrowLeft, Activity, Zap, Shield, Target, Search, Filter } from 'lucide-react';
-import TeamLogo from "@/src/components/TeamLogo";
+import TeamLogo from "@/components/TeamLogo";
 
 export default async function TeamVaultPage({ params, searchParams }: { params: { id: string }, searchParams: { sport?: string } }) {
   const { id } = await params;

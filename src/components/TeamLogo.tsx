@@ -1,6 +1,6 @@
 "use client";
 
-import { TEAM_META } from "@/src/config/teamMeta";
+import { TEAM_META } from "@/config/teamMeta";
 
 export default function TeamLogo({ code, className }: { code: string, className?: string }) {
   // 1. 轉大寫以精準對齊字典檔 (例如 NBA_ATL)

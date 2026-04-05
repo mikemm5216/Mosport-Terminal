@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronDown, Activity, Zap, Shield } from 'lucide-react';
-import TeamLogo from '@/src/components/TeamLogo';
+import TeamLogo from '@/components/TeamLogo';
 
 // ─── League Color Palette ──────────────────────────────────────────────────────
 // Design principle: slate-950 background stays sacred.
