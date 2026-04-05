@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from 'react';
+import TeamLogo from '@/src/components/TeamLogo';
 
 // Narrative theme types for dynamic coloring
 export type NarrativeTheme = 'energy' | 'drama' | 'record' | 'standard';
@@ -89,25 +90,17 @@ export default function MatchCard({ match }: { match: any }) {
   const homeLogo = homeError ? null : match?.home_team?.logo_url;
   const awayLogo = awayError ? null : match?.away_team?.logo_url;
 
-  const renderLogo = (url: string | null, initials: string, isHome: boolean) => {
-    if (url) {
-      return (
-        <img
-          src={url}
-          alt=""
-          className="w-full h-full object-contain"
-          onError={() => isHome ? setHomeError(true) : setAwayError(true)}
-        />
-      );
-    }
-    const bgColor = match?.league?.league_name?.includes("NBA") ? "#1D428A" : "#002D72";
+  const renderLogo = (team: any, initials: string) => {
+    const league = match?.league?.league_name?.toUpperCase() || "MLB"; // Fallback to MLB if unknown
+    const code = `${league}_${team?.short_name || initials}`;
+
     return (
-      <svg viewBox="0 0 100 100" className="w-full h-full">
-        <rect width="100" height="100" fill={bgColor} />
-        <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fill="white" fontSize="40" fontWeight="bold">
-          {initials}
-        </text>
-      </svg>
+      <div className="w-full h-full">
+        <TeamLogo
+          code={code}
+          className="w-full h-full object-contain"
+        />
+      </div>
     );
   };
 
@@ -154,7 +147,7 @@ export default function MatchCard({ match }: { match: any }) {
           {/* Left Team */}
           <div className="flex flex-col items-center flex-1 w-0">
             <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mb-2 shadow-lg overflow-hidden bg-slate-800 border-2 border-slate-700/50 text-slate-300 font-extrabold text-xl">
-              {renderLogo(homeLogo, homeInitials, true)}
+              {renderLogo(match?.home_team, homeInitials)}
             </div>
             <span className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white truncate w-full text-center">
               {homeTeamName}
@@ -181,7 +174,7 @@ export default function MatchCard({ match }: { match: any }) {
           {/* Right Team */}
           <div className="flex flex-col items-center flex-1 w-0">
             <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mb-2 shadow-lg overflow-hidden bg-slate-800 border-2 border-slate-700/50 text-slate-300 font-extrabold text-xl">
-              {renderLogo(awayLogo, awayInitials, false)}
+              {renderLogo(match?.away_team, awayInitials)}
             </div>
             <span className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white truncate w-full text-center">
               {awayTeamName}
