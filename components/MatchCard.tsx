@@ -40,8 +40,6 @@ function getTeamInitials(name: string) {
 }
 
 export default function MatchCard({ match }: { match: any }) {
-  const [homeError, setHomeError] = useState(false);
-  const [awayError, setAwayError] = useState(false);
 
   // 解析 JSON feature 取出電量
   const { homeBattery, awayBattery } = useMemo(() => {
@@ -87,8 +85,6 @@ export default function MatchCard({ match }: { match: any }) {
   const narrativeType = match?.narrative_type || "standard";
   const theme = narrativeThemes[narrativeType] || narrativeThemes.standard;
 
-  const homeLogo = homeError ? null : match?.home_team?.logo_url;
-  const awayLogo = awayError ? null : match?.away_team?.logo_url;
 
   const renderLogo = (team: any, initials: string) => {
     const league = match?.league?.league_name?.toUpperCase() || "MLB"; // Fallback to MLB if unknown
