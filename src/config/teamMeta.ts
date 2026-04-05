@@ -77,12 +77,8 @@ export const TEAM_META: Record<
   MLB_CHW: { name: "Chicago White Sox", logo: "/logos/mlb/cws.png", version: 1 },
   // MLB 防呆別名 (Alias Mappings)
   MLB_ATH: { name: "Athletics", logo: "/logos/mlb/oak.png", version: 1 },
-  MLB_CHW: { name: "Chicago White Sox", logo: "/logos/mlb/cws.png", version: 1 },
   MLB_WSH: { name: "Washington Nationals", logo: "/logos/mlb/was.png", version: 1 }, // 常見衝突: WSH vs WAS
-  MLB_SDP: { name: "San Diego Padres", logo: "/logos/mlb/sd.png", version: 1 },   // 常見衝突: SDP vs SD
-  MLB_SFG: { name: "San Francisco Giants", logo: "/logos/mlb/sf.png", version: 1 }, // 常見衝突: SFG vs SF
-  MLB_KCR: { name: "Kansas City Royals", logo: "/logos/mlb/kc.png", version: 1 },   // 常見衝突: KCR vs KC
-  MLB_TAM: { name: "Tampa Bay Rays", logo: "/logos/mlb/tb.png", version: 1 },     // 常見衝突: TAM vs TB
+
 
   // ===== EPL (20+) =====
   EPL_ARS: { name: "Arsenal", logo: "/logos/epl/ars.png", version: 1 },
@@ -108,17 +104,5 @@ export const TEAM_META: Record<
   EPL_TOT: { name: "Tottenham Hotspur", logo: "/logos/epl/tot.png", version: 1 },
   EPL_WHU: { name: "West Ham United", logo: "/logos/epl/whu.png", version: 1 },
   EPL_WOL: { name: "Wolves", logo: "/logos/epl/wol.png", version: 1 },
-  // EPL 防呆別名 (Alias Mappings)
-  EPL_MAN: { name: "Manchester United", logo: "/logos/epl/mun.png", version: 1 }, // 常見衝突: MAN vs MUN
-  EPL_NOT: { name: "Nottingham Forest", logo: "/logos/epl/nfo.png", version: 1 }, // 常見衝突: NOT vs NFO
-  EPL_WWFC: { name: "Wolverhampton", logo: "/logos/epl/wol.png", version: 1 },     // 常見衝突: WWFC vs WOL
-  EPL_NEWC: { name: "Newcastle", logo: "/logos/epl/new.png", version: 1 },         // 常見衝突: NEWC vs NEW
-  EPL_SPR: { name: "Tottenham Hotspur", logo: "/logos/epl/tot.png", version: 1 }, // 常見衝突: SPR vs TOT
-  // --- EPL 補漏與防呆別名 ---
-  EPL_SUN: { name: "Sunderland", logo: "/logos/epl/sun.png", version: 1 },         // 之前截圖破圖的黑貓
-  EPL_IPS: { name: "Ipswich Town", logo: "/logos/epl/ips.png", version: 1 },       // 確保升班馬存在
-  EPL_LEI: { name: "Leicester City", logo: "/logos/epl/lei.png", version: 1 },     // 確保狐狸城存在
-  EPL_MNC: { name: "Manchester City", logo: "/logos/epl/mci.png", version: 1 },    // 防呆 MNC vs MCI
-  EPL_MUN: { name: "Manchester United", logo: "/logos/epl/mun.png", version: 1 },   // 防呆 MUN vs MUFC
-  EPL_AVL: { name: "Aston Villa", logo: "/logos/epl/avl.png", version: 1 },        // 確保 AVL 存在
+
 };
