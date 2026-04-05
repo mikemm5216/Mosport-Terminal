@@ -1,4 +1,4 @@
-import TeamLogo from "@/src/components/TeamLogo";
+import EntityLogo from "@/src/components/EntityLogo";
 import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
 
@@ -15,29 +15,12 @@ export default async function TeamsAnalyticsPage({
 }) {
   const { sport = 'SOCCER' } = await searchParams;
 
-  const teams = await (prisma as any).teams.findMany({
+  const teams = await (prisma as any).context.findMany({
     where: {
-      league_type: sport === 'SOCCER' ? 'EPL' : (sport as any)
+      sport_code: sport === 'SOCCER' ? 'EPL' : (sport as any)
     },
-    orderBy: { full_name: 'asc' },
-    include: {
-      matches_home: {
-        take: 30,
-        orderBy: { date: 'desc' },
-        select: {
-          homeScore: true, awayScore: true, status: true, date: true,
-          predictionCorrect: true, predictedHomeWinRate: true
-        },
-      },
-      matches_away: {
-        take: 30,
-        orderBy: { date: 'desc' },
-        select: {
-          homeScore: true, awayScore: true, status: true, date: true,
-          predictionCorrect: true, predictedHomeWinRate: true
-        },
-      },
-    },
+    orderBy: { name: 'asc' },
+    // include: { ... matches removed because Match model is gone ... }
   });
 
   const FilterButton = ({ label, value, active, icon }: { label: string, value: string, active: boolean, icon: string }) => (
@@ -81,61 +64,34 @@ export default async function TeamsAnalyticsPage({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8 w-full">
               {teams.map((team: any) => {
-                const homeGames = (team.matches_home || []).filter((m: any) => m.status === 'COMPLETED');
-                const awayGames = (team.matches_away || []).filter((m: any) => m.status === 'COMPLETED');
-
-                const allGames = [
-                  ...homeGames.map((m: any) => ({
-                    scored: m.homeScore ?? 0, conceded: m.awayScore ?? 0,
-                    correct: m.predictionCorrect
-                  })),
-                  ...awayGames.map((m: any) => ({
-                    scored: m.awayScore ?? 0, conceded: m.homeScore ?? 0,
-                    correct: m.predictionCorrect
-                  })),
-                ];
-
-                const total = allGames.length;
-                const wins = allGames.filter(g => g.scored > g.conceded).length;
-
-                // Settlement Accuracy
-                const settledGames = allGames.filter(g => g.correct !== null);
-                const modelAccuracy = settledGames.length > 0
-                  ? settledGames.filter(g => g.correct === true).length / settledGames.length
-                  : 0;
-
-                const winRate = total > 0 ? wins / total : 0;
-                const momentum = total >= 3
-                  ? allGames.slice(0, 3).filter(g => g.scored > g.conceded).length / 3
-                  : winRate;
-
-                const hasData = total > 0;
-
-                const last5 = allGames.slice(0, 5).map(g => ({
-                  won: g.scored > g.conceded,
-                  draw: g.scored === g.conceded,
-                }));
+                const total = 0;
+                const settledGames: any[] = [];
+                const modelAccuracy = 0;
+                const winRate = 0;
+                const momentum = 0;
+                const hasData = false;
+                const last5: any[] = [];
 
 
                 return (
                   <div
-                    key={team.team_id}
+                    key={team.public_uuid}
                     className="bg-[#0a111a]/80 border border-slate-800/80 rounded-xl p-4 md:p-6 hover:border-cyan-500/50 hover:bg-slate-900/90 transition-all group backdrop-blur-md relative overflow-hidden flex flex-col justify-between shadow-xl"
                   >
                     <div className="absolute top-0 right-0 w-16 h-16 md:w-20 md:h-20 bg-cyan-500/5 rounded-bl-[4rem] -mr-4 -mt-4 blur-xl group-hover:bg-cyan-500/10 transition-colors pointer-events-none" />
 
                     <div>
                       <div className="flex items-center gap-3 md:gap-4 mb-4 border-b border-slate-800/40 pb-4">
-                        <TeamLogo
-                          code={`${team.league_type}_${team.short_name}`}
+                        <EntityLogo
+                          entityHash={team.short_name === 'LAD' ? 'Mpt_A1X9' : team.short_name === 'NYY' ? 'Mpt_B2Y8' : team.short_name === 'ARS' ? 'Mpt_C3Z7' : 'UNKNOWN'}
                           className="w-10 h-10 md:w-14 md:h-14 shrink-0 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="flex flex-col min-w-0 flex-1">
                           <span className="text-cyan-400 font-black text-2xl md:text-3xl tracking-tighter uppercase leading-none group-hover:text-white transition-colors truncate">
-                            {team.short_name}
+                            {team.team_code}
                           </span>
                           <span className="text-[9px] md:text-[10px] text-slate-500 font-bold truncate tracking-widest uppercase mt-0.5 leading-tight italic">
-                            {team.full_name}
+                            {team.name}
                           </span>
                         </div>
                       </div>
@@ -156,7 +112,7 @@ export default async function TeamsAnalyticsPage({
                           : <span className="text-slate-800 text-[7px] font-mono tracking-widest animate-pulse">[ NO RECENT DATA ]</span>
                         }
                       </div>
-                      <span>{team.league_type === 'NBA' ? 'HOOPS' : team.league_type === 'MLB' ? 'DIAMOND' : 'PITCH'} {team.league_type}</span>
+                      <span>{team.sport_code === 'NBA' ? 'HOOPS' : team.sport_code === 'MLB' ? 'DIAMOND' : 'PITCH'} {team.sport_code}</span>
                     </div>
                   </div>
                 );
