@@ -69,7 +69,7 @@ export const TEAM_META: Record<
   MLB_SEA: { name: "Seattle Mariners", logo: "/logos/mlb/sea.png", version: 1 },
   MLB_SF: { name: "San Francisco Giants", logo: "/logos/mlb/sf.png", version: 1 },
   MLB_STL: { name: "St. Louis Cardinals", logo: "/logos/mlb/stl.png", version: 1 },
-  MLB_: { name: "Tampa Bay Rays", logo: "/logos/mlb/tb.png", version: 1 },
+  MLB_TB: { name: "Tampa Bay Rays", logo: "/logos/mlb/tb.png", version: 1 },
   MLB_TEX: { name: "Texas Rangers", logo: "/logos/mlb/tex.png", version: 1 },
   MLB_TOR: { name: "Toronto Blue Jays", logo: "/logos/mlb/tor.png", version: 1 },
   MLB_WAS: { name: "Washington Nationals", logo: "/logos/mlb/was.png", version: 1 },
@@ -114,4 +114,11 @@ export const TEAM_META: Record<
   EPL_WWFC: { name: "Wolverhampton", logo: "/logos/epl/wol.png", version: 1 },     // 常見衝突: WWFC vs WOL
   EPL_NEWC: { name: "Newcastle", logo: "/logos/epl/new.png", version: 1 },         // 常見衝突: NEWC vs NEW
   EPL_SPR: { name: "Tottenham Hotspur", logo: "/logos/epl/tot.png", version: 1 }, // 常見衝突: SPR vs TOT
+  // --- EPL 補漏與防呆別名 ---
+  EPL_SUN: { name: "Sunderland", logo: "/logos/epl/sun.png", version: 1 },         // 之前截圖破圖的黑貓
+  EPL_IPS: { name: "Ipswich Town", logo: "/logos/epl/ips.png", version: 1 },       // 確保升班馬存在
+  EPL_LEI: { name: "Leicester City", logo: "/logos/epl/lei.png", version: 1 },     // 確保狐狸城存在
+  EPL_MNC: { name: "Manchester City", logo: "/logos/epl/mci.png", version: 1 },    // 防呆 MNC vs MCI
+  EPL_MUN: { name: "Manchester United", logo: "/logos/epl/mun.png", version: 1 },   // 防呆 MUN vs MUFC
+  EPL_AVL: { name: "Aston Villa", logo: "/logos/epl/avl.png", version: 1 },        // 確保 AVL 存在
 };
