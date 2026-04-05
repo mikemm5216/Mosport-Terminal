@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from 'react';
-import TeamLogo from '@/src/components/TeamLogo';
+import EntityLogo from '@/src/components/EntityLogo';
 
 // Narrative theme types for dynamic coloring
 export type NarrativeTheme = 'energy' | 'drama' | 'record' | 'standard';
@@ -92,8 +92,8 @@ export default function MatchCard({ match }: { match: any }) {
 
     return (
       <div className="w-full h-full">
-        <TeamLogo
-          code={code}
+        <EntityLogo
+          entityHash={team?.short_name === 'LAD' ? 'Mpt_A1X9' : team?.short_name === 'NYY' ? 'Mpt_B2Y8' : team?.short_name === 'ARS' ? 'Mpt_C3Z7' : 'UNKNOWN'}
           className="w-full h-full object-contain"
         />
       </div>
