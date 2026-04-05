@@ -66,7 +66,7 @@ export const TEAM_META: Record<
   MLB_TOR: { name: "Toronto Blue Jays", logo: "/logos/mlb/tor.png", version: 1 },
   MLB_WAS: { name: "Washington Nationals", logo: "/logos/mlb/was.png", version: 1 },
 
-  // ===== EPL (20) =====
+  // ===== EPL (20+) =====
   EPL_ARS: { name: "Arsenal", logo: "/logos/epl/ars.png", version: 1 },
   EPL_AVL: { name: "Aston Villa", logo: "/logos/epl/avl.png", version: 1 },
   EPL_BHA: { name: "Brighton", logo: "/logos/epl/bha.png", version: 1 },
@@ -82,6 +82,7 @@ export const TEAM_META: Record<
   EPL_LEI: { name: "Leicester City", logo: "/logos/epl/lei.png", version: 1 },
   EPL_LIV: { name: "Liverpool", logo: "/logos/epl/liv.png", version: 1 },
   EPL_MCI: { name: "Manchester City", logo: "/logos/epl/mci.png", version: 1 },
+  EPL_MNC: { name: "Manchester City", logo: "/logos/epl/mci.png", version: 1 }, // Alias MNC
   EPL_MUN: { name: "Manchester United", logo: "/logos/epl/mun.png", version: 1 },
   EPL_NEW: { name: "Newcastle United", logo: "/logos/epl/new.png", version: 1 },
   EPL_NFO: { name: "Nottingham Forest", logo: "/logos/epl/nfo.png", version: 1 },

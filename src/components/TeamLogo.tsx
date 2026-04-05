@@ -1,7 +1,5 @@
 import { TEAM_META } from "../config/teamMeta";
 
-const FALLBACK_VERSION = 1;
-
 export default function TeamLogo({
   code,
   className,
@@ -9,33 +7,24 @@ export default function TeamLogo({
   code: string;
   className?: string;
 }) {
-  if (!code) {
-    return <img src={`/logos/fallback.png?v=${FALLBACK_VERSION}`} />;
-  }
+  // 1. 不脫殼了！直接把 AI 傳來的代碼轉大寫 (例如確保 nba_atl 變成 NBA_ATL)
+  const exactCode = code?.toUpperCase();
 
-  // 1️⃣ Normalize (Strict upper-case, no prefix removal)
-  const normalizedCode = code.toUpperCase();
+  // 2. 精準查字典 (這樣 NBA_ATL 絕對不會撞到 MLB_ATL)
+  const meta = TEAM_META[exactCode];
 
-  // 2️⃣ Lookup
-  const meta = TEAM_META[normalizedCode];
-
-  // 3️⃣ Construct URL (with version)
-  const targetSrc = meta
-    ? `${meta.logo}?v=${meta.version}`
-    : `/logos/fallback.png?v=${FALLBACK_VERSION}`;
-
-  console.log("[LOGO CHECK]", code, targetSrc);
+  // 3. 取得圖片網址 (加上 v=3 強制更新快取)
+  const targetSrc = meta ? `${meta.logo}?v=3` : "";
 
   return (
     <img
       src={targetSrc}
-      alt={meta ? meta.name : normalizedCode}
+      alt={exactCode}
       className={className || "w-8 h-8 object-contain"}
       loading="lazy"
       onError={(e) => {
-        if (!e.currentTarget.src.includes("fallback.png")) {
-          e.currentTarget.src = `/logos/fallback.png?v=${FALLBACK_VERSION}`;
-        }
+        // 如果找不到圖片，直接隱藏，絕不顯示破圖圖示
+        e.currentTarget.style.display = "none";
       }}
     />
   );
