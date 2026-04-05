@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import DisclaimerModal from "@/src/components/DisclaimerModal";
+import DisclaimerModal from "@/components/DisclaimerModal";
 
 export default function LoginPage() {
   const router = useRouter();
