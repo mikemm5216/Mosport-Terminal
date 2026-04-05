@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import LiveTicker from "@/components/LiveTicker";
+import LiveTicker from "@/src/components/LiveTicker";
 import { TrendingUp, AlertCircle, ShieldAlert } from "lucide-react";
 
 export default async function ReportsPage() {

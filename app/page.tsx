@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronDown, ArrowRight, User, Activity, Clock, Zap, Target, Shield, AlertTriangle } from 'lucide-react';
-import LiveTicker from '@/components/LiveTicker';
-import ESPNStyleScoreboard from '@/components/ESPNStyleScoreboard';
+import LiveTicker from '@/src/components/LiveTicker';
+import ESPNStyleScoreboard from '@/src/components/ESPNStyleScoreboard';
 import { formatLocalTime } from '@/lib/timezone';
 
 export default function Home() {
