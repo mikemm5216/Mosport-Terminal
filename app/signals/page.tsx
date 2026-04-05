@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Navigation from "@/src/components/Navigation";
+import Navigation from "@/components/Navigation";
 
 export default function SignalsPage() {
   const [signals, setSignals] = useState<any[]>([]);
