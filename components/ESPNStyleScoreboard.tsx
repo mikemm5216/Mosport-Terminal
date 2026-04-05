@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronDown, Activity, Zap, Shield } from 'lucide-react';
-import LogoFallback from './LogoFallback';
+import TeamLogo from '@/src/components/TeamLogo';
 
 // ─── League Color Palette ──────────────────────────────────────────────────────
 // Design principle: slate-950 background stays sacred.
@@ -127,12 +127,8 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
 
                                 {/* HOME LOGO */}
                                 <div className="justify-self-center">
-                                    <LogoFallback
-                                        url={match.home_team?.logo_url}
-                                        name={match.home_team?.short_name}
-                                        shortName={match.home_team?.short_name}
-                                        sport={match.sport}
-                                        size={48}
+                                    <TeamLogo
+                                        code={`${(match.league || match.sport || "MLB").toUpperCase()}_${match.home_team?.short_name}`}
                                         className="w-8 h-8 md:w-12 md:h-12 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                                     />
                                 </div>
@@ -159,12 +155,8 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
 
                                 {/* AWAY LOGO */}
                                 <div className="justify-self-center">
-                                    <LogoFallback
-                                        url={match.away_team?.logo_url}
-                                        name={match.away_team?.short_name}
-                                        shortName={match.away_team?.short_name}
-                                        sport={match.sport}
-                                        size={48}
+                                    <TeamLogo
+                                        code={`${(match.league || match.sport || "MLB").toUpperCase()}_${match.away_team?.short_name}`}
                                         className="w-8 h-8 md:w-12 md:h-12 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                                     />
                                 </div>
