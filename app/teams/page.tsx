@@ -133,7 +133,7 @@ export default async function TeamsAnalyticsPage({
                       <div className="flex items-center gap-3 md:gap-4 mb-4 border-b border-slate-800/40 pb-4">
                         {logoUrl ? (
                           <img
-                            src={`${logoUrl}?v=patch17.29`}
+                            src={`${logoUrl}?v=patch17.30`}
                             alt={team.full_name}
                             className="w-10 h-10 md:w-14 md:h-14 shrink-0 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-500"
                           />
