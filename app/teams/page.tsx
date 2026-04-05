@@ -1,3 +1,4 @@
+import TeamLogo from "@/components/TeamLogo";
 import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
 
@@ -115,12 +116,6 @@ export default async function TeamsAnalyticsPage({
                   draw: g.scored === g.conceded,
                 }));
 
-                const logoUrl = team.logo_url?.includes('||')
-                  ? team.logo_url.split('||')[1]
-                  : team.logo_url;
-
-                const isNBA = team.league_type === 'NBA';
-                const isMLB = team.league_type === 'MLB';
 
                 return (
                   <div
@@ -131,16 +126,15 @@ export default async function TeamsAnalyticsPage({
 
                     <div>
                       <div className="flex items-center gap-3 md:gap-4 mb-4 border-b border-slate-800/40 pb-4">
-                        {logoUrl ? (
-                          <img
-                            src={`${logoUrl}?v=patch17.30`}
-                            alt={team.full_name}
-                            className="w-10 h-10 md:w-14 md:h-14 shrink-0 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-500"
-                          />
+                        ```tsx
+                        <TeamLogo
+                          code={`${team.league_type}_${team.short_name}`}
+                          className="w-10 h-10 md:w-14 md:h-14 shrink-0 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-500"
+                        />
                         ) : (
-                          <div className="w-10 h-10 md:w-14 md:h-14 shrink-0 bg-slate-950 rounded-full border border-slate-800 flex items-center justify-center text-slate-600 font-black text-sm md:text-xl">
-                            {team.short_name?.[0] || team.full_name[0]}
-                          </div>
+                        <div className="w-10 h-10 md:w-14 md:h-14 shrink-0 bg-slate-950 rounded-full border border-slate-800 flex items-center justify-center text-slate-600 font-black text-sm md:text-xl">
+                          {team.short_name?.[0] || team.full_name[0]}
+                        </div>
                         )}
                         <div className="flex flex-col min-w-0 flex-1">
                           <span className="text-cyan-400 font-black text-2xl md:text-3xl tracking-tighter uppercase leading-none group-hover:text-white transition-colors truncate">
