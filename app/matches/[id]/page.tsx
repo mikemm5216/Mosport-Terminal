@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft, Zap, Activity, Target, Users } from 'lucide-react';
-import LogoFallback from '@/components/LogoFallback';
+import TeamLogo from '@/src/components/TeamLogo';
 import ExecutionTerminal from '@/components/ExecutionTerminal';
 
 export const dynamic = 'force-dynamic';
@@ -31,9 +31,9 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
    let dbMatch: any = null;
    try {
       const { prisma } = await import('@/lib/prisma');
-      dbMatch = await (prisma as any).match.findFirst({
+      const dbMatch = await (prisma as any).match.findFirst({
          where: { extId: id },
-         include: { home_team: true, away_team: true, signals: true }
+         include: { home_team: true, away_team: true, signals: true, league: true }
       });
    } catch { /* DB offline is acceptable */ }
 
@@ -85,7 +85,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                {/* Score Banner */}
                <div className="flex flex-wrap items-center justify-center w-full gap-4 md:gap-8 pt-4">
                   <div className="flex-1 flex items-center justify-center md:justify-end gap-4 md:gap-6 text-center min-w-[120px]">
-                     <LogoFallback url={homeLogo} name={homeShort} shortName={homeShort} size={60} className="w-12 h-12 md:w-20 md:h-20" />
+                     <TeamLogo code={`${(liveData?.league || dbMatch?.league?.league_name || "MLB").toUpperCase()}_${homeShort}`} className="w-12 h-12 md:w-20 md:h-20" />
                      <div className="flex flex-col items-center md:items-end">
                         <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-white italic tracking-tighter uppercase leading-none">{homeShort}</h1>
                         {homeScore !== undefined && (
@@ -103,7 +103,7 @@ export default async function WarRoomPage({ params }: { params: { id: string } }
                   </div>
 
                   <div className="flex-1 flex flex-row-reverse items-center justify-center md:justify-end gap-4 md:gap-6 text-center min-w-[120px]">
-                     <LogoFallback url={awayLogo} name={awayShort} shortName={awayShort} size={60} className="w-12 h-12 md:w-20 md:h-20" />
+                     <TeamLogo code={`${(liveData?.league || dbMatch?.league?.league_name || "MLB").toUpperCase()}_${awayShort}`} className="w-12 h-12 md:w-20 md:h-20" />
                      <div className="flex flex-col items-center md:items-start">
                         <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-white italic tracking-tighter uppercase leading-none">{awayShort}</h1>
                         {awayScore !== undefined && (

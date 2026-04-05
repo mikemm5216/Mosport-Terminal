@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronDown, ArrowRight, User, Activity, Clock, Zap, Target, Shield, AlertTriangle } from 'lucide-react';
 import LiveTicker from '@/components/LiveTicker';
-import LogoFallback from '@/components/LogoFallback';
 import ESPNStyleScoreboard from '@/components/ESPNStyleScoreboard';
 import { formatLocalTime } from '@/lib/timezone';
 
