@@ -14,9 +14,9 @@ function getHashByCode(internalCode: string) {
 }
 
 function getMomentumColor(value: number) {
-  if (value > 0.7) return 'shadow-[0_4px_20px_-2px_rgba(0,238,252,0.4)] border-b-primary-container';
-  if (value < 0.3) return 'shadow-[0_4px_20px_-2px_rgba(244,114,182,0.4)] border-b-rose-500';
-  return 'border-b-white/5';
+  if (value > 0.7) return 'border-cyan-500/30 shadow-[0_0_20px_rgba(0,238,252,0.1)]';
+  if (value < 0.3) return 'border-rose-500/30 shadow-[0_0_20px_rgba(244,114,182,0.1)]';
+  return 'border-white/5';
 }
 
 const SPORT_MAP: Record<string, string> = {
@@ -146,45 +146,48 @@ export default async function TeamsAnalyticsPage({
               return (
                 <div
                   key={team.public_uuid}
-                  className={`bg-surface-container-highest border border-white/5 border-b-2 rounded-[2rem] p-6 hover:bg-surface-bright/40 transition-all group relative overflow-hidden flex flex-col justify-between h-[340px] ${getMomentumColor(momentum)}`}
+                  className={`bg-[#020617] border rounded-[2rem] p-6 hover:border-cyan-500/50 transition-all duration-500 group relative overflow-hidden flex flex-col justify-between h-[340px] ${getMomentumColor(momentum)}`}
                 >
+                  {/* SCAN-LINE OVERLAY */}
+                  <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+
                   {/* LOGO AREA */}
-                  <div className="flex items-center justify-between mb-8">
-                    <div className="w-14 h-14 bg-surface rounded-2xl border border-white/5 flex items-center justify-center p-2 relative">
-                      <div className="absolute inset-0 bg-primary-container/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="flex items-center justify-between mb-8 relative z-10">
+                    <div className="w-14 h-14 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-center p-2 relative">
+                      <div className="absolute inset-0 bg-primary-container/5 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
                       <EntityLogo
                         entityHash={correctHash}
-                        className="w-full h-full object-contain mix-blend-plus-lighter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                        className="w-full h-full object-contain mix-blend-plus-lighter opacity-80 group-hover:opacity-100 transition-opacity"
                       />
                     </div>
                     <div className="text-right">
-                      <span className="block text-2xl font-headline font-black text-white italic tracking-tighter uppercase leading-none group-hover:text-primary-container transition-colors">
+                      <span className="block text-2xl font-headline font-black text-white italic tracking-tighter uppercase leading-none group-hover:text-primary-container transition-colors drop-shadow-[0_0_8px_rgba(0,238,252,0.3)]">
                         {team.team_code}
                       </span>
-                      <span className="text-[8px] font-black text-slate-700 uppercase tracking-widest leading-none mt-1 italic block overflow-hidden text-ellipsis whitespace-nowrap max-w-[120px]">
+                      <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mt-1 italic block overflow-hidden text-ellipsis whitespace-nowrap max-w-[120px]">
                         {team.name}
                       </span>
                     </div>
                   </div>
 
                   {/* METRICS */}
-                  <div className="space-y-4 flex-1">
+                  <div className="space-y-4 flex-1 relative z-10">
                     <MiniMetric label="Accuracy" value={accuracy} color="text-emerald-400" />
                     <MiniMetric label="Momentum" value={momentum} color="text-primary-container" />
                     <MiniMetric label="Win Rate" value={winRate} color="text-rose-400" />
                   </div>
 
                   {/* FOOTER */}
-                  <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
+                  <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center relative z-10">
                     <div className="flex gap-1.5 items-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Live Sync</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
+                      <span className="text-[8px] font-black text-emerald-500/50 uppercase tracking-widest">Live Sync</span>
                     </div>
                     <Link
                       href={`/teams/${team.public_uuid}`}
-                      className="p-2 bg-white/5 rounded-lg group-hover:bg-primary-container transition-all hover:scale-110"
+                      className="p-2 bg-white/5 rounded-lg border border-white/5 hover:border-primary-container transition-all hover:scale-110"
                     >
-                      <Activity size={12} className="text-slate-600 group-hover:text-surface" />
+                      <Activity size={12} className="text-slate-500 group-hover:text-primary-container" />
                     </Link>
                   </div>
                 </div>
@@ -198,23 +201,38 @@ export default async function TeamsAnalyticsPage({
 }
 
 function MiniMetric({ label, value, color }: { label: string, value: number, color: string }) {
+  const needsCalibration = value <= 0;
+
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between items-center px-1">
-        <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest">{label}</span>
-        <span className={`text-[10px] font-black font-mono leading-none ${color}`}>
-          {Math.round(value * 100)}%
-        </span>
+        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
+        {needsCalibration ? (
+          <span className="text-[8px] font-black font-mono leading-none text-primary-container animate-pulse italic">
+            [ CALIBRATING... ]
+          </span>
+        ) : (
+          <span className={`text-[10px] font-black font-mono leading-none ${color}`}>
+            {Math.round(value * 100)}%
+          </span>
+        )}
       </div>
-      <div className="w-full h-1 bg-surface-bright rounded-full overflow-hidden p-[1px]">
-        <div
-          className="h-full bg-white/10 rounded-full transition-all duration-1000"
-          style={{ width: `${value * 100}%` }}
-        />
-        <div
-          className={`h-full absolute top-0 left-0 bg-current transition-all duration-1000 opacity-20 ${color.replace('text-', 'bg-')}`}
-          style={{ width: `${value * 100}%` }}
-        />
+      <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden p-[1px] relative">
+        {!needsCalibration && (
+          <>
+            <div
+              className="h-full bg-white/10 rounded-full transition-all duration-1000"
+              style={{ width: `${value * 100}%` }}
+            />
+            <div
+              className={`h-full absolute top-0 left-0 bg-current transition-all duration-1000 opacity-20 ${color.replace('text-', 'bg-')}`}
+              style={{ width: `${value * 100}%` }}
+            />
+          </>
+        )}
+        {needsCalibration && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-container/20 to-transparent animate-shimmer" />
+        )}
       </div>
     </div>
   );
