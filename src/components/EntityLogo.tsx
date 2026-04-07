@@ -7,6 +7,20 @@ interface EntityLogoProps {
     className?: string;
 }
 
+function getLogoPath(entityHash: string, internalCode: string, shortName: string): string {
+    const sport = internalCode.split('_')[0];
+    const team = shortName.toLowerCase();
+
+    if (sport === "01") return `/logos/mlb/${team}.png`;
+    if (sport === "03") return `/logos/nba/${team}.png`;
+    if (sport === "02") {
+        // Soccer: Extract league from Hash (e.g., Mpt_EPL01 -> epl)
+        const leagueCode = entityHash.split('_')[1]?.substring(0, 3).toLowerCase() || 'epl';
+        return `/logos/${leagueCode}/${team}.png`;
+    }
+    return `/logos/generic/${team}.png`;
+}
+
 export default function EntityLogo({ entityHash, className }: EntityLogoProps) {
     const entity = ENTITY_REGISTRY[entityHash];
 
@@ -18,10 +32,12 @@ export default function EntityLogo({ entityHash, className }: EntityLogoProps) {
         );
     }
 
+    const dynamicImgSrc = getLogoPath(entityHash, entity.internalCode, entity.shortName);
+
     return (
         <div className={`relative ${className}`}>
             <img
-                src={`${entity.path}?v=SECURE_V1`}
+                src={dynamicImgSrc}
                 alt={entity.shortName}
                 className="w-full h-full object-contain mix-blend-plus-lighter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
                 loading="lazy"
