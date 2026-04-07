@@ -13,8 +13,8 @@ export default function EntityLogo({ entityHash, className = "" }: { entityHash:
     // 防呆：如果傳進來的 Hash 字典裡找不到
     if (!entity) {
         return (
-            <div className={`flex items-center justify-center font-headline font-bold text-outline border border-outline/20 bg-surface-container ${className}`}>
-                N/A
+            <div className={`w-full h-full min-h-[40px] min-w-[40px] flex items-center justify-center rounded-md font-black text-[#00eefc] drop-shadow-[0_0_8px_rgba(0,238,252,0.8)] border border-[#00eefc]/20 bg-[#172031] ${className}`}>
+                ?
             </div>
         );
     }
@@ -33,7 +33,7 @@ export default function EntityLogo({ entityHash, className = "" }: { entityHash:
     // 3. 終極防禦：如果圖片還沒上傳，優雅降級顯示發光文字
     if (imgError) {
         return (
-            <div className={`flex items-center justify-center font-headline font-black text-[#00eefc] drop-shadow-[0_0_8px_rgba(0,238,252,0.5)] border border-[#00eefc]/20 bg-[#172031] ${className}`}>
+            <div className={`w-full h-full min-h-[40px] min-w-[40px] flex items-center justify-center rounded-md font-black text-[#00eefc] drop-shadow-[0_0_8px_rgba(0,238,252,0.8)] border border-[#00eefc]/20 bg-[#172031] ${className}`}>
                 {entity.shortName}
             </div>
         );
@@ -44,6 +44,7 @@ export default function EntityLogo({ entityHash, className = "" }: { entityHash:
         <img
             src={imgSrc}
             alt={entity.name}
+            style={{ color: 'transparent' }}
             className={`mix-blend-plus-lighter drop-shadow-[0_0_10px_rgba(255,255,255,0.15)] object-contain ${className}`}
             onError={() => setImgError(true)} // 圖片一破，立刻觸發上面的防禦機制
         />

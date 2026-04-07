@@ -43,10 +43,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     <div className="space-y-4">
                         <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em]">Navigation</p>
                         <nav className="space-y-2">
-                            <SidebarLink href="/" icon={<Activity size={16} />} label="Radar" active={pathname === '/'} />
-                            <SidebarLink href="/matches" icon={<LayoutDashboard size={16} />} label="War Room" active={pathname.startsWith('/matches')} />
-                            <SidebarLink href="/teams" icon={<Shield size={16} />} label="Vault" active={pathname.startsWith('/teams')} />
-                            <SidebarLink href="/reports" icon={<TrendingUp size={16} />} label="Reports" active={pathname.startsWith('/reports')} />
+                            <SidebarLink href="/" icon={<Activity size={16} />} label="Radar" active={pathname === '/'} onClick={() => setIsSidebarOpen(false)} />
+                            <SidebarLink href="/matches" icon={<LayoutDashboard size={16} />} label="War Room" active={pathname.startsWith('/matches')} onClick={() => setIsSidebarOpen(false)} />
+                            <SidebarLink href="/teams" icon={<Shield size={16} />} label="Vault" active={pathname.startsWith('/teams')} onClick={() => setIsSidebarOpen(false)} />
+                            <SidebarLink href="/reports" icon={<TrendingUp size={16} />} label="Reports" active={pathname.startsWith('/reports')} onClick={() => setIsSidebarOpen(false)} />
                         </nav>
                     </div>
                 </div>
@@ -79,10 +79,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
 }
 
-function SidebarLink({ href, icon, label, active }: { href: string; icon: React.ReactNode; label: string; active: boolean }) {
+function SidebarLink({ href, icon, label, active, onClick }: { href: string; icon: React.ReactNode; label: string; active: boolean; onClick?: () => void }) {
     return (
         <Link
             href={href}
+            onClick={onClick}
             className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${active ? 'bg-primary-container/10 text-primary-container' : 'hover:bg-white/5 hover:text-white'}`}
         >
             <span className={`${active ? 'text-primary-container' : 'text-slate-500 group-hover:text-primary-container'} transition-colors`}>{icon}</span>
