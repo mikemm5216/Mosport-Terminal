@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: 'AI-driven world model and quantitative analysis for competitive sports.',
 }
 
+import AppShell from '../components/AppShell'
+
 export default function RootLayout({
   children,
 }: {
@@ -17,11 +19,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-[#0B0C10] text-gray-200 min-h-screen flex flex-col min-w-[320px] overflow-x-auto`}>
-        <Navbar />
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8">
+      <body className="bg-surface text-slate-300 min-h-screen font-body selection:bg-primary-container/30">
+        <AppShell>
           {children}
-        </main>
+        </AppShell>
       </body>
     </html>
   )

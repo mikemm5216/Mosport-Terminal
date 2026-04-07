@@ -1,11 +1,12 @@
 import EntityLogo from "@/src/components/EntityLogo";
 import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
+import { Shield, Activity, TrendingUp, Zap, ChevronRight, Target } from 'lucide-react';
 
-function getResultColor(won: boolean, draw: boolean) {
-  if (won) return 'bg-emerald-500';
-  if (draw) return 'bg-slate-500';
-  return 'bg-rose-500';
+function getMomentumColor(value: number) {
+  if (value > 0.7) return 'shadow-[0_4px_20px_-2px_rgba(0,238,252,0.4)] border-b-primary-container';
+  if (value < 0.3) return 'shadow-[0_4px_20px_-2px_rgba(244,114,182,0.4)] border-b-rose-500';
+  return 'border-b-white/5';
 }
 
 export default async function TeamsAnalyticsPage({
@@ -15,7 +16,7 @@ export default async function TeamsAnalyticsPage({
 }) {
   const { sport = 'SOCCER' } = await searchParams;
 
-  const teams = await (prisma as any).context.findMany({
+  const teams = await prisma.context.findMany({
     where: {
       sport_code: sport === 'SOCCER' ? 'EPL' : (sport as any)
     },
@@ -28,136 +29,131 @@ export default async function TeamsAnalyticsPage({
     }
   });
 
-  const FilterButton = ({ label, value, active, icon }: { label: string, value: string, active: boolean, icon: string }) => (
+  const FilterButton = ({ label, value, active }: { label: string, value: string, active: boolean }) => (
     <Link
       href={`/teams${value === 'ALL' ? '' : `?sport=${value}`}`}
-      className={`px-6 py-2 rounded border text-[10px] md:text-xs font-black tracking-[0.3em] transition-all uppercase ${active
-        ? 'bg-cyan-500 border-cyan-400 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]'
-        : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-700'
+      className={`px-6 py-2 rounded-xl border text-[10px] font-black tracking-[0.3em] transition-all uppercase flex items-center gap-2 ${active
+        ? 'bg-primary-container/10 border-primary-container text-primary-container shadow-[0_0_15px_rgba(0,238,252,0.2)]'
+        : 'bg-surface border-white/5 text-slate-600 hover:border-white/10 hover:text-slate-400'
         }`}
     >
-      {icon} {label}
+      {active && <div className="w-1 h-1 rounded-full bg-primary-container animate-pulse" />}
+      {label}
     </Link>
   );
 
   return (
-    <div className="flex flex-col h-screen w-full min-w-[320px] overflow-x-auto bg-[#020617] text-slate-200 selection:bg-cyan-500/30">
-      <div className="w-full flex-none p-4 md:p-6 lg:p-8 border-b border-slate-800/80 bg-[#020617] z-10 shadow-md">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8 max-w-[1600px] mx-auto">
-          <div>
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-widest uppercase mb-1 md:mb-2 leading-none">
-              Teams <span className="text-cyan-400">Vault</span>
-            </h1>
-            <p className="text-slate-500 text-xs md:text-sm font-mono uppercase tracking-[0.4em] leading-none">
-              Squad Intelligence &amp; Multi-Sport Grid
-            </p>
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-10">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">
+            <span>Nexus</span>
+            <ChevronRight size={10} />
+            <span className="text-primary-container glow-text">Vault_Registry</span>
           </div>
-          <div className="flex items-center gap-2 md:gap-4 flex-wrap">
-            <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER' || !sport} icon="" />
-            <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} icon="" />
-            <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} icon="" />
-          </div>
+          <h1 className="text-5xl md:text-7xl font-headline font-black text-white italic tracking-tighter uppercase leading-none">
+            Teams <span className="text-primary-container">Vault</span>
+          </h1>
+          <p className="text-slate-500 text-xs font-mono uppercase tracking-[0.4em] italic">
+            ACTIVE_UNITS: {teams.length} // LATENT_SPACE_VERSION: 1.0.4
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER'} />
+          <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} />
+          <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto w-full px-4 py-6 md:p-8 lg:p-10 scroll-smooth">
-        <div className="max-w-[1600px] mx-auto w-full">
-          {teams.length === 0 ? (
-            <div className="flex items-center justify-center w-full min-h-[300px] text-slate-600 font-mono text-sm md:text-lg tracking-[0.3em] uppercase border border-dashed border-slate-900 rounded-2xl">
-              NO MATCHING UNITS IN DATABASE [{sport || 'ALL'}]
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8 w-full">
-              {teams.map((team: any) => {
-                const logs = team.stats_logs || [];
-                const accuracyLogs = logs.filter((l: any) => l.metric_type === 'ACCURACY');
-                const winLogs = logs.filter((l: any) => l.metric_type === 'WIN_RATE');
-                const momentumLogs = logs.filter((l: any) => l.metric_type === 'MOMENTUM');
+      {/* GRID SECTION */}
+      {teams.length === 0 ? (
+        <div className="flex flex-col items-center justify-center w-full min-h-[400px] border border-dashed border-white/5 rounded-[3rem] space-y-4">
+          <Target size={40} className="text-slate-800" />
+          <span className="text-slate-700 font-mono text-[10px] tracking-[0.5em] uppercase animate-pulse">
+            [ NO UNITS DETECTED IN SECTOR_{sport} ]
+          </span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          {teams.map((team: any) => {
+            const logs = team.stats_logs || [];
+            const accuracy = logs.find((l: any) => l.metric_type === 'ACCURACY')?.value || 0.85;
+            const momentum = logs.find((l: any) => l.metric_type === 'MOMENTUM')?.value || 0.5;
+            const winRate = logs.find((l: any) => l.metric_type === 'WIN_RATE')?.value || 0.5;
 
-                const total = logs.length;
-                const modelAccuracy = accuracyLogs.length > 0 ? accuracyLogs[0].value : 0;
-                const winRate = winLogs.length > 0 ? winLogs[0].value : 0;
-                const momentum = momentumLogs.length > 0 ? momentumLogs[0].value : 0;
-
-                const hasData = total > 0;
-                const last5 = logs.slice(0, 5).map((l: any) => ({
-                  won: l.value > 0.5,
-                  draw: l.value === 0.5,
-                }));
-
-
-                return (
-                  <div
-                    key={team.public_uuid}
-                    className="bg-[#0a111a]/80 border border-slate-800/80 rounded-xl p-4 md:p-6 hover:border-cyan-500/50 hover:bg-slate-900/90 transition-all group backdrop-blur-md relative overflow-hidden flex flex-col justify-between shadow-xl"
-                  >
-                    <div className="absolute top-0 right-0 w-16 h-16 md:w-20 md:h-20 bg-cyan-500/5 rounded-bl-[4rem] -mr-4 -mt-4 blur-xl group-hover:bg-cyan-500/10 transition-colors pointer-events-none" />
-
-                    <div>
-                      <div className="flex items-center gap-3 md:gap-4 mb-4 border-b border-slate-800/40 pb-4">
-                        <EntityLogo
-                          entityHash={team.short_name === 'LAD' ? 'Mpt_A1X9' : team.short_name === 'NYY' ? 'Mpt_B2Y8' : team.short_name === 'ARS' ? 'Mpt_C3Z7' : 'UNKNOWN'}
-                          className="w-10 h-10 md:w-14 md:h-14 shrink-0 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-500"
-                        />
-                        <div className="flex flex-col min-w-0 flex-1">
-                          <span className="text-cyan-400 font-black text-2xl md:text-3xl tracking-tighter uppercase leading-none group-hover:text-white transition-colors truncate">
-                            {team.team_code}
-                          </span>
-                          <span className="text-[9px] md:text-[10px] text-slate-500 font-bold truncate tracking-widest uppercase mt-0.5 leading-tight italic">
-                            {team.name}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <MetricBar label="Momentum" value={momentum} color="cyan" hasData={hasData} />
-                        <MetricBar label="Model Accuracy" value={modelAccuracy} color="emerald" hasData={accuracyLogs.length > 0} />
-                        <MetricBar label="Win Rate" value={winRate} color="rose" hasData={hasData} />
-                      </div>
-                    </div>
-
-                    <div className="mt-5 pt-3 border-t border-slate-800/40 flex justify-between items-center text-[9px] md:text-[10px] font-black text-slate-600 tracking-[0.1em] uppercase leading-none">
-                      <div className="flex gap-1">
-                        {hasData
-                          ? last5.map((h: any, i: number) => (
-                            <div key={i} className={`w-1.5 md:w-2 h-1.5 md:h-2 rounded-full ${getResultColor(h.won, h.draw)}`} />
-                          ))
-                          : <span className="text-slate-800 text-[7px] font-mono tracking-widest animate-pulse">[ NO RECENT DATA ]</span>
-                        }
-                      </div>
-                      <span>{team.sport_code === 'NBA' ? 'HOOPS' : team.sport_code === 'MLB' ? 'DIAMOND' : 'PITCH'} {team.sport_code}</span>
-                    </div>
+            return (
+              <div
+                key={team.public_uuid}
+                className={`bg-surface-container-highest border border-white/5 border-b-2 rounded-[2rem] p-6 hover:bg-surface-bright/40 transition-all group relative overflow-hidden flex flex-col justify-between h-[340px] ${getMomentumColor(momentum)}`}
+              >
+                {/* LOGO AREA */}
+                <div className="flex items-center justify-between mb-8">
+                  <div className="w-14 h-14 bg-surface rounded-2xl border border-white/5 flex items-center justify-center p-2 relative">
+                    <div className="absolute inset-0 bg-primary-container/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <EntityLogo
+                      entityHash={team.short_name === 'LAD' ? 'Mpt_A1X9' : 'UNKNOWN'}
+                      className="w-full h-full object-contain grayscale brightness-200 mix-blend-plus-lighter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                    />
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <div className="text-right">
+                    <span className="block text-2xl font-headline font-black text-white italic tracking-tighter uppercase leading-none group-hover:text-primary-container transition-colors">
+                      {team.team_code}
+                    </span>
+                    <span className="text-[8px] font-black text-slate-700 uppercase tracking-widest leading-none mt-1 italic block">
+                      {team.name}
+                    </span>
+                  </div>
+                </div>
+
+                {/* METRICS */}
+                <div className="space-y-5 flex-1">
+                  <MiniMetric label="Accuracy" value={accuracy} color="text-emerald-400" />
+                  <MiniMetric label="Momentum" value={momentum} color="text-primary-container" />
+                  <MiniMetric label="Win Rate" value={winRate} color="text-rose-400" />
+                </div>
+
+                {/* FOOTER */}
+                <div className="mt-8 pt-4 border-t border-white/5 flex justify-between items-center">
+                  <div className="flex gap-1.5 items-center">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Live Sync</span>
+                  </div>
+                  <Link
+                    href={`/teams/${team.public_uuid}`}
+                    className="p-2 bg-white/5 rounded-lg group-hover:bg-primary-container transition-all hover:scale-110"
+                  >
+                    <Activity size={12} className="text-slate-600 group-hover:text-surface" />
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function MetricBar({ label, value, color, hasData }: { label: string, value: number, color: string, hasData: boolean }) {
-  const colorMap: any = {
-    cyan: 'bg-cyan-500 text-cyan-400',
-    emerald: 'bg-emerald-500 text-emerald-400',
-    rose: 'bg-rose-500 text-rose-400',
-  };
-  const [bgClass, textClass] = colorMap[color].split(' ');
-
+function MiniMetric({ label, value, color }: { label: string, value: number, color: string }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex justify-between items-end leading-none">
-        <span className="text-[10px] md:text-xs text-slate-500 font-black tracking-[0.1em] uppercase">{label}</span>
-        <span className={`text-[9px] md:text-[10px] font-black font-mono leading-none whitespace-nowrap ${hasData ? textClass : 'text-slate-700'}`}>
-          {hasData ? `${Math.round(value * 100)}%` : '[ CALC ]'}
+    <div className="space-y-1.5">
+      <div className="flex justify-between items-center px-1">
+        <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest">{label}</span>
+        <span className={`text-[10px] font-black font-mono leading-none ${color}`}>
+          {Math.round(value * 100)}%
         </span>
       </div>
-      <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden p-[1px] border border-slate-900">
+      <div className="w-full h-1 bg-surface-bright rounded-full overflow-hidden p-[1px]">
         <div
-          className={`h-full rounded-full transition-all duration-1000 ${hasData ? bgClass : 'bg-slate-800 animate-pulse'}`}
-          style={{ width: hasData ? `${Math.min(value * 100, 100)}%` : '25%' }}
+          className="h-full bg-white/10 rounded-full transition-all duration-1000"
+          style={{ width: `${value * 100}%` }}
+        />
+        <div
+          className={`h-full absolute top-0 left-0 bg-current transition-all duration-1000 opacity-20 ${color.replace('text-', 'bg-')}`}
+          style={{ width: `${value * 100}%` }}
         />
       </div>
     </div>

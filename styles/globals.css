@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Manrope:wght@200;300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -27,5 +29,20 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  .scanline {
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background-size: 100% 4px, 3px 100%;
+    pointer-events: none;
+  }
+  
+  .glow-text { 
+    text-shadow: 0 0 10px rgba(0, 238, 252, 0.5); 
+  }
+  
+  .radar-grid { 
+    background-image: radial-gradient(circle, #414857 1px, transparent 1px); 
+    background-size: 20px 20px; 
   }
 }
