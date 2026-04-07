@@ -49,25 +49,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                             <SidebarLink href="/reports" icon={<TrendingUp size={16} />} label="Reports" active={pathname.startsWith('/reports')} />
                         </nav>
                     </div>
-                    <div className="space-y-4">
-                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em]">Hardware Status</p>
-                        <div className="p-4 bg-surface rounded-xl border border-white/5 space-y-3">
-                            <div className="flex justify-between items-center text-[10px] font-black">
-                                <span className="text-slate-700">CPU_CORE_ALPHA</span>
-                                <span className="text-primary-container">22.4%</span>
-                            </div>
-                            <div className="h-1 bg-slate-900 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary-container w-[22.4%] shadow-[0_0_10px_rgba(0,238,252,0.5)]" />
-                            </div>
-                            <div className="flex justify-between items-center text-[10px] font-black">
-                                <span className="text-slate-700">MEM_DDR5</span>
-                                <span className="text-fuchsia-500">48%</span>
-                            </div>
-                            <div className="h-1 bg-slate-900 rounded-full overflow-hidden">
-                                <div className="h-full bg-fuchsia-500 w-[48%] shadow-[0_0_10px_rgba(217,70,239,0.5)]" />
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </aside>
 
