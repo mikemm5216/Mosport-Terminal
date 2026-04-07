@@ -128,8 +128,8 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                 {/* HOME LOGO */}
                                 <div className="justify-self-center">
                                     <EntityLogo
-                                        entityHash={match.home_team_hash || 'UNKNOWN'}
-                                        className="w-8 h-8 md:w-12 md:h-12 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
+                                        entityHash={match.home_team_hash}
+                                        className="w-16 h-16 md:w-20 md:h-20 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                                     />
                                 </div>
 
@@ -156,8 +156,8 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                 {/* AWAY LOGO */}
                                 <div className="justify-self-center">
                                     <EntityLogo
-                                        entityHash={match.away_team_hash || 'UNKNOWN'}
-                                        className="w-8 h-8 md:w-12 md:h-12 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
+                                        entityHash={match.away_team_hash}
+                                        className="w-16 h-16 md:w-20 md:h-20 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                                     />
                                 </div>
 
