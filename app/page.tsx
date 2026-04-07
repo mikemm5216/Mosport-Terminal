@@ -45,6 +45,22 @@ export default function Home() {
         confidence: 0.75,
         home_key_player: { player_name: 'Shohei Ohtani', jersey_number: '17' },
         away_key_player: { player_name: 'Aaron Judge', jersey_number: '99' }
+      },
+      {
+        match_id: 'ECL-RMA-BAR-MOCK',
+        league: 'ESP',
+        status: 'IN_PLAY',
+        time: '74:22',
+        home_team: { short_name: 'RMA' },
+        home_team_hash: 'Mpt_ESP01',
+        away_team: { short_name: 'BAR' },
+        away_team_hash: 'Mpt_ESP02',
+        home_score: 2,
+        away_score: 1,
+        predictedHomeWinRate: 0.82,
+        confidence: 0.94,
+        home_key_player: { player_name: 'Vinícius Júnior', jersey_number: '7' },
+        away_key_player: { player_name: 'Lamine Yamal', jersey_number: '19' }
       }
     ];
 
