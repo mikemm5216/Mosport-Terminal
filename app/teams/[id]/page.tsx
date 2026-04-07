@@ -1,14 +1,23 @@
-import { REVERSE_REGISTRY } from "@/src/config/entityRegistry";
+import { ENTITY_REGISTRY } from "@/src/config/entityRegistry";
 import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
 import { ArrowLeft, Shield } from 'lucide-react';
 import EntityLogo from "@/src/components/EntityLogo";
 
+function getHashByCode(internalCode: string) {
+  for (const [hash, entity] of Object.entries(ENTITY_REGISTRY)) {
+    if (entity.internalCode === internalCode) {
+      return hash;
+    }
+  }
+  return ""; // Fallback
+}
+
 export default async function TeamVaultPage({ params, searchParams }: { params: Promise<{ id: string }>, searchParams: Promise<{ sport?: string }> }) {
   const { id } = await params;
   const sportFilter = (await searchParams).sport || 'ALL';
 
-  const teams = await prisma.context.findMany();
+  const teams = await (prisma as any).context.findMany();
   const filteredTeams = sportFilter === 'ALL' ? teams : teams.filter((t: any) => t.sport_code === (sportFilter === 'NBA' ? '03' : sportFilter === 'MLB' ? '01' : '02'));
 
   return (
@@ -48,7 +57,7 @@ export default async function TeamVaultPage({ params, searchParams }: { params: 
 }
 
 function TeamCard({ team }: { team: any }) {
-  const entityHash = REVERSE_REGISTRY[team.internal_code] || 'UNKNOWN';
+  const correctHash = getHashByCode(team.internal_code);
   return (
     <Link href={`/teams/${team.public_uuid}`} className="group block">
       <div className="bg-[#0a111a] border border-slate-800 rounded-[2.5rem] p-8 space-y-8 transition-all duration-500 hover:border-cyan-500/30 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] relative overflow-hidden h-full">
@@ -58,7 +67,7 @@ function TeamCard({ team }: { team: any }) {
 
         <div className="flex items-center gap-6">
           <EntityLogo
-            entityHash={entityHash}
+            entityHash={correctHash}
             className="w-20 h-20 rounded-full flex-shrink-0 group-hover:scale-110 transition-transform shadow-2xl object-contain"
           />
           <div className="flex flex-col">

@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-import { REVERSE_REGISTRY } from "@/src/config/entityRegistry";
+import { ENTITY_REGISTRY } from "@/src/config/entityRegistry";
+
+function getHashByCode(internalCode: string) {
+    for (const [hash, entity] of Object.entries(ENTITY_REGISTRY)) {
+        if (entity.internalCode === internalCode) {
+            return hash;
+        }
+    }
+    return "";
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -109,10 +118,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
         const homeContext = contextMap.get(hTeamId) as any;
         const awayContext = contextMap.get(aTeamId) as any;
 
-        const home_team_hash = REVERSE_REGISTRY[homeContext?.internal_code] || 'UNKNOWN';
-        const away_team_hash = REVERSE_REGISTRY[awayContext?.internal_code] || 'UNKNOWN';
+        const home_team_hash = getHashByCode(homeContext?.internal_code || hTeamId);
+        const away_team_hash = getHashByCode(awayContext?.internal_code || aTeamId);
 
-        const latestStats = await prisma.statsLog.findMany({
+        const latestStats = await (prisma as any).statsLog.findMany({
             where: { context_internal_code: homeContext?.internal_code || hTeamId },
             orderBy: { timestamp: 'desc' },
             take: 20

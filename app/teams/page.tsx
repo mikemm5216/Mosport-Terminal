@@ -1,8 +1,17 @@
 import EntityLogo from "@/src/components/EntityLogo";
-import { REVERSE_REGISTRY } from "@/src/config/entityRegistry";
+import { ENTITY_REGISTRY } from "@/src/config/entityRegistry";
 import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
 import { Shield, Activity, TrendingUp, Zap, ChevronRight, Target } from 'lucide-react';
+
+function getHashByCode(internalCode: string) {
+  for (const [hash, entity] of Object.entries(ENTITY_REGISTRY)) {
+    if (entity.internalCode === internalCode) {
+      return hash;
+    }
+  }
+  return ""; // Fallback
+}
 
 function getMomentumColor(value: number) {
   if (value > 0.7) return 'shadow-[0_4px_20px_-2px_rgba(0,238,252,0.4)] border-b-primary-container';
@@ -25,7 +34,7 @@ export default async function TeamsAnalyticsPage({
   const { sport = 'ALL' } = await searchParams;
   const mappedSportCode = SPORT_MAP[sport.toUpperCase()] || 'ALL';
 
-  const teams = await prisma.context.findMany({
+  const teams = await (prisma as any).context.findMany({
     where: {
       weight_level: '01',
       ...(mappedSportCode !== 'ALL' ? { sport_code: mappedSportCode } : {})
@@ -96,7 +105,7 @@ export default async function TeamsAnalyticsPage({
             const momentum = logs.find((l: any) => l.metric_type === 'MOMENTUM')?.value || 0;
             const winRate = logs.find((l: any) => l.metric_type === 'WIN_RATE')?.value || 0;
 
-            const entityHash = REVERSE_REGISTRY[team.internal_code] || 'UNKNOWN';
+            const correctHash = getHashByCode(team.internal_code);
 
             return (
               <div
@@ -108,7 +117,7 @@ export default async function TeamsAnalyticsPage({
                   <div className="w-14 h-14 bg-surface rounded-2xl border border-white/5 flex items-center justify-center p-2 relative">
                     <div className="absolute inset-0 bg-primary-container/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
                     <EntityLogo
-                      entityHash={entityHash}
+                      entityHash={correctHash}
                       className="w-full h-full object-contain mix-blend-plus-lighter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
                     />
                   </div>

@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-import { REVERSE_REGISTRY } from "@/src/config/entityRegistry";
+import { ENTITY_REGISTRY } from "@/src/config/entityRegistry";
+
+function getHashByCode(internalCode: string) {
+  for (const [hash, entity] of Object.entries(ENTITY_REGISTRY)) {
+    if (entity.internalCode === internalCode) {
+      return hash;
+    }
+  }
+  return "";
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -126,7 +135,7 @@ export async function GET() {
 
     const signals = contexts.map((c: any) => {
       const latestLog = c.stats_logs?.[0];
-      const entityHash = REVERSE_REGISTRY[c.internal_code] || 'UNKNOWN';
+      const entityHash = getHashByCode(c.internal_code);
 
       return {
         match_id: `V2-${c.public_uuid}`,
