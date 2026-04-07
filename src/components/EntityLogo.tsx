@@ -1,52 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ENTITY_REGISTRY } from "../config/entityRegistry";
 
 export default function EntityLogo({ entityHash, className = "" }: { entityHash: string, className?: string }) {
-    // 記錄圖片是否載入失敗
     const [imgError, setImgError] = useState(false);
 
-    // 1. 查字典
+    useEffect(() => {
+        setImgError(false);
+    }, [entityHash]);
+
     const entity = ENTITY_REGISTRY[entityHash];
 
-    // 防呆：如果傳進來的 Hash 字典裡找不到
+    // 字典找不到：顯示低調的 N/A
     if (!entity) {
         return (
-            <div className={`w-full h-full min-h-[40px] min-w-[40px] flex items-center justify-center rounded-md font-black text-[#00eefc] drop-shadow-[0_0_8px_rgba(0,238,252,0.8)] border border-[#00eefc]/20 bg-[#172031] ${className}`}>
-                ?
+            <div className={`w-full h-full min-h-[40px] min-w-[40px] flex items-center justify-center font-headline font-bold text-outline border border-outline/20 bg-surface-container rounded ${className}`}>
+                N/A
             </div>
         );
     }
 
-    // 2. 智慧路徑解析 (配合美編的實體資料夾)
+    // 圖片載入失敗：物理移除 <img>，替換成賽博龐克發光文字
+    if (imgError) {
+        return (
+            <div className={`w-full h-full min-h-[40px] min-w-[40px] flex items-center justify-center font-headline font-black text-[#00eefc] drop-shadow-[0_0_8px_rgba(0,238,252,0.8)] border border-[#00eefc]/20 bg-[#172031] rounded overflow-hidden ${className}`}>
+                <span className="truncate px-1">{entity.shortName}</span>
+            </div>
+        );
+    }
+
+    // 解析實體圖片路徑
     const sportCode = entity.internalCode.split("_")[0];
     const shortNameLower = entity.shortName.toLowerCase();
 
-    let folder = "epl"; // 預設足球
+    let folder = "epl";
     if (sportCode === "01") folder = "mlb";
     if (sportCode === "03") folder = "nba";
 
-    // 最終拼出來的路徑：例如 /logos/mlb/nyy.png
     const imgSrc = `/logos/${folder}/${shortNameLower}.png`;
 
-    // 3. 終極防禦：如果圖片還沒上傳，優雅降級顯示發光文字
-    if (imgError) {
-        return (
-            <div className={`w-full h-full min-h-[40px] min-w-[40px] flex items-center justify-center rounded-md font-black text-[#00eefc] drop-shadow-[0_0_8px_rgba(0,238,252,0.8)] border border-[#00eefc]/20 bg-[#172031] ${className}`}>
-                {entity.shortName}
-            </div>
-        );
-    }
-
-    // 4. 正常渲染圖片 (帶發光與去背融合效果)
+    // 正常渲染
     return (
         <img
             src={imgSrc}
             alt={entity.name}
-            style={{ color: 'transparent' }}
-            className={`mix-blend-plus-lighter drop-shadow-[0_0_10px_rgba(255,255,255,0.15)] object-contain ${className}`}
-            onError={() => setImgError(true)} // 圖片一破，立刻觸發上面的防禦機制
+            className={`object-contain mix-blend-plus-lighter drop-shadow-[0_0_12px_rgba(255,255,255,0.2)] ${className}`}
+            onError={() => setImgError(true)}
         />
     );
 }
