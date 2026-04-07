@@ -54,3 +54,9 @@ export const ENTITY_REGISTRY: Record<string, { internalCode: string, shortName: 
     "Mpt_FRA02": { internalCode: "02_01_OM", shortName: "OM", name: "Olympique de Marseille" },
     "Mpt_FRA03": { internalCode: "02_01_ASM", shortName: "ASM", name: "AS Monaco" },
 };
+
+// Reverse lookup for V2 DB binding: internal_code -> hashId
+export const REVERSE_REGISTRY: Record<string, string> = Object.entries(ENTITY_REGISTRY).reduce(
+    (acc, [hash, entity]) => ({ ...acc, [entity.internalCode]: hash }),
+    {}
+);

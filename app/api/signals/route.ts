@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+import { REVERSE_REGISTRY } from "@/src/config/entityRegistry";
+
 export const dynamic = 'force-dynamic';
 
 function normalizeTeamId(raw: string, leaguePrefix: string): string {
@@ -124,6 +126,8 @@ export async function GET() {
 
     const signals = contexts.map((c: any) => {
       const latestLog = c.stats_logs?.[0];
+      const entityHash = REVERSE_REGISTRY[c.internal_code] || 'UNKNOWN';
+
       return {
         match_id: `V2-${c.public_uuid}`,
         sport: c.sport_code,
@@ -132,6 +136,8 @@ export async function GET() {
         status: 'LIVE_FEED',
         home_team: { short_name: c.team_code, logo_url: '' },
         away_team: { short_name: 'OPPONENT', logo_url: '' },
+        home_team_hash: entityHash,
+        away_team_hash: 'UNKNOWN',
         home_score: 0,
         away_score: 0,
         win_probabilities: { home_win_prob: latestLog?.value || 0.5, away_win_prob: 1 - (latestLog?.value || 0.5) },

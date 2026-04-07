@@ -1,4 +1,5 @@
 import EntityLogo from "@/src/components/EntityLogo";
+import { REVERSE_REGISTRY } from "@/src/config/entityRegistry";
 import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
 import { Shield, Activity, TrendingUp, Zap, ChevronRight, Target } from 'lucide-react';
@@ -9,21 +10,30 @@ function getMomentumColor(value: number) {
   return 'border-b-white/5';
 }
 
+const SPORT_MAP: Record<string, string> = {
+  'MLB': '01',
+  'SOCCER': '02',
+  'NBA': '03',
+  'ALL': 'ALL'
+};
+
 export default async function TeamsAnalyticsPage({
   searchParams
 }: {
   searchParams: Promise<{ sport?: string }>
 }) {
-  const { sport = 'SOCCER' } = await searchParams;
+  const { sport = 'ALL' } = await searchParams;
+  const mappedSportCode = SPORT_MAP[sport.toUpperCase()] || 'ALL';
 
   const teams = await prisma.context.findMany({
     where: {
-      sport_code: sport === 'SOCCER' ? 'EPL' : (sport as any)
+      weight_level: '01',
+      ...(mappedSportCode !== 'ALL' ? { sport_code: mappedSportCode } : {})
     },
     orderBy: { name: 'asc' },
     include: {
       stats_logs: {
-        take: 50,
+        take: 10,
         orderBy: { timestamp: 'desc' }
       }
     }
@@ -62,6 +72,7 @@ export default async function TeamsAnalyticsPage({
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
+          <FilterButton label="ALL" value="ALL" active={sport === 'ALL'} />
           <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER'} />
           <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} />
           <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} />
@@ -80,9 +91,12 @@ export default async function TeamsAnalyticsPage({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
           {teams.map((team: any) => {
             const logs = team.stats_logs || [];
-            const accuracy = logs.find((l: any) => l.metric_type === 'ACCURACY')?.value || 0.85;
-            const momentum = logs.find((l: any) => l.metric_type === 'MOMENTUM')?.value || 0.5;
-            const winRate = logs.find((l: any) => l.metric_type === 'WIN_RATE')?.value || 0.5;
+            // Extract latest values for key metrics
+            const accuracy = logs.find((l: any) => l.metric_type === 'ACCURACY')?.value || 0;
+            const momentum = logs.find((l: any) => l.metric_type === 'MOMENTUM')?.value || 0;
+            const winRate = logs.find((l: any) => l.metric_type === 'WIN_RATE')?.value || 0;
+
+            const entityHash = REVERSE_REGISTRY[team.internal_code] || 'UNKNOWN';
 
             return (
               <div
@@ -94,29 +108,29 @@ export default async function TeamsAnalyticsPage({
                   <div className="w-14 h-14 bg-surface rounded-2xl border border-white/5 flex items-center justify-center p-2 relative">
                     <div className="absolute inset-0 bg-primary-container/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
                     <EntityLogo
-                      entityHash={team.short_name === 'LAD' ? 'Mpt_A1X9' : 'UNKNOWN'}
-                      className="w-full h-full object-contain grayscale brightness-200 mix-blend-plus-lighter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                      entityHash={entityHash}
+                      className="w-full h-full object-contain mix-blend-plus-lighter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
                     />
                   </div>
                   <div className="text-right">
                     <span className="block text-2xl font-headline font-black text-white italic tracking-tighter uppercase leading-none group-hover:text-primary-container transition-colors">
                       {team.team_code}
                     </span>
-                    <span className="text-[8px] font-black text-slate-700 uppercase tracking-widest leading-none mt-1 italic block">
+                    <span className="text-[8px] font-black text-slate-700 uppercase tracking-widest leading-none mt-1 italic block overflow-hidden text-ellipsis whitespace-nowrap max-w-[120px]">
                       {team.name}
                     </span>
                   </div>
                 </div>
 
                 {/* METRICS */}
-                <div className="space-y-5 flex-1">
+                <div className="space-y-4 flex-1">
                   <MiniMetric label="Accuracy" value={accuracy} color="text-emerald-400" />
                   <MiniMetric label="Momentum" value={momentum} color="text-primary-container" />
                   <MiniMetric label="Win Rate" value={winRate} color="text-rose-400" />
                 </div>
 
                 {/* FOOTER */}
-                <div className="mt-8 pt-4 border-t border-white/5 flex justify-between items-center">
+                <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
                   <div className="flex gap-1.5 items-center">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Live Sync</span>

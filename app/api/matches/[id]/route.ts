@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+import { REVERSE_REGISTRY } from "@/src/config/entityRegistry";
+
 export const dynamic = 'force-dynamic';
 
 // ─── Sport Router: prefix → ESPN endpoint + sport slug ────────────────────────
@@ -105,7 +107,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
         // V2: We no longer depend on legacy Match/Prediction models.
         // We fetch the latest Quant signal from StatsLog for the home team context.
         const homeContext = contextMap.get(hTeamId) as any;
-        const latestStats = await (prisma as any).statsLog.findMany({
+        const awayContext = contextMap.get(aTeamId) as any;
+
+        const home_team_hash = REVERSE_REGISTRY[homeContext?.internal_code] || 'UNKNOWN';
+        const away_team_hash = REVERSE_REGISTRY[awayContext?.internal_code] || 'UNKNOWN';
+
+        const latestStats = await prisma.statsLog.findMany({
             where: { context_internal_code: homeContext?.internal_code || hTeamId },
             orderBy: { timestamp: 'desc' },
             take: 20
@@ -156,6 +163,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
                 status: systemStatus,
                 home_team: { short_name: hTeamId, logo_url: validate(homeTeam?.logos?.[0]?.href || homeTeam?.logo) },
                 away_team: { short_name: aTeamId, logo_url: validate(awayTeam?.logos?.[0]?.href || awayTeam?.logo) },
+                home_team_hash,
+                away_team_hash,
                 home_score: homeScore,
                 away_score: awayScore,
                 win_probabilities: { home_win_prob: homeWinProb, away_win_prob: awayWinProb },
