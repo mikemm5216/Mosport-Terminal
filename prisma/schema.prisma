@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public_api"]
+  schemas  = ["public_api", "quant_internal"]
 }
 
 model Player {

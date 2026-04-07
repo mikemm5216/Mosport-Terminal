@@ -9,48 +9,48 @@ export default async function PlayerDossierPage({ params }: { params: { id: stri
    let player = null;
    try {
       player = await (prisma as any).player.findUnique({
-         where: { player_id: id },
+         where: { public_uuid: id },
          include: {
-            stats_nba: true,
-            stats_mlb: true,
-            stats_soccer: true
+            stats_logs: {
+               take: 10,
+               orderBy: { timestamp: 'desc' }
+            }
          }
       });
    } catch (e) {
       console.warn(`[DOSSIER] Intel unavailable for ${id}. Resorting to Genesis data.`);
    }
 
-   if (!player && id !== 'P_OHTANI_GENESIS') {
+   if (!player) {
       return (
          <div className="min-h-screen bg-[#05090f] flex flex-col items-center justify-center p-8">
             <h1 className="text-2xl font-black text-white uppercase tracking-widest mb-4">Dossier Locked</h1>
+            <span className="text-slate-500 font-mono text-[10px] uppercase tracking-widest mb-8">[ ERROR_CODE: P2025 // RECORD_NOT_FOUND ]</span>
             <Link href="/" className="text-cyan-400 font-mono text-xs uppercase tracking-widest hover:underline">Return to Hub</Link>
          </div>
       );
    }
 
-   // ALPHA MOCK FALLBACK FOR DEMO
-   const mockPlayer = {
-      player_id: 'P_OHTANI_GENESIS',
-      display_name: 'SHOHEI OHTANI',
-      position_main: 'DH / P',
-      nationality: 'Japan',
-      stats_mlb: { avg: 0.310, hr: 54, rbi: 130, era: 0, w: 0, so: 0 }
+   const logs = player.stats_logs || [];
+   const getMetric = (type: string) => logs.find((l: any) => l.metric_type === type)?.value || 0;
+
+   const stats = {
+      avg: getMetric('AVG'),
+      hr: getMetric('HR'),
+      rbi: getMetric('RBI'),
+      era: getMetric('ERA'),
+      w: getMetric('W'),
+      so: getMetric('SO')
    };
 
-   const displayPlayer = player || mockPlayer;
-
-   // Mock Bio-Radar Data (image_7.png Reference)
    const bioData = [
-      { label: 'POWER', value: 92 },
-      { label: 'SPEED', value: 88 },
-      { label: 'AGILITY', value: 85 },
-      { label: 'DURABILITY', value: 78 },
-      { label: 'CLUTCH', value: 96 },
-      { label: 'PRECISION', value: 94 }
+      { label: 'POWER', value: getMetric('POWER') || 85 },
+      { label: 'SPEED', value: getMetric('SPEED') || 78 },
+      { label: 'AGILITY', value: getMetric('AGILITY') || 92 },
+      { label: 'DURABILITY', value: getMetric('DURABILITY') || 82 },
+      { label: 'CLUTCH', value: getMetric('CLUTCH') || 95 },
+      { label: 'PRECISION', value: getMetric('PRECISION') || 88 }
    ];
-
-   const stats = displayPlayer.stats_mlb || { avg: 0.310, hr: 54, rbi: 130, era: 0, w: 0, so: 0 };
 
    return (
       <div className="min-h-screen bg-[#05090f] text-slate-200 font-sans selection:bg-cyan-500/30 overflow-x-hidden pb-40">
@@ -99,9 +99,9 @@ export default async function PlayerDossierPage({ params }: { params: { id: stri
                </div>
 
                <div className="flex flex-col gap-2">
-                  <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">{displayPlayer.display_name}</h1>
+                  <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">{player.full_name}</h1>
                   <div className="flex items-center gap-4">
-                     <span className="text-sm font-black text-cyan-400 uppercase italic tracking-widest">{displayPlayer.position_main}</span>
+                     <span className="text-sm font-black text-cyan-400 uppercase italic tracking-widest">RANK_NODE_{player.internal_code.split('_')[0]}</span>
                      <div className="w-1 h-1 rounded-full bg-slate-800" />
                      <span className="text-sm font-black text-slate-600 uppercase italic tracking-widest">LOS ANGELES DODGERS</span>
                   </div>
@@ -169,21 +169,21 @@ export default async function PlayerDossierPage({ params }: { params: { id: stri
                   <div className="relative w-full aspect-square flex items-center justify-center py-6">
                      <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]">
                         <polygon
-                           points={bioData.map((d, i) => {
+                           points={bioData.map((d: any, i: number) => {
                               const angle = (i / bioData.length) * 2 * Math.PI - Math.PI / 2;
                               const r = (d.value / 100) * 45;
                               return `${50 + r * Math.cos(angle)},${50 + r * Math.sin(angle)}`;
                            }).join(' ')}
                            className="fill-cyan-400/10 stroke-cyan-400 stroke-[0.8] transition-all duration-1000"
                         />
-                        {bioData.map((_, i) => {
+                        {bioData.map((_: any, i: number) => {
                            const angle = (i / bioData.length) * 2 * Math.PI - Math.PI / 2;
                            return <line key={i} x1="50" y1="50" x2={50 + 45 * Math.cos(angle)} y2={50 + 45 * Math.sin(angle)} className="stroke-slate-800 stroke-[0.2]" />;
                         })}
                      </svg>
 
                      {/* Stat Values at points */}
-                     {bioData.map((d, i) => {
+                     {bioData.map((d: any, i: number) => {
                         const angle = (i / bioData.length) * 2 * Math.PI - Math.PI / 2;
                         return (
                            <div key={i} className="absolute text-[7px] font-black text-slate-700 uppercase tracking-widest" style={{

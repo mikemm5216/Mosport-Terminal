@@ -3,17 +3,20 @@ import LiveTicker from "@/components/LiveTicker";
 import { TrendingUp, AlertCircle, ShieldAlert } from "lucide-react";
 
 export default async function ReportsPage() {
-  const matches = await (prisma as any).match.findMany({
-    where: { status: 'live' },
-    include: {
-      home_team: true,
-      away_team: true,
-      signals: true
+  const logs = await (prisma as any).statsLog.findMany({
+    where: {
+      metric_type: 'EV',
+      value: { gt: 0.05 }
     },
-    take: 20
+    include: {
+      context: true,
+      player: true
+    },
+    take: 20,
+    orderBy: { timestamp: 'desc' }
   });
 
-  const highEVMatches = matches.filter((m: any) => (m.signals?.[0]?.ev || 0) > 0.05);
+  const highEVReports = logs;
 
   return (
     <main className="min-h-screen bg-[#020617] flex flex-col items-center overflow-x-hidden selection:bg-cyan-500/30">
@@ -31,10 +34,10 @@ export default async function ReportsPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          {highEVMatches.length > 0 ? highEVMatches.map((match: any) => (
-            <div key={match.id} className="bg-slate-950 border border-slate-900 rounded-xl p-6 relative group hover:border-amber-500/30 transition-all">
+          {highEVReports.length > 0 ? highEVReports.map((report: any) => (
+            <div key={report.id} className="bg-slate-950 border border-slate-900 rounded-xl p-6 relative group hover:border-amber-500/30 transition-all">
               <div className="absolute top-0 right-0 p-4">
-                <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{match.leagueId} // {new Date(match.date).toLocaleDateString()}</span>
+                <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{report.context?.sport_code} // {new Date(report.timestamp).toLocaleDateString()}</span>
               </div>
 
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -44,25 +47,24 @@ export default async function ReportsPage() {
                       <span className="text-[10px] font-black text-amber-500 uppercase italic">Market Inefficiency Detected</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl font-black text-white italic uppercase">{match.home_team?.short_name}</span>
-                      <span className="text-slate-700 italic font-bold">vs</span>
-                      <span className="text-2xl font-black text-white italic uppercase">{match.away_team?.short_name}</span>
+                      <span className="text-2xl font-black text-white italic uppercase">{report.context?.team_code}</span>
+                      <span className="text-slate-700 italic font-bold">ALPHA NODE</span>
                     </div>
                   </div>
 
                   <p className="text-slate-400 text-sm font-bold uppercase leading-relaxed max-w-2xl border-l-2 border-slate-800 pl-4 py-1">
-                    Quant divergence isolated in {match.sport} domain. Structural mismatch in pricing vs projected physical index.
+                    Quant divergence isolated in {report.context?.sport_code} domain. Structural mismatch in pricing vs projected physical index for {report.player?.full_name}.
                   </p>
                 </div>
 
                 <div className="flex gap-4 md:border-l border-slate-900 md:pl-10">
                   <div className="flex flex-col">
                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Expected Value</span>
-                    <span className="text-4xl font-black text-amber-500 italic">+{(match.signals?.[0]?.ev * 100 || 12.5).toFixed(1)}%</span>
+                    <span className="text-4xl font-black text-amber-500 italic">+{(report.value * 100).toFixed(1)}%</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Alpha Edge</span>
-                    <span className="text-4xl font-black text-white italic">{(match.signals?.[0]?.edge * 100 || 8.4).toFixed(1)}%</span>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Metric Source</span>
+                    <span className="text-4xl font-black text-white italic">{report.metric_type}</span>
                   </div>
                 </div>
               </div>

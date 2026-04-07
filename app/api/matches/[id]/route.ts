@@ -81,9 +81,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
         const event = espnData.header?.competitions?.[0];
         if (!event) throw new Error("Match Summary Invalid");
 
-        const validTeams = await (prisma as any).teams.findMany({ select: { team_id: true } });
-        const validTeamIds = new Set(validTeams.map((t: any) => t.team_id));
-
         const statusState = event.status?.type?.state;
         const statusMap: Record<string, string> = { pre: "SCHEDULED", in: "IN_PLAY", post: "COMPLETED" };
         const systemStatus = statusMap[statusState] || "SCHEDULED";
@@ -100,69 +97,30 @@ export async function GET(request: Request, { params }: { params: { id: string }
         const hTeamId = normalizeId(homeTeam?.abbreviation || "TBD");
         const aTeamId = normalizeId(awayTeam?.abbreviation || "TBD");
 
-        if (!validTeamIds.has(hTeamId) || !validTeamIds.has(aTeamId)) {
-            throw new Error(`Foreign Match Detected: ${hTeamId} vs ${aTeamId}`);
-        }
-
-        // @ts-ignore
-        const dbMatch = await (prisma as any).match.upsert({
-            where: { extId: id },
-            update: { status: systemStatus, date: new Date(event.date), homeScore, awayScore },
-            create: {
-                extId: id,
-                date: new Date(event.date),
-                sport: route.sport,
-                homeTeamId: hTeamId,
-                awayTeamId: aTeamId,
-                homeTeamName: homeTeam?.name || "Unknown",
-                awayTeamName: awayTeam?.name || "Unknown",
-                homeScore,
-                awayScore,
-                status: systemStatus,
-            },
+        const contexts = await (prisma as any).context.findMany({
+            where: { team_code: { in: [hTeamId, aTeamId] } }
         });
+        const contextMap = new Map(contexts.map((c: any) => [c.team_code, c]));
+
+        // V2: We no longer depend on legacy Match/Prediction models.
+        // We fetch the latest Quant signal from StatsLog for the home team context.
+        const homeContext = contextMap.get(hTeamId) as any;
+        const latestStats = await (prisma as any).statsLog.findMany({
+            where: { context_internal_code: homeContext?.internal_code || hTeamId },
+            orderBy: { timestamp: 'desc' },
+            take: 20
+        });
+
+        const evLog = latestStats.find((s: any) => s.metric_type === 'EV');
+        const winProbLog = latestStats.find((s: any) => s.metric_type === 'WIN_PROB');
 
         // ── FastAPI Neural Link ──
-        let homeWinProb = 0.5;
-        let standardAnalysis = [`INFERENCING XGBOOST [${id}]`, "ESPN CDN TRACE OBTAINED", "ALPHA ALIGNMENT: 50.0%"];
-        let tacticalMatchup = ["COMPUTING SQUAD DEPTH...", "READING TRANSITION STATES...", "EDGE CALIBRATION NOMINAL"];
-        let xFactors = ["TACTICAL_DEADLOCK", "MOMENTUM CONSTRAINTS APPLIED", "OUTLIER IDENTIFICATION ACTIVE"];
-
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000);
-            const engineUrl = process.env.FASTAPI_ENGINE_URL || "http://127.0.0.1:8000";
-
-            const quantRes = await fetch(`${engineUrl}/api/v1/inference`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.FASTAPI_ENGINE_KEY || ""}` },
-                body: JSON.stringify({ model_id: "latest", home_team: hTeamId, away_team: aTeamId, feature_vector: [homeScore, awayScore, 0, 0, 0, 0], model_type: "T-10min", chaos_test: false }),
-                signal: controller.signal,
-            });
-            clearTimeout(timeoutId);
-
-            if (quantRes.ok) {
-                const pjson = await quantRes.json();
-                if (typeof pjson.probability === "number" && !isNaN(pjson.probability)) homeWinProb = pjson.probability;
-                if (pjson.standard_analysis) standardAnalysis = pjson.standard_analysis;
-                if (pjson.tactical_matchup) tacticalMatchup = pjson.tactical_matchup;
-                if (pjson.x_factors) xFactors = pjson.x_factors;
-            }
-        } catch (e: any) {
-            homeWinProb = 0.5;
-            standardAnalysis = ["[ CALCULATING ALPHA... ]", "AWAITING ENGINE RESTORE", "FALLBACK 50% EQUILIBRIUM"];
-            tacticalMatchup = ["[ CALCULATING TACTICS... ]", "SYSTEM OFFLINE", "NO EDGE DETECTED"];
-            xFactors = ["[ CALCULATING X-FACTORS... ]", "NEURAL LINK SEVERED", "MONITORING RESTORE"];
-        }
+        let homeWinProb = winProbLog?.value || 0.5;
+        let standardAnalysis = ["V2_ENGINE_SIGNAL_LOCKED", "CONTEXTUAL_TRACE_ACTIVE", `ALPHA_MAP: ${homeWinProb > 0.6 ? 'STRONG' : 'NEUTRAL'}`];
+        let tacticalMatchup = ["READING_STATS_LOGS", "MAPPING_DOMAIN_INDICES", "QUANT_READY"];
+        let xFactors = ["ENCRYPTED_ID_VAULT", "V2_ARCHITECTURE_VALIDATED"];
 
         const awayWinProb = 1.0 - homeWinProb;
-
-        // @ts-ignore
-        await (prisma as any).matchPrediction.upsert({
-            where: { matchId: dbMatch.id },
-            update: { homeWinProb, awayWinProb },
-            create: { matchId: dbMatch.id, homeWinProb, awayWinProb },
-        });
 
         const validate = (val: any) =>
             val === null || val === undefined || val === "" ? "[ INTELLIGENCE PENDING ]" : val;

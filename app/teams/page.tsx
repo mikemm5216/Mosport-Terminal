@@ -20,7 +20,12 @@ export default async function TeamsAnalyticsPage({
       sport_code: sport === 'SOCCER' ? 'EPL' : (sport as any)
     },
     orderBy: { name: 'asc' },
-    // include: { ... matches removed because Match model is gone ... }
+    include: {
+      stats_logs: {
+        take: 50,
+        orderBy: { timestamp: 'desc' }
+      }
+    }
   });
 
   const FilterButton = ({ label, value, active, icon }: { label: string, value: string, active: boolean, icon: string }) => (
@@ -64,13 +69,21 @@ export default async function TeamsAnalyticsPage({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8 w-full">
               {teams.map((team: any) => {
-                const total = 0;
-                const settledGames: any[] = [];
-                const modelAccuracy = 0;
-                const winRate = 0;
-                const momentum = 0;
-                const hasData = false;
-                const last5: any[] = [];
+                const logs = team.stats_logs || [];
+                const accuracyLogs = logs.filter((l: any) => l.metric_type === 'ACCURACY');
+                const winLogs = logs.filter((l: any) => l.metric_type === 'WIN_RATE');
+                const momentumLogs = logs.filter((l: any) => l.metric_type === 'MOMENTUM');
+
+                const total = logs.length;
+                const modelAccuracy = accuracyLogs.length > 0 ? accuracyLogs[0].value : 0;
+                const winRate = winLogs.length > 0 ? winLogs[0].value : 0;
+                const momentum = momentumLogs.length > 0 ? momentumLogs[0].value : 0;
+
+                const hasData = total > 0;
+                const last5 = logs.slice(0, 5).map((l: any) => ({
+                  won: l.value > 0.5,
+                  draw: l.value === 0.5,
+                }));
 
 
                 return (
@@ -98,7 +111,7 @@ export default async function TeamsAnalyticsPage({
 
                       <div className="space-y-3">
                         <MetricBar label="Momentum" value={momentum} color="cyan" hasData={hasData} />
-                        <MetricBar label="Model Accuracy" value={modelAccuracy} color="emerald" hasData={settledGames.length > 0} />
+                        <MetricBar label="Model Accuracy" value={modelAccuracy} color="emerald" hasData={accuracyLogs.length > 0} />
                         <MetricBar label="Win Rate" value={winRate} color="rose" hasData={hasData} />
                       </div>
                     </div>
@@ -106,7 +119,7 @@ export default async function TeamsAnalyticsPage({
                     <div className="mt-5 pt-3 border-t border-slate-800/40 flex justify-between items-center text-[9px] md:text-[10px] font-black text-slate-600 tracking-[0.1em] uppercase leading-none">
                       <div className="flex gap-1">
                         {hasData
-                          ? last5.map((h, i) => (
+                          ? last5.map((h: any, i: number) => (
                             <div key={i} className={`w-1.5 md:w-2 h-1.5 md:h-2 rounded-full ${getResultColor(h.won, h.draw)}`} />
                           ))
                           : <span className="text-slate-800 text-[7px] font-mono tracking-widest animate-pulse">[ NO RECENT DATA ]</span>
