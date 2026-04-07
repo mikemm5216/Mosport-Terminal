@@ -13,17 +13,54 @@ export default function Home() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Initializing with Mock Data to prove UI binding
+    const mockMatches = [
+      {
+        match_id: 'NBA-LAL-GSW-MOCK',
+        league: 'NBA',
+        status: 'IN_PLAY',
+        home_team: { short_name: 'LAL' },
+        home_team_hash: 'Mpt_NBA23',
+        away_team: { short_name: 'GSW' },
+        away_team_hash: 'Mpt_NBA21',
+        home_score: 102,
+        away_score: 98,
+        predictedHomeWinRate: 0.65,
+        confidence: 0.88,
+        home_key_player: { player_name: 'LeBron James', jersey_number: '23' },
+        away_key_player: { player_name: 'Steph Curry', jersey_number: '30' }
+      },
+      {
+        match_id: 'MLB-LAD-NYY-MOCK',
+        league: 'MLB',
+        status: 'SCHEDULED',
+        start_time: new Date().toISOString(),
+        home_team: { short_name: 'LAD' },
+        home_team_hash: 'Mpt_MLB28',
+        away_team: { short_name: 'NYY' },
+        away_team_hash: 'Mpt_MLB01',
+        home_score: 0,
+        away_score: 0,
+        predictedHomeWinRate: 0.52,
+        confidence: 0.75,
+        home_key_player: { player_name: 'Shohei Ohtani', jersey_number: '17' },
+        away_key_player: { player_name: 'Aaron Judge', jersey_number: '99' }
+      }
+    ];
+
+    setMatches(mockMatches);
+    setLoading(false);
+
+    // Optional: Keep the real fetch as a background refresh if needed, but for now, mock is priority
+    /*
     fetch('/api/signals')
       .then(res => res.json())
       .then(data => {
-        if (data.success) {
-          setMatches(data.data);
+        if (data.success && data.data.length > 0) {
+          // setMatches(data.data);
         }
-        setLoading(false);
-      })
-      .catch(e => {
-        setLoading(false);
       });
+    */
   }, []);
 
   const toggleExpand = (id: string) => {

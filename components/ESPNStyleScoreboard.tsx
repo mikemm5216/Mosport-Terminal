@@ -128,7 +128,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                 {/* HOME LOGO */}
                                 <div className="justify-self-center">
                                     <EntityLogo
-                                        entityHash={match.home_team?.short_name === 'LAD' ? 'Mpt_A1X9' : match.home_team?.short_name === 'NYY' ? 'Mpt_B2Y8' : match.home_team?.short_name === 'ARS' ? 'Mpt_C3Z7' : 'UNKNOWN'}
+                                        entityHash={match.home_team_hash || 'UNKNOWN'}
                                         className="w-8 h-8 md:w-12 md:h-12 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                                     />
                                 </div>
@@ -156,7 +156,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                 {/* AWAY LOGO */}
                                 <div className="justify-self-center">
                                     <EntityLogo
-                                        entityHash={match.away_team?.short_name === 'LAD' ? 'Mpt_A1X9' : match.away_team?.short_name === 'NYY' ? 'Mpt_B2Y8' : match.away_team?.short_name === 'ARS' ? 'Mpt_C3Z7' : 'UNKNOWN'}
+                                        entityHash={match.away_team_hash || 'UNKNOWN'}
                                         className="w-8 h-8 md:w-12 md:h-12 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                                     />
                                 </div>

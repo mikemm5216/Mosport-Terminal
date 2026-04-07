@@ -1,59 +1,51 @@
 "use client";
 
+import { useState } from "react";
 import { ENTITY_REGISTRY } from "../config/entityRegistry";
 
-interface EntityLogoProps {
-    entityHash: string;
-    className?: string;
-}
+export default function EntityLogo({ entityHash, className = "" }: { entityHash: string, className?: string }) {
+    // 記錄圖片是否載入失敗
+    const [imgError, setImgError] = useState(false);
 
-function getLogoPath(entityHash: string, internalCode: string, shortName: string): string {
-    const sport = internalCode.split('_')[0];
-    const team = shortName.toLowerCase();
-
-    if (sport === "01") return `/logos/mlb/${team}.png`;
-    if (sport === "03") return `/logos/nba/${team}.png`;
-    if (sport === "02") {
-        // Soccer: Extract league from Hash (e.g., Mpt_EPL01 -> epl)
-        const leagueCode = entityHash.split('_')[1]?.substring(0, 3).toLowerCase() || 'epl';
-        return `/logos/${leagueCode}/${team}.png`;
-    }
-    return `/logos/generic/${team}.png`;
-}
-
-export default function EntityLogo({ entityHash, className }: EntityLogoProps) {
+    // 1. 查字典
     const entity = ENTITY_REGISTRY[entityHash];
 
+    // 防呆：如果傳進來的 Hash 字典裡找不到
     if (!entity) {
         return (
-            <div className={`${className} flex items-center justify-center bg-slate-900 border border-slate-800 rounded text-[10px] font-black text-slate-500 uppercase tracking-widest`}>
-                [ N/A ]
+            <div className={`flex items-center justify-center font-headline font-bold text-outline border border-outline/20 bg-surface-container ${className}`}>
+                N/A
             </div>
         );
     }
 
-    const dynamicImgSrc = getLogoPath(entityHash, entity.internalCode, entity.shortName);
+    // 2. 智慧路徑解析 (配合美編的實體資料夾)
+    const sportCode = entity.internalCode.split("_")[0];
+    const shortNameLower = entity.shortName.toLowerCase();
 
+    let folder = "epl"; // 預設足球
+    if (sportCode === "01") folder = "mlb";
+    if (sportCode === "03") folder = "nba";
+
+    // 最終拼出來的路徑：例如 /logos/mlb/nyy.png
+    const imgSrc = `/logos/${folder}/${shortNameLower}.png`;
+
+    // 3. 終極防禦：如果圖片還沒上傳，優雅降級顯示發光文字
+    if (imgError) {
+        return (
+            <div className={`flex items-center justify-center font-headline font-black text-[#00eefc] drop-shadow-[0_0_8px_rgba(0,238,252,0.5)] border border-[#00eefc]/20 bg-[#172031] ${className}`}>
+                {entity.shortName}
+            </div>
+        );
+    }
+
+    // 4. 正常渲染圖片 (帶發光與去背融合效果)
     return (
-        <div className={`relative ${className}`}>
-            <img
-                src={dynamicImgSrc}
-                alt={entity.shortName}
-                className="w-full h-full object-contain mix-blend-plus-lighter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                loading="lazy"
-                onError={(e) => {
-                    // If image fails, replace with text fallback
-                    const target = e.currentTarget;
-                    const parent = target.parentElement;
-                    if (parent) {
-                        target.style.display = 'none';
-                        const fallback = document.createElement('div');
-                        fallback.className = 'w-full h-full flex items-center justify-center bg-slate-900 border border-slate-800 rounded text-xs font-black text-white uppercase tracking-widest italic';
-                        fallback.innerText = entity.shortName;
-                        parent.appendChild(fallback);
-                    }
-                }}
-            />
-        </div>
+        <img
+            src={imgSrc}
+            alt={entity.name}
+            className={`mix-blend-plus-lighter drop-shadow-[0_0_10px_rgba(255,255,255,0.15)] object-contain ${className}`}
+            onError={() => setImgError(true)} // 圖片一破，立刻觸發上面的防禦機制
+        />
     );
 }
