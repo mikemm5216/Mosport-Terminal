@@ -6,70 +6,57 @@ import { ENTITY_REGISTRY } from "../config/entityRegistry";
 export default function EntityLogo({ entityHash, className = "" }: { entityHash: string, className?: string }) {
     const [imgError, setImgError] = useState(false);
 
-    // 1. 查字典
-    const entity = ENTITY_REGISTRY[entityHash];
-
-    // 每次 Hash 改變時，重設錯誤狀態（避免切換頁面時錯誤狀態殘留）
     useEffect(() => {
         setImgError(false);
     }, [entityHash]);
 
-    if (!entity) {
+    const entity = ENTITY_REGISTRY[entityHash];
+
+    // 1. 字典裡沒有這隊：顯示低調方塊
+    if (!entity) return <div className={`flex items-center justify-center bg-[#020617] text-[#00eefc] border border-[#00eefc]/30 rounded ${className}`}>N/A</div>;
+
+    // 2. 圖片讀取失敗 (404)：物理移除 <img>，啟動賽博龐克發光文字裝甲
+    if (imgError) {
         return (
-            <div className={`w-full h-full min-h-[40px] min-w-[40px] flex items-center justify-center rounded-md font-black text-[#00eefc] drop-shadow-[0_0_8px_rgba(0,238,252,0.8)] border border-[#00eefc]/20 bg-[#172031] overflow-hidden ${className}`}>
-                ?
+            <div className={`flex items-center justify-center font-black text-[#00eefc] drop-shadow-[0_0_8px_rgba(0,238,252,0.8)] border border-[#00eefc]/20 bg-[#0f172a] rounded overflow-hidden ${className}`}>
+                <span className="truncate px-1 scale-75 md:scale-100">{entity.shortName}</span>
             </div>
         );
     }
 
-    // 2. 智慧路徑路由 (對應執行長真實的資料夾結構)
+    // 3. 全球賽事智慧路由 (Global Routing)
+    const sportCode = entity.internalCode.split("_")[0];
     const shortNameLower = entity.shortName.toLowerCase();
-    let folder = "intl"; // 預設國際
+    let folder = "fallback";
 
-    // Baseball
-    if (entityHash.includes("MLB")) folder = "mlb";
-    if (entityHash.includes("NPB")) folder = "npb";
-    if (entityHash.includes("KBO")) folder = "kbo";
-    if (entityHash.includes("CPB")) folder = "cpbl";
-
-    // Basketball
-    if (entityHash.includes("NBA")) folder = "nba";
-    if (entityHash.includes("TPB")) folder = "tpbl";
-    if (entityHash.includes("KBL")) folder = "kbl";
-    if (entityHash.includes("BLG")) folder = "bleague";
-    if (entityHash.includes("PLG")) folder = "pleague";
-
-    // Soccer
-    if (entityHash.includes("EPL")) folder = "epl";
-    if (entityHash.includes("ESP")) folder = "esp";
-    if (entityHash.includes("GER")) folder = "ger";
-    if (entityHash.includes("ITA")) folder = "ita";
-    if (entityHash.includes("FRA")) folder = "fra";
+    if (sportCode === "01") {
+        if (entityHash.includes("MLB")) folder = "mlb";
+        else if (entityHash.includes("NPB")) folder = "npb";
+        else if (entityHash.includes("CPB")) folder = "cpbl";
+        else folder = "mlb";
+    } else if (sportCode === "02") {
+        if (entityHash.includes("EPL")) folder = "epl";
+        else if (entityHash.includes("ESP")) folder = "esp";
+        else if (entityHash.includes("ITA")) folder = "ita";
+        else if (entityHash.includes("GER")) folder = "ger";
+        else if (entityHash.includes("FRA")) folder = "fra";
+        else folder = "epl";
+    } else if (sportCode === "03") {
+        if (entityHash.includes("NBA")) folder = "nba";
+        else if (entityHash.includes("TPB")) folder = "tpbl";
+        else if (entityHash.includes("BLG")) folder = "bleague";
+        else folder = "nba";
+    }
 
     const imgSrc = `/logos/${folder}/${shortNameLower}.png`;
 
-    // 3. 【核心修正】如果圖片出錯，直接回傳發光文字，完全不渲染 <img> 標籤
-    if (imgError) {
-        return (
-            <div className={`w-full h-full min-h-[40px] min-w-[40px] flex items-center justify-center rounded-md font-black text-[#00eefc] drop-shadow-[0_0_10px_rgba(0,238,252,0.8)] border border-[#00eefc]/20 bg-[#172031] overflow-hidden ${className}`}>
-                <span className="scale-75 md:scale-100">{entity.shortName}</span>
-            </div>
-        );
-    }
-
-    // 4. 正常渲染圖片：加上 style={{ color: 'transparent' }} 作為雙重保險
+    // 4. 正常渲染
     return (
-        <div className={`relative flex items-center justify-center overflow-hidden ${className}`}>
-            <img
-                src={imgSrc}
-                alt={entity.name}
-                className="max-w-full max-h-full object-contain mix-blend-plus-lighter drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]"
-                style={{ color: 'transparent' }}
-                onError={() => {
-                    console.warn(`[Logo] Failed to load: ${imgSrc}`);
-                    setImgError(true);
-                }}
-            />
-        </div>
+        <img
+            src={imgSrc}
+            alt={entity.shortName}
+            className={`object-contain mix-blend-plus-lighter ${className}`}
+            onError={() => setImgError(true)}
+        />
     );
 }

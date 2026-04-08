@@ -20,9 +20,9 @@ function getMomentumColor(value: number) {
 }
 
 const SPORT_MAP: Record<string, string> = {
-  'MLB': '01',
+  'BASEBALL': '01',
   'SOCCER': '02',
-  'NBA': '03',
+  'BASKETBALL': '03',
   'ALL': 'ALL'
 };
 
@@ -55,7 +55,7 @@ export default async function TeamsAnalyticsPage({
     if (type === 'sport') {
       href = value === 'ALL' ? baseUrl : `${baseUrl}?sport=${value}`;
     } else {
-      href = value === 'ALL' ? `${baseUrl}?sport=SOCCER` : `${baseUrl}?sport=SOCCER&league=${value}`;
+      href = value === 'ALL' ? `${baseUrl}?sport=${sport}` : `${baseUrl}?sport=${sport}&league=${value}`;
     }
 
     return (
@@ -94,12 +94,12 @@ export default async function TeamsAnalyticsPage({
         <div className="flex items-center gap-3 flex-wrap">
           <FilterButton label="ALL" value="ALL" active={sport === 'ALL'} />
           <FilterButton label="SOCCER" value="SOCCER" active={sport === 'SOCCER'} />
-          <FilterButton label="NBA" value="NBA" active={sport === 'NBA'} />
-          <FilterButton label="MLB" value="MLB" active={sport === 'MLB'} />
+          <FilterButton label="BASKETBALL" value="BASKETBALL" active={sport === 'BASKETBALL'} />
+          <FilterButton label="BASEBALL" value="BASEBALL" active={sport === 'BASEBALL'} />
         </div>
       </div>
 
-      {/* SOCCER SUB-NAV */}
+      {/* MATRIX SUB-NAV */}
       {sport === 'SOCCER' && (
         <div className="flex items-center gap-3 flex-wrap animate-in slide-in-from-left-4 duration-500">
           <FilterButton label="ALL COUNTRIES" value="ALL" active={league === 'ALL'} type="league" />
@@ -111,10 +111,29 @@ export default async function TeamsAnalyticsPage({
         </div>
       )}
 
+      {sport === 'BASKETBALL' && (
+        <div className="flex items-center gap-3 flex-wrap animate-in slide-in-from-left-4 duration-500">
+          <FilterButton label="ALL COUNTRIES" value="ALL" active={league === 'ALL'} type="league" />
+          <FilterButton label="NBA" value="NBA" active={league === 'NBA'} type="league" />
+          <FilterButton label="TPBL" value="TPB" active={league === 'TPB'} type="league" />
+          <FilterButton label="B.LEAGUE" value="BLG" active={league === 'BLG'} type="league" />
+        </div>
+      )}
+
+      {sport === 'BASEBALL' && (
+        <div className="flex items-center gap-3 flex-wrap animate-in slide-in-from-left-4 duration-500">
+          <FilterButton label="ALL COUNTRIES" value="ALL" active={league === 'ALL'} type="league" />
+          <FilterButton label="MLB" value="MLB" active={league === 'MLB'} type="league" />
+          <FilterButton label="NPB" value="NPB" active={league === 'NPB'} type="league" />
+          <FilterButton label="CPBL" value="CPB" active={league === 'CPB'} type="league" />
+        </div>
+      )}
+
       {/* GRID SECTION */}
       {(() => {
         const filteredTeams = teams.filter((team: any) => {
-          if (sport === 'SOCCER' && league !== 'ALL') {
+          if (sport !== 'ALL' && league !== 'ALL') {
+            // Use exact string matching or simple includes
             const hash = getHashByCode(team.internal_code);
             return hash.includes(`_${league}`);
           }
