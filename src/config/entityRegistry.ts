@@ -98,30 +98,81 @@ export const ENTITY_REGISTRY: Record<string, { internalCode: string, shortName: 
     "Mpt_EPL19": { internalCode: "02_01_WHU", shortName: "WHU", name: "West Ham United" },
     "Mpt_EPL20": { internalCode: "02_01_WOL", shortName: "WOL", name: "Wolverhampton Wanderers" },
 
-    // --- 西甲 La Liga (ESP) ---
+    // --- 西甲 La Liga (ESP) 完全體 ---
     "Mpt_ESP01": { internalCode: "02_01_RMA", shortName: "RMA", name: "Real Madrid" },
     "Mpt_ESP02": { internalCode: "02_01_BAR", shortName: "BAR", name: "FC Barcelona" },
     "Mpt_ESP03": { internalCode: "02_01_ATM", shortName: "ATM", name: "Atletico Madrid" },
     "Mpt_ESP04": { internalCode: "02_01_RSO", shortName: "RSO", name: "Real Sociedad" },
     "Mpt_ESP05": { internalCode: "02_01_VIL", shortName: "VIL", name: "Villarreal" },
+    "Mpt_ESP06": { internalCode: "02_01_ATH", shortName: "ATH", name: "Athletic Club" },
+    "Mpt_ESP07": { internalCode: "02_01_BET", shortName: "BET", name: "Real Betis" },
+    "Mpt_ESP08": { internalCode: "02_01_SEV", shortName: "SEV", name: "Sevilla FC" },
+    "Mpt_ESP09": { internalCode: "02_01_VAL", shortName: "VAL", name: "Valencia CF" },
+    "Mpt_ESP10": { internalCode: "02_01_GIR", shortName: "GIR", name: "Girona FC" },
+    "Mpt_ESP11": { internalCode: "02_01_OSA", shortName: "OSA", name: "Osasuna" },
+    "Mpt_ESP12": { internalCode: "02_01_CEL", shortName: "CEL", name: "Celta Vigo" },
+    "Mpt_ESP13": { internalCode: "02_01_MLL", shortName: "MLL", name: "Mallorca" },
+    "Mpt_ESP14": { internalCode: "02_01_RAY", shortName: "RAY", name: "Rayo Vallecano" },
+    "Mpt_ESP15": { internalCode: "02_01_GET", shortName: "GET", name: "Getafe CF" },
+    "Mpt_ESP16": { internalCode: "02_01_ALA", shortName: "ALA", name: "Alaves" },
 
-    // --- 義甲 Serie A (ITA) ---
+    // --- 義甲 Serie A (ITA) 完全體 ---
     "Mpt_ITA01": { internalCode: "02_01_INT", shortName: "INT", name: "Inter Milan" },
     "Mpt_ITA02": { internalCode: "02_01_JUV", shortName: "JUV", name: "Juventus" },
     "Mpt_ITA03": { internalCode: "02_01_MIL", shortName: "MIL", name: "AC Milan" },
     "Mpt_ITA04": { internalCode: "02_01_NAP", shortName: "NAP", name: "Napoli" },
     "Mpt_ITA05": { internalCode: "02_01_ROM", shortName: "ROM", name: "AS Roma" },
+    "Mpt_ITA06": { internalCode: "02_01_ATA", shortName: "ATA", name: "Atalanta" },
+    "Mpt_ITA07": { internalCode: "02_01_LAZ", shortName: "LAZ", name: "Lazio" },
+    "Mpt_ITA08": { internalCode: "02_01_FIO", shortName: "FIO", name: "Fiorentina" },
+    "Mpt_ITA09": { internalCode: "02_01_BOL", shortName: "BOL", name: "Bologna" },
+    "Mpt_ITA10": { internalCode: "02_01_TOR", shortName: "TOR", name: "Torino" },
+    "Mpt_ITA11": { internalCode: "02_01_GEN", shortName: "GEN", name: "Genoa" },
+    "Mpt_ITA12": { internalCode: "02_01_MON", shortName: "MON", name: "Monza" },
+    "Mpt_ITA13": { internalCode: "02_01_LEC", shortName: "LEC", name: "Lecce" },
+    "Mpt_ITA14": { internalCode: "02_01_UDI", shortName: "UDI", name: "Udinese" },
+    "Mpt_ITA15": { internalCode: "02_01_VER", shortName: "VER", name: "Hellas Verona" },
+    "Mpt_ITA16": { internalCode: "02_01_CAG", shortName: "CAG", name: "Cagliari" },
+    "Mpt_ITA17": { internalCode: "02_01_PAR", shortName: "PAR", name: "Parma" },
+    "Mpt_ITA18": { internalCode: "02_01_COM", shortName: "COM", name: "Como 1907" },
 
-    // --- 德甲 Bundesliga (GER) ---
+    // --- 德甲 Bundesliga (GER) 完全體 ---
     "Mpt_GER01": { internalCode: "02_01_BAY", shortName: "BAY", name: "Bayern Munich" },
     "Mpt_GER02": { internalCode: "02_01_BVB", shortName: "BVB", name: "Borussia Dortmund" },
     "Mpt_GER03": { internalCode: "02_01_LEV", shortName: "LEV", name: "Bayer Leverkusen" },
     "Mpt_GER04": { internalCode: "02_01_RBL", shortName: "RBL", name: "RB Leipzig" },
-
-    // --- 法甲 Ligue 1 (FRA) ---
+    "Mpt_GER05": { internalCode: "02_01_VFB", shortName: "VFB", name: "VfB Stuttgart" },
+    "Mpt_GER06": { internalCode: "02_01_SGE", shortName: "SGE", name: "Eintracht Frankfurt" },
+    "Mpt_GER07": { internalCode: "02_01_SCF", shortName: "SCF", name: "SC Freiburg" },
+    "Mpt_GER08": { internalCode: "02_01_TSG", shortName: "TSG", name: "TSG Hoffenheim" },
+    "Mpt_GER09": { internalCode: "02_01_HDH", shortName: "HDH", name: "Heidenheim" },
+    "Mpt_GER10": { internalCode: "02_01_SVW", shortName: "SVW", name: "Werder Bremen" },
+    "Mpt_GER11": { internalCode: "02_01_FCA", shortName: "FCA", name: "FC Augsburg" },
+    "Mpt_GER12": { internalCode: "02_01_WOB", shortName: "WOB", name: "VfL Wolfsburg" },
+    "Mpt_GER13": { internalCode: "02_01_M05", shortName: "M05", name: "Mainz 05" },
+    "Mpt_GER14": { internalCode: "02_01_BMG", shortName: "BMG", name: "Borussia Monchengladbach" },
+    "Mpt_GER15": { internalCode: "02_01_FCU", shortName: "FCU", name: "Union Berlin" },
+    "Mpt_GER16": { internalCode: "02_01_STP", shortName: "STP", name: "FC St. Pauli" },
+    // --- 法甲 Ligue 1 (FRA) 完全體 ---
     "Mpt_FRA01": { internalCode: "02_01_PSG", shortName: "PSG", name: "Paris Saint-Germain" },
     "Mpt_FRA02": { internalCode: "02_01_OM", shortName: "OM", name: "Olympique de Marseille" },
     "Mpt_FRA03": { internalCode: "02_01_ASM", shortName: "ASM", name: "AS Monaco" },
+    "Mpt_FRA04": { internalCode: "02_01_LIL", shortName: "LIL", name: "Lille OSC" },
+    "Mpt_FRA05": { internalCode: "02_01_NCE", shortName: "NCE", name: "OGC Nice" },
+    "Mpt_FRA06": { internalCode: "02_01_OL", shortName: "OL", name: "Olympique Lyonnais" },
+    "Mpt_FRA07": { internalCode: "02_01_RCL", shortName: "RCL", name: "RC Lens" },
+    "Mpt_FRA08": { internalCode: "02_01_SBR", shortName: "SBR", name: "Stade Brestois" },
+    "Mpt_FRA09": { internalCode: "02_01_REN", shortName: "REN", name: "Stade Rennais" },
+    "Mpt_FRA10": { internalCode: "02_01_SDR", shortName: "SDR", name: "Stade de Reims" },
+    "Mpt_FRA11": { internalCode: "02_01_TOU", shortName: "TOU", name: "Toulouse FC" },
+    "Mpt_FRA12": { internalCode: "02_01_STR", shortName: "STR", name: "RC Strasbourg" },
+    "Mpt_FRA13": { internalCode: "02_01_MON", shortName: "MON", name: "Montpellier HSC" },
+    "Mpt_FRA14": { internalCode: "02_01_NAN", shortName: "NAN", name: "FC Nantes" },
+    "Mpt_FRA15": { internalCode: "02_01_LEH", shortName: "LEH", name: "Le Havre AC" },
+    "Mpt_FRA16": { internalCode: "02_01_AJA", shortName: "AJA", name: "AJ Auxerre" },
+    "Mpt_FRA17": { internalCode: "02_01_SCO", shortName: "SCO", name: "Angers SCO" },
+    "Mpt_FRA18": { internalCode: "02_01_STE", shortName: "STE", name: "AS Saint-Étienne" },
+
 };
 
 // Reverse lookup for V2 DB binding: internal_code -> hashId

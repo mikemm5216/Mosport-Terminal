@@ -50,12 +50,12 @@ export default function EntityLogo({ entityHash, className = "" }: { entityHash:
 
     const imgSrc = `/logos/${folder}/${shortNameLower}.png`;
 
-    // 4. 正常渲染
+    /// 4. 正常渲染 (加入純白微光陰影，拯救黑色 Logo)
     return (
         <img
             src={imgSrc}
             alt={entity.shortName}
-            className={`object-contain mix-blend-plus-lighter ${className}`}
+            className={`object-contain drop-shadow-[0_0_3px_rgba(255,255,255,0.6)] ${className}`}
             onError={() => setImgError(true)}
         />
     );
