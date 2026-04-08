@@ -48,7 +48,9 @@ export default function EntityLogo({ entityHash, className = "" }: { entityHash:
         else folder = "nba";
     }
 
-    const imgSrc = `/logos/${folder}/${shortNameLower}.png`;
+    // 🔥 關鍵修復：從字典裡抓真正的檔名
+    const fileName = entity?.shortName?.toLowerCase() || entityHash?.toLowerCase();
+    const imgSrc = `/logos/${folder}/${fileName}.png`;
 
     /// 4. 正常渲染 (加入純白微光陰影，拯救黑色 Logo)
     return (

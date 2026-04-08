@@ -95,7 +95,7 @@ export default function MatchCard({ match }: { match: any }) {
     ) || shortId;
   };
 
-  const leagueDisplay = match?.league === "02" ? "BUNDESLIGA" : match?.league || "PRO LEAGUE";
+  const leagueDisplay = match?.league === "02" || match?.sport === "02" ? "BUNDESLIGA" : (match?.league || "PRO LEAGUE");
 
 
   return (
