@@ -21,11 +21,11 @@ export default function MatchExplorer() {
     <div>
       <h1 className="text-3xl font-bold mb-8">Match Explorer</h1>
       {loading ? (
-        <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto">
+        <div className="h-[85vh] overflow-y-scroll scrollbar-hide px-4 py-10 flex flex-col gap-12">
           <SkeletonLoader /><SkeletonLoader /><SkeletonLoader />
         </div>
       ) : (
-        <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto">
+        <div className="h-[85vh] overflow-y-scroll scrollbar-hide px-4 py-10 flex flex-col gap-12">
           {matches.map(m => (
             <MatchCard key={m.match_id} match={m} />
           ))}

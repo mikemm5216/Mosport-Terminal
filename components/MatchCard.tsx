@@ -89,7 +89,7 @@ export default function MatchCard({ match }: { match: any }) {
 
 
   return (
-    <Link href={`/match/${match?.match_id}`} className="block w-full relative group">
+    <Link href={`/match/${match?.match_id}`} className="block w-full mb-10 relative group">
 
       {/* Date floating badge (optional design touch) */}
       <div className="absolute -top-3 left-6 z-10 px-3 py-1 bg-slate-950 border border-slate-700/50 rounded-full text-[10px] font-mono text-slate-400 group-hover:border-cyan-500/30 transition-colors">
@@ -97,20 +97,7 @@ export default function MatchCard({ match }: { match: any }) {
       </div>
 
       <div
-        className="
-          bg-slate-900 
-          border border-slate-700 
-          rounded-xl sm:rounded-2xl 
-          pt-8 sm:pt-10 p-4 sm:p-6 md:p-8
-          transition-all 
-          duration-300 
-          ease-out
-          hover:-translate-y-2 
-          hover:shadow-2xl 
-          hover:shadow-slate-900/50
-          hover:border-slate-500
-          cursor-pointer
-        "
+        className="min-h-[160px] w-full bg-slate-900/50 border-2 border-cyan-500/20 rounded-2xl p-8 transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-900/50 hover:border-cyan-400 cursor-pointer"
       >
         {/* Top Info Bar */}
         <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -134,10 +121,10 @@ export default function MatchCard({ match }: { match: any }) {
               <EntityLogo entityHash={match?.home_team_id} className="w-full h-full object-contain mix-blend-plus-lighter" />
             </div>
             <div className="flex flex-col items-start min-w-0">
-              <span className="text-lg md:text-2xl lg:text-3xl font-extrabold text-white text-left leading-tight whitespace-normal break-words">
+              <span className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white text-left leading-tight whitespace-normal break-words">
                 {homeTeamName}
               </span>
-              <span className="text-[10px] sm:text-xs text-slate-500 mt-1 uppercase tracking-widest text-left break-words">{homeCity}</span>
+              <span className="text-[10px] sm:text-xs text-slate-500 mt-2 uppercase tracking-widest text-left break-words">{homeCity}</span>
             </div>
           </div>
 
@@ -145,7 +132,7 @@ export default function MatchCard({ match }: { match: any }) {
           <div className="flex flex-col items-center px-4 shrink-0 justify-center">
             {match?.status === "COMPLETED" || match?.status === "post" ? (
               <div className="flex flex-col items-center">
-                <div className="text-3xl md:text-4xl font-black text-white font-mono tracking-tighter">
+                <div className="text-4xl md:text-5xl lg:text-6xl font-black text-white font-mono tracking-tighter">
                   {match.home_score ?? 0} <span className="text-slate-600 px-1">-</span> {match.away_score ?? 0}
                 </div>
                 <span className="text-[9px] text-emerald-400 mt-1 uppercase tracking-widest font-black">FINAL</span>
@@ -160,10 +147,10 @@ export default function MatchCard({ match }: { match: any }) {
           {/* Right Team */}
           <div className="flex flex-row items-center flex-1 justify-end gap-4 h-full">
             <div className="flex flex-col items-end min-w-0">
-              <span className="text-lg md:text-2xl lg:text-3xl font-extrabold text-white text-right leading-tight whitespace-normal break-words">
+              <span className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white text-right leading-tight whitespace-normal break-words">
                 {awayTeamName}
               </span>
-              <span className="text-[10px] sm:text-xs text-slate-500 mt-1 uppercase tracking-widest text-right break-words">{awayCity}</span>
+              <span className="text-[10px] sm:text-xs text-slate-500 mt-2 uppercase tracking-widest text-right break-words">{awayCity}</span>
             </div>
             <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center shrink-0 shadow-lg overflow-hidden bg-slate-800 border-2 border-slate-700/50">
               <EntityLogo entityHash={match?.away_team_id} className="w-full h-full object-contain mix-blend-plus-lighter" />
