@@ -22,22 +22,29 @@ export default function EntityLogo({ entityHash, className = "" }: { entityHash:
         );
     }
 
-    // 2. 解析路徑
-    const sportCode = entity.internalCode.split("_")[0];
+    // 2. 智慧路徑路由 (對應執行長真實的資料夾結構)
     const shortNameLower = entity.shortName.toLowerCase();
+    let folder = "intl"; // 預設國際
 
-    let folder = "epl";
-    if (sportCode === "01") folder = "mlb";
-    if (sportCode === "03") folder = "nba";
+    // Baseball
+    if (entityHash.includes("MLB")) folder = "mlb";
+    if (entityHash.includes("NPB")) folder = "npb";
+    if (entityHash.includes("KBO")) folder = "kbo";
+    if (entityHash.includes("CPB")) folder = "cpbl";
 
-    // 足球專屬精準導航：從 Hash ID 判斷聯賽自定義資料夾
-    if (sportCode === "02") {
-        if (entityHash.includes("EPL")) folder = "epl";
-        if (entityHash.includes("ESP")) folder = "esp";
-        if (entityHash.includes("GER")) folder = "ger";
-        if (entityHash.includes("ITA")) folder = "ita";
-        if (entityHash.includes("FRA")) folder = "fra";
-    }
+    // Basketball
+    if (entityHash.includes("NBA")) folder = "nba";
+    if (entityHash.includes("TPB")) folder = "tpbl";
+    if (entityHash.includes("KBL")) folder = "kbl";
+    if (entityHash.includes("BLG")) folder = "bleague";
+    if (entityHash.includes("PLG")) folder = "pleague";
+
+    // Soccer
+    if (entityHash.includes("EPL")) folder = "epl";
+    if (entityHash.includes("ESP")) folder = "esp";
+    if (entityHash.includes("GER")) folder = "ger";
+    if (entityHash.includes("ITA")) folder = "ita";
+    if (entityHash.includes("FRA")) folder = "fra";
 
     const imgSrc = `/logos/${folder}/${shortNameLower}.png`;
 

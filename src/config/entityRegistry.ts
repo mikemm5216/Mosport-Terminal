@@ -31,6 +31,11 @@ export const ENTITY_REGISTRY: Record<string, { internalCode: string, shortName: 
     "Mpt_MLB28": { "internalCode": "01_01_LAD", "shortName": "LAD", "name": "Los Angeles Dodgers" },
     "Mpt_MLB29": { "internalCode": "01_01_TOR", "shortName": "TOR", "name": "Toronto Blue Jays" },
     "Mpt_MLB30": { "internalCode": "01_01_WSH", "shortName": "WSH", "name": "Washington Nationals" },
+
+    // --- 亞洲棒球 (NPB, CPBL) ---
+    "Mpt_NPB01": { internalCode: "01_01_YOM", shortName: "YOM", name: "Yomiuri Giants" },
+    "Mpt_CPB01": { internalCode: "01_02_BRO", shortName: "BRO", name: "CTBC Brothers" },
+
     "Mpt_NBA01": { "internalCode": "03_01_ATL", "shortName": "ATL", "name": "Atlanta Hawks" },
     "Mpt_NBA02": { "internalCode": "03_01_BOS", "shortName": "BOS", "name": "Boston Celtics" },
     "Mpt_NBA03": { "internalCode": "03_01_BKN", "shortName": "BKN", "name": "Brooklyn Nets" },
@@ -61,6 +66,10 @@ export const ENTITY_REGISTRY: Record<string, { internalCode: string, shortName: 
     "Mpt_NBA28": { "internalCode": "03_01_TOR", "shortName": "TOR", "name": "Toronto Raptors" },
     "Mpt_NBA29": { "internalCode": "03_01_UTA", "shortName": "UTA", "name": "Utah Jazz" },
     "Mpt_NBA30": { "internalCode": "03_01_WAS", "shortName": "WAS", "name": "Washington Wizards" },
+
+    // --- 亞洲籃球 (TPBL, B.League) ---
+    "Mpt_TPB01": { internalCode: "03_02_DEA", shortName: "DEA", name: "New Taipei CTBC DEA" },
+    "Mpt_BLG01": { internalCode: "03_01_ALV", shortName: "ALV", name: "Alvark Tokyo" },
 
     // ==========================================
     // ⚽️ SOCCER - EUROPE TOP 5 (SPORT: 02)
