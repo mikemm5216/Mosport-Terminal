@@ -24,7 +24,7 @@ export default function EntityLogo({ entityHash, className = "" }: { entityHash:
         );
     }
 
-    // 3. 全球賽事智慧路由 (Global Routing)
+    // 3. 全球賽事智慧路由 (Global Matrix Routing)
     const sportCode = entity.internalCode.split("_")[0];
     const shortNameLower = entity.shortName.toLowerCase();
     let folder = "fallback";
