@@ -152,61 +152,55 @@ export default async function TeamsAnalyticsPage({
         }
 
         return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredTeams.map((team: any) => {
               const logs = team.stats_logs || [];
-              // Extract latest values for key metrics
               const accuracy = logs.find((l: any) => l.metric_type === 'ACCURACY')?.value || 0;
               const momentum = logs.find((l: any) => l.metric_type === 'MOMENTUM')?.value || 0;
               const winRate = logs.find((l: any) => l.metric_type === 'WIN_RATE')?.value || 0;
-
               const correctHash = getHashByCode(team.internal_code);
 
               return (
                 <div
                   key={team.public_uuid}
-                  className={`bg-[#020617] border rounded-[2rem] p-6 hover:border-cyan-500/50 transition-all duration-500 group relative overflow-hidden flex flex-col justify-between h-[340px] ${getMomentumColor(momentum)}`}
+                  className={`bg-slate-950 border border-slate-800 rounded p-4 hover:bg-slate-900 hover:border-slate-600 transition-colors group flex flex-col justify-between`}
                 >
-                  {/* SCAN-LINE OVERLAY */}
-                  <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
-
                   {/* LOGO AREA */}
-                  <div className="flex items-center justify-between mb-8 relative z-10">
-                    <div className="w-14 h-14 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-center p-2 relative">
-                      <div className="absolute inset-0 bg-primary-container/5 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 bg-slate-900 rounded border border-slate-800 flex items-center justify-center p-1.5">
                       <EntityLogo
                         entityHash={correctHash}
-                        className="w-full h-full object-contain mix-blend-plus-lighter opacity-80 group-hover:opacity-100 transition-opacity"
+                        className="w-full h-full object-contain filter grayscale group-hover:grayscale-0 transition-all opacity-80 group-hover:opacity-100"
                       />
                     </div>
-                    <div className="text-right">
-                      <span className="block text-2xl font-headline font-black text-white italic tracking-tighter uppercase leading-none group-hover:text-primary-container transition-colors drop-shadow-[0_0_8px_rgba(0,238,252,0.3)]">
+                    <div>
+                      <span className="block text-xl font-black text-white italic tracking-widest uppercase leading-none text-slate-200">
                         {team.team_code}
                       </span>
-                      <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mt-1 italic block overflow-hidden text-ellipsis whitespace-nowrap max-w-[120px]">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mt-1 block">
                         {team.name}
                       </span>
                     </div>
                   </div>
 
                   {/* METRICS */}
-                  <div className="space-y-4 flex-1 relative z-10">
-                    <MiniMetric label="Accuracy" value={accuracy} color="text-emerald-400" />
-                    <MiniMetric label="Momentum" value={momentum} color="text-primary-container" />
-                    <MiniMetric label="Win Rate" value={winRate} color="text-rose-400" />
+                  <div className="space-y-3 pb-4">
+                    <MiniMetric label="Accuracy" value={accuracy} color="text-slate-300" />
+                    <MiniMetric label="Momentum" value={momentum} color="text-slate-300" />
+                    <MiniMetric label="Win Rate" value={winRate} color="text-slate-300" />
                   </div>
 
                   {/* FOOTER */}
-                  <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center relative z-10">
-                    <div className="flex gap-1.5 items-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
-                      <span className="text-[8px] font-black text-emerald-500/50 uppercase tracking-widest">Live Sync</span>
+                  <div className="mt-auto pt-3 border-t border-slate-800 flex justify-between items-center">
+                    <div className="flex gap-2 items-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active</span>
                     </div>
                     <Link
                       href={`/teams/${team.public_uuid}`}
-                      className="p-2 bg-white/5 rounded-lg border border-white/5 hover:border-primary-container transition-all hover:scale-110"
+                      className="px-3 py-1 bg-slate-900 border border-slate-700/50 rounded-sm text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-white"
                     >
-                      <Activity size={12} className="text-slate-500 group-hover:text-primary-container" />
+                      ENTER VAULT <Activity size={10} className="inline ml-1" />
                     </Link>
                   </div>
                 </div>

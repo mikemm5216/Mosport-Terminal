@@ -1,7 +1,9 @@
 "use client"
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import EntityLogo from '@/src/components/EntityLogo';
+import { ENTITY_REGISTRY } from "@/src/config/entityRegistry";
 
 // Narrative theme types for dynamic coloring
 export type NarrativeTheme = 'energy' | 'drama' | 'record' | 'standard';
@@ -66,11 +68,11 @@ export default function MatchCard({ match }: { match: any }) {
     return { homeBattery: 50, awayBattery: 50 };
   }, [match]);
 
-  const homeTeamName = match?.home_team?.short_name || match?.home_team?.team_name || match?.home_team?.full_name || "Home Team";
-  const awayTeamName = match?.away_team?.short_name || match?.away_team?.team_name || match?.away_team?.full_name || "Away Team";
+  const homeTeamName = (match?.home_team_id && ENTITY_REGISTRY[match?.home_team_id]?.name) || match?.home_team?.short_name || match?.home_team?.team_name || match?.home_team?.full_name || match?.homeTeamName || "Home Team";
+  const awayTeamName = (match?.away_team_id && ENTITY_REGISTRY[match?.away_team_id]?.name) || match?.away_team?.short_name || match?.away_team?.team_name || match?.away_team?.full_name || match?.awayTeamName || "Away Team";
 
-  const homeCity = match?.home_team?.home_city || "City";
-  const awayCity = match?.away_team?.home_city || "City";
+  const homeCity = (match?.home_team_id && ENTITY_REGISTRY[match?.home_team_id]?.shortName) || match?.home_team?.home_city || "City";
+  const awayCity = (match?.away_team_id && ENTITY_REGISTRY[match?.away_team_id]?.shortName) || match?.away_team?.home_city || "City";
 
   const homeInitials = getTeamInitials(homeTeamName);
   const awayInitials = getTeamInitials(awayTeamName);
@@ -81,27 +83,13 @@ export default function MatchCard({ match }: { match: any }) {
   const dateStr = matchDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
 
   // 取得敘事引擎產生的結論
-  const narrativeText = match?.narrative || "System evaluating pre-match intelligence and physical factors...";
+  const narrativeText = match?.narrative || "System evaluating pre-match intelligence and physical factors... Node connection verified.";
   const narrativeType = match?.narrative_type || "standard";
   const theme = narrativeThemes[narrativeType] || narrativeThemes.standard;
 
 
-  const renderLogo = (team: any, initials: string) => {
-    const league = match?.league?.league_name?.toUpperCase() || "MLB"; // Fallback to MLB if unknown
-    const code = `${league}_${team?.short_name || initials}`;
-
-    return (
-      <div className="w-full h-full">
-        <EntityLogo
-          entityHash={team?.short_name === 'LAD' ? 'Mpt_A1X9' : team?.short_name === 'NYY' ? 'Mpt_B2Y8' : team?.short_name === 'ARS' ? 'Mpt_C3Z7' : 'UNKNOWN'}
-          className="w-full h-full object-contain"
-        />
-      </div>
-    );
-  };
-
   return (
-    <div className="w-full max-w-[90vw] sm:max-w-md md:max-w-lg lg:max-w-xl relative group">
+    <Link href={`/match/${match?.match_id}`} className="block w-full max-w-[90vw] sm:max-w-md md:max-w-lg lg:max-w-xl relative group">
 
       {/* Date floating badge (optional design touch) */}
       <div className="absolute -top-3 left-6 z-10 px-3 py-1 bg-slate-950 border border-slate-700/50 rounded-full text-[10px] font-mono text-slate-400 group-hover:border-cyan-500/30 transition-colors">
@@ -126,8 +114,8 @@ export default function MatchCard({ match }: { match: any }) {
       >
         {/* Top Info Bar */}
         <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <span className="text-sm sm:text-base text-slate-400 uppercase tracking-widest font-medium truncate pr-4">
-            {match?.league?.league_name || "PRO LEAGUE"}
+          <span className="text-sm sm:text-base text-slate-400 uppercase tracking-widest font-medium pr-4">
+            {match?.sport || match?.league?.league_name || "PRO LEAGUE"}
           </span>
           <span className="text-[10px] sm:text-xs text-slate-400 font-mono shrink-0 px-2 py-0.5 bg-slate-800 rounded">
             {match?.status === "COMPLETED" ? (
@@ -141,14 +129,14 @@ export default function MatchCard({ match }: { match: any }) {
         {/* Teams VS Section */}
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           {/* Left Team */}
-          <div className="flex flex-col items-center flex-1 w-0">
+          <div className="flex flex-col items-center flex-1">
             <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mb-2 shadow-lg overflow-hidden bg-slate-800 border-2 border-slate-700/50 text-slate-300 font-extrabold text-xl">
-              {renderLogo(match?.home_team, homeInitials)}
+              <EntityLogo entityHash={match?.home_team_id} className="w-full h-full object-contain mix-blend-plus-lighter" />
             </div>
-            <span className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white truncate w-full text-center">
+            <span className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white text-center leading-tight">
               {homeTeamName}
             </span>
-            <span className="text-[10px] sm:text-xs text-slate-500 mt-1 truncate max-w-full">{homeCity}</span>
+            <span className="text-[10px] sm:text-xs text-slate-500 mt-1 uppercase tracking-widest text-center">{homeCity}</span>
           </div>
 
           {/* VS / Score Badge (Patch 17.15) */}
@@ -168,14 +156,14 @@ export default function MatchCard({ match }: { match: any }) {
           </div>
 
           {/* Right Team */}
-          <div className="flex flex-col items-center flex-1 w-0">
+          <div className="flex flex-col items-center flex-1">
             <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mb-2 shadow-lg overflow-hidden bg-slate-800 border-2 border-slate-700/50 text-slate-300 font-extrabold text-xl">
-              {renderLogo(match?.away_team, awayInitials)}
+              <EntityLogo entityHash={match?.away_team_id} className="w-full h-full object-contain mix-blend-plus-lighter" />
             </div>
-            <span className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white truncate w-full text-center">
+            <span className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white text-center leading-tight">
               {awayTeamName}
             </span>
-            <span className="text-[10px] sm:text-xs text-slate-500 mt-1 truncate max-w-full">{awayCity}</span>
+            <span className="text-[10px] sm:text-xs text-slate-500 mt-1 uppercase tracking-widest text-center">{awayCity}</span>
           </div>
         </div>
 
@@ -262,6 +250,6 @@ export default function MatchCard({ match }: { match: any }) {
           </span>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
