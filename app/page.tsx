@@ -94,6 +94,11 @@ export default function Home() {
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] italic">Live Alpha Feed // Quantitative OS</span>
           </div>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-[12px] font-black text-pink-500 uppercase tracking-widest px-2 py-1 border border-pink-500 rounded bg-pink-500/10 shadow-[0_0_15px_rgba(236,72,153,0.5)] animate-pulse">
+              [ HOT DATA: LAST 24H ]
+            </span>
+          </div>
           <h1 className="text-2xl md:text-4xl font-black text-white italic uppercase tracking-[0.05em] leading-none flex items-baseline gap-2">
             MOSPORT <span className="text-cyan-400">TERMINAL</span>
             <span className="text-[10px] text-slate-700 font-bold tracking-widest ml-auto hidden md:block">ALPHA QUANT FEED</span>

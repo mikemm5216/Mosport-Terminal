@@ -3,8 +3,13 @@ import { db } from '../../../lib/db';
 
 export async function GET() {
   try {
-    const upcoming = await db.matches.findMany({
-      where: { status: 'scheduled' },
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const upcoming = await db.match.findMany({
+      where: {
+        match_date: {
+          gte: twentyFourHoursAgo, // ONLY show matches within 24 hours
+        }
+      },
       include: {
         home_team: true,
         away_team: true,
@@ -13,18 +18,18 @@ export async function GET() {
           take: 1
         }
       },
-      orderBy: { match_date: 'asc' },
+      orderBy: { match_date: 'desc' },
       take: 20
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       upcoming: upcoming || [],
-      matches: upcoming || [] 
+      matches: upcoming || []
     });
   } catch (error: any) {
-    return NextResponse.json({ 
-      success: false, 
+    return NextResponse.json({
+      success: false,
       upcoming: [],
       matches: []
     });

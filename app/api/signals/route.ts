@@ -123,12 +123,16 @@ async function processLeague(
 
 export async function GET() {
   try {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const contexts = await (prisma as any).context.findMany({
       include: {
         stats_logs: {
           take: 1,
           orderBy: { timestamp: 'desc' },
-          where: { metric_type: 'EV' }
+          where: {
+            metric_type: 'EV',
+            timestamp: { gte: twentyFourHoursAgo }
+          }
         }
       }
     });
