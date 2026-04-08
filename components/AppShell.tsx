@@ -44,6 +44,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em]">Navigation</p>
                         <nav className="space-y-2">
                             <SidebarLink href="/" icon={<Activity size={16} />} label="Radar" active={pathname === '/'} onClick={() => setIsSidebarOpen(false)} />
+                            <SidebarLink href="/matches" icon={<LayoutDashboard size={16} />} label="War Room" active={pathname.startsWith('/matches')} onClick={() => setIsSidebarOpen(false)} />
                             <SidebarLink href="/teams" icon={<Shield size={16} />} label="Vault" active={pathname.startsWith('/teams')} onClick={() => setIsSidebarOpen(false)} />
                             <SidebarLink href="/reports" icon={<TrendingUp size={16} />} label="Reports" active={pathname.startsWith('/reports')} onClick={() => setIsSidebarOpen(false)} />
                         </nav>

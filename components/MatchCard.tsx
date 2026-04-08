@@ -89,7 +89,7 @@ export default function MatchCard({ match }: { match: any }) {
 
 
   return (
-    <Link href={`/match/${match?.match_id}`} className="block w-full max-w-[90vw] sm:max-w-md md:max-w-lg lg:max-w-xl relative group">
+    <Link href={`/match/${match?.match_id}`} className="block w-full relative group">
 
       {/* Date floating badge (optional design touch) */}
       <div className="absolute -top-3 left-6 z-10 px-3 py-1 bg-slate-950 border border-slate-700/50 rounded-full text-[10px] font-mono text-slate-400 group-hover:border-cyan-500/30 transition-colors">
