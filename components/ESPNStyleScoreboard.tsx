@@ -81,11 +81,11 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
     }
 
     return (
-        <div className="w-full max-w-7xl mx-auto flex flex-col space-y-1.5 px-2 md:px-0">
+        <div className="w-full max-w-7xl mx-auto flex flex-col space-y-1.5 px-2 md:px-0 h-[800px] overflow-y-auto pr-2 custom-scrollbar">
             {matches.map((match, idx) => {
                 const uniqueId = match.match_id || match.id || `match-${idx}`;
                 const isExpanded = expandedId === uniqueId;
-                const league = match.league as string | undefined;
+                const league = match.league || match.sport;
                 const theme = getTheme(league);
                 const isLive = match.status === 'IN_PLAY' || match.status === 'live' || match.status === 'LIVE';
                 const winProb = match.predictedHomeWinRate ?? -1.0;
@@ -103,7 +103,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                             {/* 1. TIME / STATUS (LEFT) — Phase 3: Live Pulse */}
                             <div className="flex flex-col items-start min-w-[60px] md:min-w-[80px]">
                                 <span className="text-[10px] md:text-sm font-black text-slate-500 uppercase tracking-tighter tabular-nums leading-none mb-1">
-                                    {match.time || (match.start_time ? new Date(match.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "TBD")}
+                                    {match.time || (match.start_time || match.match_date ? new Date(match.start_time || match.match_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "TBD")}
                                 </span>
                                 <span className="flex items-center gap-1">
                                     {/* ── Phase 3: Red pulse dot for IN_PLAY ── */}
@@ -121,14 +121,14 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                 {/* HOME TEAM (RIGHT) - Patch 17.20 Typography Downscale */}
                                 <div className="text-right flex items-center justify-end overflow-hidden pr-2 md:pr-4">
                                     <span className="text-lg md:text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter whitespace-normal break-words leading-none">
-                                        {match.home_team?.short_name}
+                                        {match.home_team?.short_name || match.homeTeamName || match.home_team_id}
                                     </span>
                                 </div>
 
                                 {/* HOME LOGO */}
                                 <div className="justify-self-center">
                                     <EntityLogo
-                                        entityHash={match.home_team_hash}
+                                        entityHash={match.home_team_hash || match.home_team_id}
                                         className="w-16 h-16 md:w-20 md:h-20 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                                     />
                                 </div>
@@ -148,7 +148,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                         </div>
                                     ) : (
                                         <div className="text-sm md:text-2xl font-black text-slate-400 font-mono tracking-tight tabular-nums bg-slate-900/50 px-2 md:px-4 py-1 rounded">
-                                            {match.time || (match.start_time ? new Date(match.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "TBD")}
+                                            {match.time || (match.start_time || match.match_date ? new Date(match.start_time || match.match_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "TBD")}
                                         </div>
                                     )}
                                 </div>
@@ -156,7 +156,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                 {/* AWAY LOGO */}
                                 <div className="justify-self-center">
                                     <EntityLogo
-                                        entityHash={match.away_team_hash}
+                                        entityHash={match.away_team_hash || match.away_team_id}
                                         className="w-16 h-16 md:w-20 md:h-20 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
                                     />
                                 </div>
@@ -164,7 +164,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                 {/* AWAY TEAM (LEFT) */}
                                 <div className="text-left flex items-center justify-start overflow-hidden pl-2 md:pl-4">
                                     <span className="text-lg md:text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter whitespace-normal break-words leading-none">
-                                        {match.away_team?.short_name}
+                                        {match.away_team?.short_name || match.awayTeamName || match.away_team_id}
                                     </span>
                                 </div>
                             </div>
@@ -202,7 +202,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                                 FINAL SCORE LOCKED // AI PREDICTION ACCURACY TABULATED
                                             </span>
                                         </div>
-                                        <Link href={`/matches/${uniqueId}`} className="mt-4 px-6 py-2 bg-slate-900 border border-slate-800 rounded-sm hover:bg-slate-800 transition-all">
+                                        <Link href={`/match/${uniqueId}`} className="mt-4 px-6 py-2 bg-slate-900 border border-slate-800 rounded-sm hover:bg-slate-800 transition-all">
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">VIEW SETTLEMENT DETAILS</span>
                                         </Link>
                                     </div>
@@ -227,7 +227,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                             ) : typeof winProb === 'number' && !isNaN(winProb) ? (
                                                 <div className="space-y-3">
                                                     <div className="flex justify-between items-center px-1">
-                                                        <span className={`text-[10px] md:text-xs font-black italic uppercase tracking-widest ${theme.badge}`}>{match.home_team?.short_name} Alpha</span>
+                                                        <span className={`text-[10px] md:text-xs font-black italic uppercase tracking-widest ${theme.badge}`}>{match.home_team?.short_name || match.homeTeamName} Alpha</span>
                                                         <span className="text-cyan-400 font-mono text-xs md:text-sm font-black">{(winProb * 100).toFixed(0)}%</span>
                                                     </div>
                                                     <div className="h-4 md:h-6 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-800 shadow-inner flex">
@@ -259,7 +259,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                                     {/* Home Key Player */}
                                                     <div className="border-l-2 border-current pl-3" style={{ color: 'inherit' }}>
                                                         <div className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-tighter leading-none mb-1">
-                                                            #{match.home_key_player?.jersey_number || '—'} // {match.home_team?.short_name}
+                                                            #{match.home_key_player?.jersey_number || '—'} // {match.home_team?.short_name || match.homeTeamName}
                                                         </div>
                                                         <div className="text-base md:text-lg font-black text-white italic uppercase leading-none truncate">
                                                             {match.home_key_player?.player_name || '[ GATHERING ]'}
@@ -268,7 +268,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                                     {/* Away Key Player */}
                                                     <div className="border-l-2 border-slate-800 pl-3">
                                                         <div className="text-[9px] md:text-[10px] font-black text-slate-600 uppercase tracking-tighter leading-none mb-1">
-                                                            #{match.away_key_player?.jersey_number || '—'} // {match.away_team?.short_name}
+                                                            #{match.away_key_player?.jersey_number || '—'} // {match.away_team?.short_name || match.awayTeamName}
                                                         </div>
                                                         <div className="text-base md:text-lg font-black text-slate-400 italic uppercase leading-none truncate">
                                                             {match.away_key_player?.player_name || '[ GATHERING ]'}
@@ -276,7 +276,7 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
                                                     </div>
                                                 </div>
 
-                                                <Link href={`/matches/${uniqueId}`} className="flex items-center justify-center gap-2 w-full py-2 bg-slate-900 border border-slate-800 rounded-sm hover:bg-slate-800 transition-all group/btn mt-2">
+                                                <Link href={`/match/${uniqueId}`} className="flex items-center justify-center gap-2 w-full py-2 bg-slate-900 border border-slate-800 rounded-sm hover:bg-slate-800 transition-all group/btn mt-2">
                                                     <span className="text-[10px] md:text-[11px] font-black text-white uppercase tracking-[0.3em] group-hover/btn:tracking-[0.4em] transition-all">ENTER WAR ROOM ⚔️</span>
                                                 </Link>
                                             </div>

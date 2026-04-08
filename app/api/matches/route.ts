@@ -1,33 +1,22 @@
 import { NextResponse } from 'next/server';
-import { db } from '../../../lib/db';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const upcoming = await db.match.findMany({
-      where: {
-        match_date: {
-          gte: twentyFourHoursAgo, // ONLY show matches within 24 hours
-        }
-      },
-      include: {
-        home_team: true,
-        away_team: true,
-        signals: {
-          orderBy: { created_at: 'desc' },
-          take: 1
-        }
-      },
-      orderBy: { match_date: 'desc' },
-      take: 20
-    });
+    // Fetch all hot matches directly from DB without any limit/take constraint
+    const matches: any[] = await prisma.$queryRaw`
+      SELECT * FROM "Matches" 
+      WHERE match_date >= NOW() - INTERVAL '24 hours'
+      ORDER BY match_date DESC
+    `;
 
     return NextResponse.json({
       success: true,
-      upcoming: upcoming || [],
-      matches: upcoming || []
+      upcoming: matches || [],
+      matches: matches || []
     });
   } catch (error: any) {
+    console.error("API Error:", error);
     return NextResponse.json({
       success: false,
       upcoming: [],
