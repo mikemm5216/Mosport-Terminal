@@ -87,6 +87,16 @@ export default function MatchCard({ match }: { match: any }) {
   const narrativeType = match?.narrative_type || "standard";
   const theme = narrativeThemes[narrativeType] || narrativeThemes.standard;
 
+  // 1. 建立一個智慧 ID 轉換器
+  const getFullId = (shortId: string) => {
+    if (!shortId) return "";
+    return Object.keys(ENTITY_REGISTRY).find(
+      key => ENTITY_REGISTRY[key].shortName === shortId
+    ) || shortId;
+  };
+
+  const leagueDisplay = match?.league === "02" ? "BUNDESLIGA" : match?.league || "PRO LEAGUE";
+
 
   return (
     <Link href={`/match/${match?.match_id}`} className="block w-full mb-10 relative group">
@@ -102,7 +112,7 @@ export default function MatchCard({ match }: { match: any }) {
         {/* Top Info Bar */}
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <span className="text-sm sm:text-base text-slate-400 uppercase tracking-widest font-medium pr-4">
-            {(match?.league === "02" ? "BUNDESLIGA" : match?.league || "PRO LEAGUE")}
+            {leagueDisplay}
           </span>
           <span className="text-[10px] sm:text-xs text-slate-400 font-mono shrink-0 px-2 py-0.5 bg-slate-800 rounded">
             {match?.status === "COMPLETED" ? (
@@ -118,7 +128,7 @@ export default function MatchCard({ match }: { match: any }) {
           {/* Left Team */}
           <div className="flex flex-row items-center flex-1 justify-start gap-4 h-full">
             <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center shrink-0 shadow-lg overflow-hidden bg-slate-800 border-2 border-slate-700/50">
-              <EntityLogo entityHash={Object.keys(ENTITY_REGISTRY).find(key => ENTITY_REGISTRY[key].shortName === match.home_team_id) || match.home_team_id} className="w-full h-full object-contain mix-blend-plus-lighter" />
+              <EntityLogo entityHash={getFullId(match?.home_team_id)} className="w-full h-full object-contain mix-blend-plus-lighter" />
             </div>
             <div className="flex flex-col items-start min-w-0">
               <span className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white text-left leading-tight whitespace-normal break-words">
@@ -153,7 +163,7 @@ export default function MatchCard({ match }: { match: any }) {
               <span className="text-[10px] sm:text-xs text-slate-500 mt-2 uppercase tracking-widest text-right break-words">{awayCity}</span>
             </div>
             <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center shrink-0 shadow-lg overflow-hidden bg-slate-800 border-2 border-slate-700/50">
-              <EntityLogo entityHash={Object.keys(ENTITY_REGISTRY).find(key => ENTITY_REGISTRY[key].shortName === match.away_team_id) || match.away_team_id} className="w-full h-full object-contain mix-blend-plus-lighter" />
+              <EntityLogo entityHash={getFullId(match?.away_team_id)} className="w-full h-full object-contain mix-blend-plus-lighter" />
             </div>
           </div>
         </div>
