@@ -19,7 +19,7 @@ export default function EntityLogo({ entityHash, className = "" }: { entityHash:
     if (imgError) {
         return (
             <div className={`flex items-center justify-center font-black text-[#00eefc] drop-shadow-[0_0_8px_rgba(0,238,252,0.8)] border border-[#00eefc]/20 bg-[#0f172a] rounded overflow-hidden ${className}`}>
-                <span className="truncate px-1 scale-75 md:scale-100">{entity.shortName}</span>
+                <span className="text-[10px] md:text-sm font-black px-1">{entity.shortName}</span>
             </div>
         );
     }

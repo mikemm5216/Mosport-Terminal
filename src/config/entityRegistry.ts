@@ -83,7 +83,20 @@ export const ENTITY_REGISTRY: Record<string, { internalCode: string, shortName: 
     "Mpt_EPL05": { internalCode: "02_01_CHE", shortName: "CHE", name: "Chelsea" },
     "Mpt_EPL06": { internalCode: "02_01_TOT", shortName: "TOT", name: "Tottenham Hotspur" },
     "Mpt_EPL07": { internalCode: "02_01_NEW", shortName: "NEW", name: "Newcastle United" },
-    "Mpt_EPL08": { internalCode: "02_01_AVL", shortName: "AVL", name: "Aston Villa" },
+    "Mpt_EPL08": { internalCode: "02_01_AVL", shortName: "AVL", name: "Aston Villa" }
+    // --- 英超 Premier League (EPL) 補齊名單 ---
+    "Mpt_EPL09": { internalCode: "02_01_BOU", shortName: "BOU", name: "Bournemouth" },
+    "Mpt_EPL10": { internalCode: "02_01_BRE", shortName: "BRE", name: "Brentford" },
+    "Mpt_EPL11": { internalCode: "02_01_BHA", shortName: "BHA", name: "Brighton & Hove Albion" },
+    "Mpt_EPL12": { internalCode: "02_01_CRY", shortName: "CRY", name: "Crystal Palace" },
+    "Mpt_EPL13": { internalCode: "02_01_EVE", shortName: "EVE", name: "Everton" },
+    "Mpt_EPL14": { internalCode: "02_01_FUL", shortName: "FUL", name: "Fulham" },
+    "Mpt_EPL15": { internalCode: "02_01_IPS", shortName: "IPS", name: "Ipswich Town" },
+    "Mpt_EPL16": { internalCode: "02_01_LEI", shortName: "LEI", name: "Leicester City" },
+    "Mpt_EPL17": { internalCode: "02_01_NFO", shortName: "NFO", name: "Nottingham Forest" },
+    "Mpt_EPL18": { internalCode: "02_01_SOU", shortName: "SOU", name: "Southampton" },
+    "Mpt_EPL19": { internalCode: "02_01_WHU", shortName: "WHU", name: "West Ham United" },
+    "Mpt_EPL20": { internalCode: "02_01_WOL", shortName: "WOL", name: "Wolverhampton Wanderers" },
 
     // --- 西甲 La Liga (ESP) ---
     "Mpt_ESP01": { internalCode: "02_01_RMA", shortName: "RMA", name: "Real Madrid" },
