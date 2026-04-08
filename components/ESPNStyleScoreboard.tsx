@@ -169,8 +169,6 @@ export default function ESPNStyleScoreboard({ matches }: { matches: any[] }) {
 
                             {/* 3. RIGHT: League badge + alerts */}
                             <div className="flex flex-col items-end gap-1.5 min-w-[60px] md:min-w-[100px]">
-                                {/* Phase 2: League badge with theme color */}
-
                                 {hasUpset ? (
                                     <div className="px-1.5 md:px-2 py-0.5 bg-cyan-950/20 border border-cyan-500/50 rounded flex items-center gap-1">
                                         <div className="w-1 h-1 rounded-full bg-cyan-400 animate-ping" />
