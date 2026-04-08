@@ -83,7 +83,7 @@ export const ENTITY_REGISTRY: Record<string, { internalCode: string, shortName: 
     "Mpt_EPL05": { internalCode: "02_01_CHE", shortName: "CHE", name: "Chelsea" },
     "Mpt_EPL06": { internalCode: "02_01_TOT", shortName: "TOT", name: "Tottenham Hotspur" },
     "Mpt_EPL07": { internalCode: "02_01_NEW", shortName: "NEW", name: "Newcastle United" },
-    "Mpt_EPL08": { internalCode: "02_01_AVL", shortName: "AVL", name: "Aston Villa" }
+    "Mpt_EPL08": { internalCode: "02_01_AVL", shortName: "AVL", name: "Aston Villa" },
     // --- 英超 Premier League (EPL) 補齊名單 ---
     "Mpt_EPL09": { internalCode: "02_01_BOU", shortName: "BOU", name: "Bournemouth" },
     "Mpt_EPL10": { internalCode: "02_01_BRE", shortName: "BRE", name: "Brentford" },
