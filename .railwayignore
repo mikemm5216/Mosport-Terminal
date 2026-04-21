@@ -1,0 +1,8 @@
+data/
+scripts/
+frontend/
+*.parquet
+*.csv
+__pycache__/
+.pytest_cache/
+*.pyc
