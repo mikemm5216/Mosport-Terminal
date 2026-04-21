@@ -18,18 +18,18 @@ MODEL_TTL_SECONDS = 3600  # 1 小時
 MAX_CACHE_SIZE = 5        # LRU 暫存限制
 model_lock = Lock()       # 2. 全域 Thread Lock
 
-# Thread-safe DB Connection Pool
+# Thread-safe DB Connection Pool (optional — DB endpoints return 503 when unavailable)
 db_url = os.environ.get("DATABASE_URL")
-if not db_url:
-    raise ValueError("DATABASE_URL environment variable is not set.")
-
-db_pool = pool.ThreadedConnectionPool(1, 10, dsn=db_url)
+db_pool = pool.ThreadedConnectionPool(1, 10, dsn=db_url) if db_url else None
 
 def get_db_connection():
+    if db_pool is None:
+        raise HTTPException(status_code=503, detail="DATABASE_URL not configured")
     return db_pool.getconn()
 
 def release_db_connection(conn):
-    db_pool.putconn(conn)
+    if db_pool is not None:
+        db_pool.putconn(conn)
 
 class PredictRequest(BaseModel):
     model_config = {"protected_namespaces": ()}
