@@ -1,0 +1,173 @@
+{
+  "version": "v3.3",
+  "dataset": {
+    "train": 5940,
+    "test": 2970
+  },
+  "model_metrics": {
+    "Random Baseline": {
+      "accuracy": 0.5316,
+      "brier": 0.25,
+      "ece": 0.0316
+    },
+    "Elo Rating Model": {
+      "accuracy": 0.5906,
+      "brier": 0.2398,
+      "ece": 0.0424
+    },
+    "Vegas Odds Proxy": {
+      "accuracy": 0.5987,
+      "brier": 0.239,
+      "ece": 0.0492
+    },
+    "MoSport v2.3 (base)": {
+      "accuracy": 0.6148,
+      "brier": 0.2312,
+      "ece": 0.0129
+    },
+    "MoSport v3.3 (cal)": {
+      "accuracy": 0.6118,
+      "brier": 0.2314,
+      "ece": 0.0104
+    },
+    "MoSport v3.3 (dec)": {
+      "accuracy": 0.6114,
+      "brier": 0.2313,
+      "ece": 0.0098
+    }
+  },
+  "kpis": {
+    "accuracy_pass": true,
+    "ece_pass": false,
+    "roi_proxy_pass": true,
+    "trigger_pass": true,
+    "beat_vegas_pass": true,
+    "signal_sparse_pass": false
+  },
+  "roi_proxy": {
+    "n_games": 297,
+    "accuracy": 0.7912
+  },
+  "decision_distribution": {
+    "counts": {
+      "STRONG (Blind)": 1101,
+      "STRONG (Enhanced)": 0,
+      "UPSET (Blind)": 105,
+      "UPSET (Enhanced)": 0,
+      "CHAOS": 882,
+      "WEAK": 882
+    },
+    "pcts": {
+      "STRONG (Blind)": 0.371,
+      "STRONG (Enhanced)": 0.0,
+      "UPSET (Blind)": 0.035,
+      "UPSET (Enhanced)": 0.0,
+      "CHAOS": 0.297,
+      "WEAK": 0.297
+    }
+  },
+  "upset_precision": {
+    "n": 105,
+    "precision": 0.3619
+  },
+  "signal_stats": {
+    "active_pct": 0.734,
+    "mean_active": 0.0382,
+    "std": 0.2293,
+    "p10": -0.262,
+    "p90": 0.327
+  },
+  "trigger_analysis": {
+    "rate": 0.3727,
+    "n_triggered": 1107,
+    "reasons": {
+      "AWAY_UPSET_THREAT": 43,
+      "SP_COLLAPSE_EDGE": 302,
+      "CLOSE_GAME_AMPLIFIER": 604,
+      "LATE_GAME_BULLPEN_CRISIS": 878,
+      "MATCHUP_DOMINANCE": 225,
+      "CIRCADIAN_STACK": 128
+    }
+  },
+  "signal_components": {
+    "chaos": 1276,
+    "risp_clutch": 239,
+    "mgr_tilt": 931,
+    "sp_collapse": 128,
+    "bullpen": 912,
+    "momentum": 1422,
+    "circadian": 592,
+    "miracle": 84
+  },
+  "upset_model": {
+    "threshold": 0.47,
+    "n_train_samples": 1858,
+    "n_test_candidates": 890
+  },
+  "whoop_socket": {
+    "status": "Blind Mode (biometric_recovery_delta=0.0)",
+    "default": 0.0,
+    "range": [
+      -1.0,
+      1.0
+    ],
+    "active_games": 0,
+    "impact_on_miracle_threshold": "0.04 - 0.02 * delta",
+    "impact_on_upset_confidence": "confidence *= (1 + delta)",
+    "impact_on_decision_score": "ALPHA *= (1 + 0.30 * delta)"
+  },
+  "sig_tests": {
+    "v33_vs_v23": {
+      "brier_delta": -0.00011,
+      "p_value": 0.7059,
+      "significant": false
+    },
+    "v33_vs_vegas": {
+      "brier_delta": 0.00771,
+      "p_value": 0.0,
+      "significant": true
+    }
+  },
+  "upset_by_model": {
+    "Random": {
+      "n": 0,
+      "rate": 0.0,
+      "coverage": 0.0
+    },
+    "Elo": {
+      "n": 613,
+      "rate": 0.3948,
+      "coverage": 0.2064
+    },
+    "Vegas": {
+      "n": 12,
+      "rate": 0.4167,
+      "coverage": 0.004
+    },
+    "v2.3": {
+      "n": 468,
+      "rate": 0.3312,
+      "coverage": 0.1576
+    },
+    "v3.3 cal": {
+      "n": 432,
+      "rate": 0.3241,
+      "coverage": 0.1455
+    },
+    "v3.3 dec": {
+      "n": 455,
+      "rate": 0.3341,
+      "coverage": 0.1532
+    }
+  },
+  "reference": {
+    "v31": {
+      "acc": 0.6125,
+      "ece": 0.0147
+    },
+    "v32": {
+      "acc": 0.6128,
+      "ece": 0.0187
+    }
+  }
+}

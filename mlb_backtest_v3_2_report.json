@@ -1,0 +1,176 @@
+{
+  "version": "v3.2",
+  "dataset": {
+    "train": 5940,
+    "test": 2970
+  },
+  "model_metrics": {
+    "Random Baseline": {
+      "accuracy": 0.5316,
+      "brier": 0.25,
+      "ece": 0.0316
+    },
+    "Elo Rating Model": {
+      "accuracy": 0.5906,
+      "brier": 0.2398,
+      "ece": 0.0424
+    },
+    "Vegas Odds Proxy": {
+      "accuracy": 0.5987,
+      "brier": 0.239,
+      "ece": 0.0492
+    },
+    "MoSport v2.3 (base)": {
+      "accuracy": 0.6148,
+      "brier": 0.2312,
+      "ece": 0.0129
+    },
+    "MoSport v3.2 (cal)": {
+      "accuracy": 0.6131,
+      "brier": 0.2312,
+      "ece": 0.0187
+    },
+    "MoSport v3.2 (dec)": {
+      "accuracy": 0.6128,
+      "brier": 0.2311,
+      "ece": 0.0174
+    }
+  },
+  "v31_ref": {
+    "acc": 0.6125,
+    "brier": 0.2311,
+    "ece": 0.0147
+  },
+  "v23_ref": {
+    "acc": 0.6148,
+    "brier": 0.2312,
+    "ece": 0.0129
+  },
+  "decision_distribution": {
+    "counts": {
+      "STRONG": 1021,
+      "WEAK": 1921,
+      "CHAOS": 0,
+      "UPSET": 28
+    },
+    "pcts": {
+      "STRONG": 0.344,
+      "WEAK": 0.647,
+      "CHAOS": 0.0,
+      "UPSET": 0.009
+    }
+  },
+  "upset_precision_label": {
+    "n": 28,
+    "precision": 0.25
+  },
+  "roi_proxy_top10pct": {
+    "n_games": 297,
+    "accuracy": 0.771
+  },
+  "upset_stats_by_model": {
+    "Random": {
+      "n": 0,
+      "rate": 0.0,
+      "coverage": 0.0
+    },
+    "Elo": {
+      "n": 613,
+      "rate": 0.3948,
+      "coverage": 0.2064
+    },
+    "Vegas": {
+      "n": 12,
+      "rate": 0.4167,
+      "coverage": 0.004
+    },
+    "v2.3 base": {
+      "n": 468,
+      "rate": 0.3312,
+      "coverage": 0.1576
+    },
+    "v3.2 cal": {
+      "n": 351,
+      "rate": 0.3048,
+      "coverage": 0.1182
+    },
+    "v3.2 dec": {
+      "n": 349,
+      "rate": 0.3066,
+      "coverage": 0.1175
+    }
+  },
+  "trigger_analysis": {
+    "rate": 0.3842,
+    "n_triggered": 1141,
+    "reasons": {
+      "AWAY_UPSET_THREAT": 43,
+      "SP_COLLAPSE_EDGE": 302,
+      "CLOSE_GAME_AMPLIFIER": 652,
+      "LATE_GAME_BULLPEN_CRISIS": 908,
+      "MATCHUP_DOMINANCE": 227,
+      "CIRCADIAN_STACK": 130
+    }
+  },
+  "simulation_signal_stats": {
+    "mean": 0.0218,
+    "std": 0.0688,
+    "mean_chaos_index": 0.2305
+  },
+  "avg_event_fire_rates": {
+    "sp_collapse": 0.091,
+    "bullpen": 0.142,
+    "fatigue": 0.193,
+    "momentum": 0.226,
+    "risp_clutch": 0.116,
+    "chaos": 0.095,
+    "miracle": 0.088,
+    "mgr_tilt": 0.16
+  },
+  "sig_tests": {
+    "v32_dec_vs_v23_base": {
+      "brier_delta": 0.00011,
+      "p_value": 0.7925,
+      "significant": false
+    },
+    "v32_dec_vs_vegas": {
+      "brier_delta": 0.00793,
+      "p_value": 0.0,
+      "significant": true
+    }
+  },
+  "upset_model": {
+    "n_train_samples": 717,
+    "n_test_candidates": 351,
+    "fitted": true
+  },
+  "labels_sample": [
+    "WEAK",
+    "STRONG",
+    "STRONG",
+    "STRONG",
+    "STRONG",
+    "STRONG",
+    "WEAK",
+    "WEAK",
+    "WEAK",
+    "WEAK",
+    "WEAK",
+    "WEAK",
+    "WEAK",
+    "WEAK",
+    "WEAK",
+    "WEAK",
+    "WEAK",
+    "WEAK",
+    "WEAK",
+    "STRONG"
+  ],
+  "kpis": {
+    "accuracy_pass": true,
+    "ece_pass": false,
+    "roi_proxy_pass": true,
+    "trigger_rate_pass": true,
+    "beat_vegas_pass": true
+  }
+}
