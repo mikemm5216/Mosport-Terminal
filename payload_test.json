@@ -1,1 +1,0 @@
-{"success":false,"error":"CRITICAL_NODE_FAILURE","details":"\nInvalid `prisma.matchPrediction.upsert()` invocation:\n\n\nForeign key constraint violated on the constraint: `MatchPrediction_match_id_fkey`"}
