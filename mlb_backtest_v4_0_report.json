@@ -100,42 +100,42 @@
     "STRONG": {
       "bets": 862,
       "win_rate": 0.5858,
-      "roi": 0.0898,
-      "avg_odds": -132.1,
-      "ev": 0.1974,
-      "profit_units": 77.39
+      "roi": -0.0461,
+      "avg_odds": -160.6,
+      "ev": 0.0451,
+      "profit_units": -39.77
     },
     "UPSET": {
       "bets": 1118,
       "win_rate": 0.5268,
-      "roi": 0.054,
-      "avg_odds": -76.7,
-      "ev": 0.0741,
-      "profit_units": 60.42
+      "roi": -0.0131,
+      "avg_odds": -100.1,
+      "ev": 0.0083,
+      "profit_units": -14.6
     },
     "WEAK": {
       "bets": 190,
       "win_rate": 0.5158,
-      "roi": -0.0441,
-      "avg_odds": -119.5,
-      "ev": 0.0567,
-      "profit_units": -8.39
+      "roi": -0.1073,
+      "avg_odds": -135.3,
+      "ev": -0.0189,
+      "profit_units": -20.39
     },
     "CHAOS": {
       "bets": 204,
       "win_rate": 0.5637,
-      "roi": 0.066,
-      "avg_odds": -125.0,
-      "ev": 0.0994,
-      "profit_units": 13.47
+      "roi": -0.0577,
+      "avg_odds": -149.4,
+      "ev": -0.0214,
+      "profit_units": -11.78
     }
   },
   "alpha_kpis": {
-    "upset_roi_positive": true,
-    "upset_vs_strong_edge": -0.0357,
-    "upset_p_value": 0.0724,
-    "upset_significant": true,
-    "total_system_roi": 0.0602,
-    "freeze_ready": true
+    "upset_roi_positive": false,
+    "upset_vs_strong_edge": 0.0331,
+    "upset_p_value": 0.6413,
+    "upset_significant": false,
+    "total_system_roi": -0.0365,
+    "freeze_ready": false
   }
 }

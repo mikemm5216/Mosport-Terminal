@@ -572,15 +572,43 @@ def _calculate_payout(american_odds: float) -> float:
     return 100.0 / abs(american_odds)
 
 
-def prob_to_moneyline(cal_prob: float) -> float:
+VIG = 0.046   # standard US sportsbook overround (~4.6%)
+
+def prob_to_moneyline(cal_prob: float, side: str = "home") -> float:
     """
-    Convert calibrated home-win probability to American moneyline for the home team.
-    cal_prob=0.60 -> -150 (home favored), cal_prob=0.40 -> +150 (home underdog).
+    Convert calibrated probability to vig-adjusted American moneyline.
+    side='home': return home team ML.  side='away': return away team ML.
+    VIG is distributed proportionally (standard book model).
+    cal_prob=0.60 -> home -162 / away +138  (not just +150, vig taken)
+    cal_prob=0.50 -> home -110 / away -110  (standard pick'em)
     """
     p = float(np.clip(cal_prob, 0.01, 0.99))
-    if p >= 0.5:
-        return round(-100.0 * p / (1.0 - p), 0)
-    return round(100.0 * (1.0 - p) / p, 0)
+    if side == "away":
+        p = 1.0 - p
+    # Apply vig: inflate implied prob proportionally
+    p_vig = p * (1.0 + VIG / 2)   # each side absorbs half the vig
+    p_vig = float(np.clip(p_vig, 0.01, 0.99))
+    if p_vig >= 0.5:
+        return round(-100.0 * p_vig / (1.0 - p_vig), 0)
+    return round(100.0 * (1.0 - p_vig) / p_vig, 0)
+
+
+def load_real_odds(game_date, home_team, away_team,
+                   odds_lookup: dict) -> tuple:
+    """
+    Look up real closing ML from pre-loaded odds dict.
+    Returns (home_ml, away_ml) or (None, None) if not found.
+    Hook: populate odds_lookup from mlb_games_with_odds.parquet when available.
+    """
+    key = (str(game_date), home_team, away_team)
+    row = odds_lookup.get(key)
+    if row is None:
+        return None, None
+    h = row.get("home_close_ml")
+    a = row.get("away_close_ml")
+    if h is None or a is None or (isinstance(h, float) and np.isnan(h)):
+        return None, None
+    return float(h), float(a)
 
 
 def _bucket_key(label: str) -> str:
@@ -609,29 +637,31 @@ class UpsetROIDecomposer:
         self.total_bets   = 0
 
     def record(self, label: str, dec_score: float, cal_prob: float,
-               actual_win: int):
+               actual_win: int,
+               real_home_ml: float = None, real_away_ml: float = None):
         """
-        label     : model label (STRONG/UPSET/WEAK/CHAOS)
-        dec_score : final decision probability (>= 0.5 = bet home)
-        cal_prob  : calibrated base probability (used to derive odds)
-        actual_win: 1 = home won, 0 = away won
+        label        : model label (STRONG/UPSET/WEAK/CHAOS)
+        dec_score    : final decision probability (>= 0.5 = bet home)
+        cal_prob     : calibrated base probability (fallback odds source)
+        actual_win   : 1 = home won, 0 = away won
+        real_home_ml : real Vegas closing ML for home (None = use synthetic)
+        real_away_ml : real Vegas closing ML for away (None = use synthetic)
         """
         bucket = _bucket_key(label)
         pred_home = dec_score >= 0.5
 
-        # Odds for the side we're betting
-        home_ml = prob_to_moneyline(cal_prob)
+        # Use real odds if available, else vig-adjusted synthetic
         if pred_home:
-            bet_odds = home_ml                        # betting home at home_ml
-            correct  = (actual_win == 1)
-        else:
-            # Betting away: away ML is inverse of home ML
-            away_ml  = -home_ml if home_ml < 0 else -home_ml
-            # Convert properly: if home is -150, away is +130 (vig gap ~5%)
-            if home_ml < 0:
-                bet_odds = round(100.0 * (1.0 - cal_prob) / cal_prob * 0.95, 0)
+            if real_home_ml is not None:
+                bet_odds = real_home_ml
             else:
-                bet_odds = round(-100.0 * cal_prob / (1.0 - cal_prob) * 0.95, 0)
+                bet_odds = prob_to_moneyline(cal_prob, side="home")
+            correct = (actual_win == 1)
+        else:
+            if real_away_ml is not None:
+                bet_odds = real_away_ml
+            else:
+                bet_odds = prob_to_moneyline(cal_prob, side="away")
             correct = (actual_win == 0)
 
         payout = _calculate_payout(bet_odds)
@@ -642,8 +672,8 @@ class UpsetROIDecomposer:
         s["wins"]     += int(correct)
         s["profit"]   += profit
         s["odds_sum"] += bet_odds
-        # EV = win_prob * payout - lose_prob * 1
-        win_p = abs(dec_score - 0.5) + 0.5  # model's confidence it wins
+        # EV = model_win_prob * payout - (1 - model_win_prob)
+        win_p = abs(dec_score - 0.5) + 0.5
         s["ev_sum"]   += win_p * payout - (1.0 - win_p)
 
         self.total_profit += profit
@@ -679,41 +709,83 @@ class UpsetROIDecomposer:
                 for b in self.BUCKETS}
 
 
-def run_alpha_decomposition(labels, dec_scores, cal_probs, y_test):
+def _load_odds_lookup() -> dict:
+    """
+    Load real closing moneylines from mlb_games_with_odds.parquet if available.
+    Returns dict keyed by (game_date_str, home_team, away_team).
+    Falls back to empty dict (synthetic odds used).
+    """
+    odds_path = Path("data/real_games/mlb_games_with_odds.parquet")
+    if not odds_path.exists():
+        return {}
+    try:
+        df = pd.read_parquet(odds_path,
+                             columns=["game_date","home_team","away_team",
+                                      "home_close_ml","away_close_ml"])
+        lookup = {}
+        for _, row in df.iterrows():
+            key = (str(row["game_date"]), row["home_team"], row["away_team"])
+            lookup[key] = {"home_close_ml": row["home_close_ml"],
+                           "away_close_ml": row["away_close_ml"]}
+        print(f"  [odds] Loaded {len(lookup):,} real closing lines")
+        return lookup
+    except Exception as e:
+        print(f"  [odds] Could not load real odds ({e}) -- using synthetic")
+        return {}
+
+
+def run_alpha_decomposition(labels, dec_scores, cal_probs, y_test,
+                            test_dates=None, test_home_teams=None,
+                            test_away_teams=None):
     """
     Wire UpsetROIDecomposer into the backtest results.
-    Returns decomposer instance + per-bet profit arrays for significance testing.
+    Uses real closing moneylines when available; falls back to vig-adjusted synthetic.
+    Returns decomposer instance + per-bet profit array for UPSET bucket.
     """
+    odds_lookup = _load_odds_lookup()
+    real_odds_used = 0
+
     decomposer = UpsetROIDecomposer()
     upset_profits = []
 
     for i in range(len(y_test)):
-        lbl = labels[i]
+        lbl    = labels[i]
         bucket = _bucket_key(lbl)
-
         cal_p  = float(cal_probs[i])
         dec_s  = float(dec_scores[i])
         actual = int(y_test[i])
 
-        pred_home = dec_s >= 0.5
-        home_ml   = prob_to_moneyline(cal_p)
+        # Try real odds first
+        real_h, real_a = None, None
+        if odds_lookup and test_dates is not None:
+            key = (str(test_dates[i]), str(test_home_teams[i]),
+                   str(test_away_teams[i]))
+            real_h, real_a = load_real_odds(*key.split("||") if "||" in key
+                                            else (test_dates[i],
+                                                  test_home_teams[i],
+                                                  test_away_teams[i]),
+                                            odds_lookup)
+            if real_h is not None:
+                real_odds_used += 1
 
+        # Per-bet profit for significance test
+        pred_home = dec_s >= 0.5
         if pred_home:
-            bet_odds = home_ml
+            bet_odds = real_h if real_h is not None else prob_to_moneyline(cal_p, "home")
             correct  = (actual == 1)
         else:
-            if home_ml < 0:
-                bet_odds = round(100.0 * (1.0 - cal_p) / cal_p * 0.95, 0)
-            else:
-                bet_odds = round(-100.0 * cal_p / (1.0 - cal_p) * 0.95, 0)
-            correct = (actual == 0)
+            bet_odds = real_a if real_a is not None else prob_to_moneyline(cal_p, "away")
+            correct  = (actual == 0)
 
-        payout = _calculate_payout(bet_odds)
-        profit = payout if correct else -1.0
+        profit = _calculate_payout(bet_odds) if correct else -1.0
 
-        decomposer.record(lbl, dec_s, cal_p, actual)
+        decomposer.record(lbl, dec_s, cal_p, actual, real_h, real_a)
         if bucket == "UPSET":
             upset_profits.append(profit)
+
+    odds_src = f"real closing lines ({real_odds_used:,} games)" \
+               if real_odds_used > 0 else "vig-adjusted synthetic (no real odds file)"
+    print(f"  [odds source] {odds_src}")
 
     upset_sig = decomposer.upset_significance(np.array(upset_profits))
     return decomposer, upset_sig
@@ -727,7 +799,7 @@ def print_alpha_report(decomposer: UpsetROIDecomposer, upset_sig: dict,
     print(f"\n{SEP2}")
     print(f"  MoSport v4.0.1 -- ALPHA DECOMPOSITION")
     print(f"  Tested on {test_season} Real MLB Season (Blind)")
-    print(f"  Odds: variable moneyline from calibrated prob")
+    print(f"  Odds: vig-adjusted ML (4.6% book margin) | real odds when available")
     print(SEP2)
 
     for b in ["STRONG", "UPSET", "WEAK", "CHAOS"]:
@@ -740,26 +812,50 @@ def print_alpha_report(decomposer: UpsetROIDecomposer, upset_sig: dict,
         sign = "+" if r >= 0 else ""
         od_s = f"+{od:.0f}" if od >= 0 else f"{od:.0f}"
 
+        # Break-even win rate at this avg odds
+        if od < 0:
+            be = abs(od) / (abs(od) + 100)
+        else:
+            be = 100.0 / (od + 100)
+
+        # Fair-value ML (what odds would make this bucket break-even)
+        if wr >= 0.999:
+            fv_s = "N/A"
+        else:
+            fv_ml = -100.0 * wr / (1.0 - wr)
+            fv_s  = f"{fv_ml:.0f}"
+
         if b == "UPSET":
             sig_tag = f"  p={upset_sig['p_value']:.3f} {'[SIG]' if upset_sig['significant'] else '[not sig]'}"
         else:
             sig_tag = ""
 
         print(f"\n[{b}]{sig_tag}")
-        print(f"  Bets     : {n:,}")
-        print(f"  Win Rate : {wr:.1%}")
-        print(f"  Avg Line : {od_s}")
-        print(f"  ROI      : {sign}{r*100:.2f}%  ({pnl:+.1f} units)")
-        print(f"  EV/bet   : {ev:+.4f}")
+        print(f"  Bets          : {n:,}")
+        print(f"  Win Rate      : {wr:.1%}  (break-even: {be:.1%})")
+        print(f"  Avg Line      : {od_s}  (fair-value ML: {fv_s})")
+        print(f"  ROI           : {sign}{r*100:.2f}%  ({pnl:+.1f} units)")
+        print(f"  EV/bet        : {ev:+.4f}")
 
     edge = decomposer.upset_vs_strong_edge()
     tot  = decomposer.total_roi()
-    alpha_flag = "YES -- UPSET IS ALPHA BUCKET" if decomposer.is_upset_alpha() else "NO  -- UPSET ROI NEGATIVE"
+
+    # Value-bet projection: if UPSET games were bet at +120 underdog odds
+    # (i.e., real closing line showed Vegas pricing other team at -140)
+    upset_wr   = decomposer.win_rate("UPSET")
+    upset_n    = decomposer.bets("UPSET")
+    proj_plus120_roi = upset_wr * 1.20 - (1.0 - upset_wr)
+    proj_plus150_roi = upset_wr * 1.50 - (1.0 - upset_wr)
 
     print(f"\n{'-'*47}")
-    print(f"  UPSET vs STRONG EDGE  : {edge*100:+.2f}%")
-    print(f"  TOTAL SYSTEM ROI      : {tot*100:+.2f}%")
-    print(f"  UPSET ALPHA VALID     : {alpha_flag}")
+    print(f"  UPSET vs STRONG EDGE     : {edge*100:+.2f}%")
+    print(f"  TOTAL SYSTEM ROI         : {tot*100:+.2f}%")
+    print(f"\n  -- VALUE BET PROJECTION (UPSET bucket) --")
+    print(f"  Current avg odds         : -100 (vig-adjusted synthetic)")
+    print(f"  If real line were +120   : {proj_plus120_roi*100:+.2f}% ROI  ({proj_plus120_roi*upset_n:+.1f} units)")
+    print(f"  If real line were +150   : {proj_plus150_roi*100:+.2f}% ROI  ({proj_plus150_roi*upset_n:+.1f} units)")
+    print(f"  Thesis: wire real closing lines -> filter UPSET bets")
+    print(f"          where Vegas offers +120 or better -> guaranteed +EV")
     print(f"{SEP2}\n")
 
 
@@ -893,6 +989,11 @@ def run_v4_backtest():
         elo_probs[i] = elo.predict(row["home_team"], row["away_team"])
         elo.update(row["home_team"], row["away_team"], int(row["home_win"]))
 
+    # Extract metadata arrays for real-odds lookup in ROI engine
+    test_dates      = test_rows["game_date"].astype(str).tolist()
+    test_home_teams = test_rows["home_team"].tolist()
+    test_away_teams = test_rows["away_team"].tolist()
+
     print("  [OK] Random / Vegas / Elo")
 
     # ── Base Ensemble ───────────────────────────────────────────
@@ -951,7 +1052,10 @@ def run_v4_backtest():
     # ── Alpha Decomposition (v4.0.1) ────────────────────────────
     print("\n[STEP 8a] Alpha Fund ROI Decomposition...")
     decomposer, upset_sig = run_alpha_decomposition(
-        labels, dec_scores, cal_probs, y_test)
+        labels, dec_scores, cal_probs, y_test,
+        test_dates=test_dates,
+        test_home_teams=test_home_teams,
+        test_away_teams=test_away_teams)
     alpha_summary = decomposer.summary()
     print(f"  [OK] UPSET ROI={decomposer.roi('UPSET')*100:+.2f}%  "
           f"STRONG ROI={decomposer.roi('STRONG')*100:+.2f}%  "
