@@ -8,6 +8,7 @@ import xgboost as xgb
 import numpy as np
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel
+<<<<<<< HEAD
 from typing import List, Optional, Dict, Any
 
 from feature_pipeline.mlb_pipeline import (
@@ -18,6 +19,11 @@ from engines.player_impact_engine import PlayerStats, compute_player_impact
 from engines.risk_engine import compute_risk
 
 app = FastAPI(title="Mosport Inference Engine v2.0")
+=======
+from typing import List, Optional
+
+app = FastAPI(title="Mosport Inference Engine")
+>>>>>>> parent of 996fa0e (chore: remove entire Mosport-Terminal repository directory)
 
 # 1. Model Cache (加入時間追蹤 TTL 與數量上限)
 loaded_models = {}
@@ -251,6 +257,7 @@ def warmup(model_id: str, background_tasks: BackgroundTasks):
     req = PredictRequest(model_id=model_id, feature_vector=[0.0] * EXPECTED_FEATURE_LENGTH)
     background_tasks.add_task(predict, req)
     return {"status": "warming_in_background", "model_id": model_id}
+<<<<<<< HEAD
 
 
 # ─────────────────────────────────────────────
@@ -389,3 +396,5 @@ def _default_lineup(home_team: str, away_team: str) -> list[PlayerStats]:
         PlayerStats(player_id="a_ss", name=f"{away_team} SS", position="SS", batting_avg=0.255, ops=0.710, recent_form=0.0),
         PlayerStats(player_id="a_cf", name=f"{away_team} CF", position="CF", batting_avg=0.248, ops=0.700, recent_form=-0.2),
     ]
+=======
+>>>>>>> parent of 996fa0e (chore: remove entire Mosport-Terminal repository directory)

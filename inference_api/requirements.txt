@@ -5,5 +5,8 @@ pydantic
 numpy
 xgboost
 pandas
+<<<<<<< HEAD
 scikit-learn
 requests
+=======
+>>>>>>> parent of 996fa0e (chore: remove entire Mosport-Terminal repository directory)

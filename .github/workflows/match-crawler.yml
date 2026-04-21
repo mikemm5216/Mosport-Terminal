@@ -1,0 +1,17 @@
+name: Mosport Match Crawler (3x Daily)
+
+on:
+  schedule:
+    - cron: '0 0,8,16 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-crawler:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Match Crawler
+        run: |
+          curl -X POST "https://www.mosport.app/api/admin/engine" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -d '{"task": "matchCrawler"}'
