@@ -32,6 +32,7 @@ def release_db_connection(conn):
     db_pool.putconn(conn)
 
 class PredictRequest(BaseModel):
+    model_config = {"protected_namespaces": ()}
     model_id: str
     feature_vector: List[float]
     model_type: str = "T-10min"  # 前端可選傳，預設抓取 T-10min
@@ -181,6 +182,7 @@ def predict(req: PredictRequest):
     return {"probability": probability}
 
 class InferenceRequest(BaseModel):
+    model_config = {"protected_namespaces": ()}
     model_id: str = "latest"
     home_team: str
     away_team: str
