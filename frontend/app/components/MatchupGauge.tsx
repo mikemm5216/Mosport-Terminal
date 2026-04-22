@@ -103,13 +103,13 @@ export default function MatchupGauge({ m, adjustedOverride }: Props) {
           <RingGauge
             value={baseline} size={170} thickness={10}
             color="#60a5fa" track="#0b1220"
-            label="BASELINE" sublabel="MARKET EXPECTATION"
+            label="BASELINE" sublabel="STAT PROJECTION"
           />
         </div>
 
         {/* Delta + WPA */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-          <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", letterSpacing: "0.3em", fontWeight: 800 }}>WPA</div>
+          <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", letterSpacing: "0.3em", fontWeight: 800 }}>EDGE SHIFT</div>
           <div style={{
             fontFamily: "var(--font-mono), monospace", fontSize: 30, fontWeight: 800,
             color: wpaColor, letterSpacing: "-0.04em",
@@ -119,7 +119,7 @@ export default function MatchupGauge({ m, adjustedOverride }: Props) {
           </div>
           <div style={{ fontSize: 16, color: wpaColor, fontWeight: 800 }}>{positive ? "↑" : "↓"}</div>
           <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, color: wpaColor, letterSpacing: "0.26em", fontWeight: 800 }}>
-            PERFORMANCE IMPACT
+            WIN IMPACT
           </div>
         </div>
 
@@ -151,7 +151,7 @@ export default function MatchupGauge({ m, adjustedOverride }: Props) {
         display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
       }}>
         <span style={{ width: 14, height: 1, background: "#64748b", opacity: 0.5 }} />
-        CAUSAL FACTORS
+        KEY FACTORS
       </div>
       <div>
         {factors.map((f, i) => <CausalFactor key={i} {...f} />)}

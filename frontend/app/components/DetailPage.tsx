@@ -65,7 +65,9 @@ export default function DetailPage({ m, onBack }: Props) {
       <div style={{
         padding: "24px 28px",
         background: "linear-gradient(90deg, #050b1b, #040917 60%, #050b1b)",
-        border: "1px solid rgba(148,163,184,0.08)",
+        borderTop: "1px solid rgba(148,163,184,0.08)",
+        borderRight: "1px solid rgba(148,163,184,0.08)",
+        borderBottom: "1px solid rgba(148,163,184,0.08)",
         borderLeft: `3px solid ${t.hex}`,
         borderRadius: 6, marginBottom: 20,
         display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 40,
@@ -80,7 +82,7 @@ export default function DetailPage({ m, onBack }: Props) {
               {m.away.city} · AWAY
             </div>
           </div>
-          <TeamMark abbr={m.away.abbr} size={74} />
+          <TeamMark abbr={m.away.abbr} league={m.league} size={74} />
         </div>
 
         {/* Center */}
@@ -101,7 +103,7 @@ export default function DetailPage({ m, onBack }: Props) {
 
         {/* Home */}
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <TeamMark abbr={m.home.abbr} size={74} />
+          <TeamMark abbr={m.home.abbr} league={m.league} size={74} />
           <div>
             <div style={{ fontFamily: "var(--font-inter), Inter", fontWeight: 900, fontStyle: "italic", fontSize: 44, color: "#fff", letterSpacing: "-0.04em", lineHeight: 1 }}>
               {m.home.abbr}

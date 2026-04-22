@@ -23,17 +23,17 @@ function buildMessage(recovery: number, m: Match): string {
   const pct = Math.round(recovery * 100)
   if (recovery > 0.85) {
     return (
-      `MIRACLE MODE ACTIVE :: Recovery surplus (${pct}%) mitigates travel fatigue penalty. ` +
-      `HRV drift on ${m.away.abbr} SP +14% vs 30d baseline. ` +
-      `TACTICAL DECISION :: Load-managed aggressive bullpen deploy pattern. ` +
-      `Outperformance potential maximal — model confidence HIGH.`
+      `PEAK CONDITION ACTIVE :: Recovery at ${pct}% — travel fatigue neutralized. ` +
+      `HRV trending +14% on ${m.away.abbr} starter over last 30 days. ` +
+      `GAME PLAN :: Go aggressive on the bullpen — full-strength rotation available. ` +
+      `Dominant performance window open — engine confidence HIGH.`
     )
   }
   if (recovery > 0.70) {
     return (
-      `NOMINAL BAND :: Recovery within operational tolerance. ` +
-      `Mild edge persists for ${m.away.abbr} rotation. ` +
-      `TACTICAL DECISION :: Standard deployment // monitor 7th-inning bullpen bridge.`
+      `SOLID CONDITION :: Recovery at ${pct}% — within normal range. ` +
+      `${m.away.abbr} rotation holding a mild edge. ` +
+      `GAME PLAN :: Standard rotation deployment // watch the 7th-inning bullpen switch.`
     )
   }
   if (recovery > 0.55) {
@@ -92,7 +92,9 @@ export default function DecisionTerminal({ m, recovery }: Props) {
   return (
     <div style={{
       background: "#040917",
-      border: "1px solid rgba(148,163,184,0.1)",
+      borderTop: "1px solid rgba(148,163,184,0.1)",
+      borderRight: "1px solid rgba(148,163,184,0.1)",
+      borderBottom: "1px solid rgba(148,163,184,0.1)",
       borderLeft: `3px solid ${modeColor}`,
       borderRadius: 6, padding: "18px 22px",
     }}>

@@ -106,7 +106,7 @@ function TeamSummaryCard({ m, side }: { m: Match; side: "away" | "home" }) {
         display: "flex", alignItems: "center", gap: 10,
         flexDirection: side === "away" ? "row-reverse" : "row",
       }}>
-        <TeamMark abbr={team.abbr} size={32} />
+        <TeamMark abbr={team.abbr} league={m.league} size={32} />
         <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: align }}>
           <span style={{ fontFamily: "var(--font-inter), Inter", fontWeight: 900, fontSize: 14, color: "#fff", letterSpacing: "-0.02em" }}>
             {team.name}
@@ -301,7 +301,9 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
   return (
     <div style={{
       background: expanded ? "#071127" : "#050b1b",
-      border: `1px solid ${expanded ? t.hex + "55" : "rgba(148,163,184,0.08)"}`,
+      borderTop: `1px solid ${expanded ? t.hex + "55" : "rgba(148,163,184,0.08)"}`,
+      borderRight: `1px solid ${expanded ? t.hex + "55" : "rgba(148,163,184,0.08)"}`,
+      borderBottom: `1px solid ${expanded ? t.hex + "55" : "rgba(148,163,184,0.08)"}`,
       borderLeft: `2px solid ${t.hex}`,
       borderRadius: 4, transition: "all 180ms ease", overflow: "hidden",
     }}>
@@ -333,7 +335,7 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
             fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontStyle: "italic",
             fontSize: 26, color: "#fff", letterSpacing: "-0.03em", textAlign: "right",
           }}>{m.away.abbr}</span>
-          <div style={{ justifySelf: "end" }}><TeamMark abbr={m.away.abbr} size={36} /></div>
+          <div style={{ justifySelf: "end" }}><TeamMark abbr={m.away.abbr} league={m.league} size={36} /></div>
         </div>
 
         {/* Score or VS */}
@@ -351,7 +353,7 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
 
         {/* Home (logo → abbr) */}
         <div style={{ display: "grid", gridTemplateColumns: "40px 1fr", alignItems: "center", gap: 14 }}>
-          <div style={{ justifySelf: "start" }}><TeamMark abbr={m.home.abbr} size={36} /></div>
+          <div style={{ justifySelf: "start" }}><TeamMark abbr={m.home.abbr} league={m.league} size={36} /></div>
           <span style={{
             fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontStyle: "italic",
             fontSize: 26, color: "#fff", letterSpacing: "-0.03em",

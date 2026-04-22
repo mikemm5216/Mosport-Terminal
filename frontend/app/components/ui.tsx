@@ -13,37 +13,65 @@ export function teamColor(abbr: string): string {
   return TEAM_COLORS[abbr] ?? "#475569"
 }
 
-// ── SVG Logos for MIN and NYM ──────────────────────────────────
-export function TwinsLogoSVG({ size = 64 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 120 120">
-      <circle cx="60" cy="60" r="56" fill="#002B5C" stroke="#D31145" strokeWidth="3" />
-      <circle cx="60" cy="60" r="50" fill="#002B5C" stroke="#CFB07C" strokeWidth="1.2" />
-      <path d="M88 60 a30 30 0 1 0 -10 22 l-8 -8 a19 19 0 1 1 7 -14 z" fill="#D31145" />
-      <rect x="40" y="36" width="30" height="9" fill="#fff" />
-      <rect x="51" y="36" width="8" height="44" fill="#fff" />
-    </svg>
-  )
+// ── Real-logo abbr sets per league ────────────────────────────
+const MLB_ABBRS = new Set([
+  "MIN","NYM","LAD","NYY","HOU","BOS","ATL","SD","CHC","SEA",
+  "CWS","ARI","SFG","CLE","COL","MIA","MIL","OAK","PHI","PIT",
+  "STL","TB","TEX","TOR","WSH","BAL","DET","KC","LAA","CIN",
+])
+const NBA_ABBRS = new Set([
+  "ATL","BOS","BKN","CHA","CHI","CLE","DAL","DEN","DET","GSW",
+  "HOU","IND","LAC","LAL","MEM","MIA","MIL","MIN","NOP","NYK",
+  "OKC","ORL","PHI","PHX","POR","SAC","SAS","TOR","UTA","WSH",
+])
+const EPL_ABBRS = new Set([
+  "ARS","AVL","BOU","BRE","BHA","CHE","CRY","EVE","FUL","IPS",
+  "LEI","LIV","MCI","MUN","NEW","NFO","SOU","TOT","WHM","WOL",
+])
+const UCL_ABBRS = new Set([
+  "BAR","RMA","BAY","PSG","JUV","INT","ATM","MIL","BVB","POR",
+  "AJX","BEN","NAP","SEV",
+])
+const NHL_ABBRS = new Set([
+  "BOS","BUF","DET","FLA","MTL","OTT","TBL","TOR",
+  "CAR","CBJ","NJD","NYI","NYR","PHI","PIT","WSH",
+  "CHI","COL","DAL","MIN","NSH","STL","UTA","WPG",
+  "ANA","CGY","EDM","LAK","SEA","SJS","VAN","VGK",
+])
+
+function logoPath(league: League | undefined, abbr: string): string | null {
+  if (league === "MLB" && MLB_ABBRS.has(abbr)) return `/logos/mlb-${abbr.toLowerCase()}.png`
+  if (league === "NBA" && NBA_ABBRS.has(abbr)) return `/logos/nba-${abbr.toLowerCase()}.png`
+  if (league === "EPL" && EPL_ABBRS.has(abbr)) return `/logos/epl-${abbr.toLowerCase()}.png`
+  if (league === "UCL" && UCL_ABBRS.has(abbr)) return `/logos/ucl-${abbr.toLowerCase()}.png`
+  if (league === "UCL" && EPL_ABBRS.has(abbr)) return `/logos/epl-${abbr.toLowerCase()}.png`
+  if (league === "NHL" && NHL_ABBRS.has(abbr)) return `/logos/nhl-${abbr.toLowerCase()}.png`
+  return null
 }
 
-export function MetsLogoSVG({ size = 64 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 120 120">
-      <circle cx="60" cy="60" r="56" fill="#FF5910" />
-      <circle cx="60" cy="60" r="50" fill="#FF5910" stroke="#002D72" strokeWidth="1.5" />
-      <path d="M20 78 L30 78 L30 62 L38 62 L38 72 L46 72 L46 54 L54 54 L54 68 L62 68 L62 50 L70 50 L70 66 L78 66 L78 58 L86 58 L86 74 L94 74 L94 78 Z"
-        fill="#002D72" opacity="0.25" />
-      <path d="M38 44 L38 82 L46 82 L46 62 L60 82 L68 82 L68 44 L60 44 L60 64 L46 44 Z" fill="#002D72" />
-      <path d="M70 44 L78 44 L84 56 L90 44 L98 44 L88 62 L88 82 L80 82 L80 62 Z" fill="#002D72" />
-    </svg>
-  )
-}
-
-// ── Team mark (logo or monogram tile) ─────────────────────────
-export function TeamMark({ abbr, size = 48 }: { abbr: string; size?: number }) {
-  if (abbr === "MIN") return <div style={{ width: size, height: size, flexShrink: 0 }}><TwinsLogoSVG size={size} /></div>
-  if (abbr === "NYM") return <div style={{ width: size, height: size, flexShrink: 0 }}><MetsLogoSVG size={size} /></div>
+// ── Team mark (real logo or monogram tile) ─────────────────────
+export function TeamMark({ abbr, league, size = 48 }: { abbr: string; league?: League; size?: number }) {
   const color = teamColor(abbr)
+  const src = logoPath(league, abbr)
+
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={abbr}
+        width={size}
+        height={size}
+        style={{
+          width: size, height: size,
+          objectFit: "contain",
+          flexShrink: 0,
+          filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))",
+        }}
+      />
+    )
+  }
+
   const fs = Math.round(size * 0.38)
   return (
     <div style={{

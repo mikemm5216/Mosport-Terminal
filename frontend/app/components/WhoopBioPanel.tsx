@@ -42,7 +42,9 @@ function RosterRow({ p }: { p: Player }) {
       display: "grid", gridTemplateColumns: "28px 1.2fr 60px 60px 60px 80px",
       alignItems: "center", gap: 10,
       padding: "9px 10px", background: "#040917",
-      border: "1px solid rgba(148,163,184,0.04)",
+      borderTop: "1px solid rgba(148,163,184,0.04)",
+      borderRight: "1px solid rgba(148,163,184,0.04)",
+      borderBottom: "1px solid rgba(148,163,184,0.04)",
       borderLeft: `2px solid ${f.c}`,
       borderRadius: 3, marginBottom: 4,
     }}>

@@ -1,0 +1,15 @@
+{
+  "game_id": "mlb_2026_001",
+  "sport": "baseball",
+  "home_team": "Twins",
+  "away_team": "Mets",
+  "market_home_prob": 0.57,
+  "signals": {
+    "pressure": 0.62,
+    "fatigue": 0.48,
+    "volatility": 0.57,
+    "momentum": 0.42,
+    "mismatch": 0.71
+  },
+  "tags": ["pre_game", "blind_mode"]
+}
