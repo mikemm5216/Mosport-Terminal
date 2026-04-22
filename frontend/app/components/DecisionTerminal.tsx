@@ -38,14 +38,14 @@ function buildMessage(recovery: number, m: Match): string {
   }
   if (recovery > 0.55) {
     return (
-      `VULNERABILITY ALERT :: Recovery degradation detected. ` +
-      `Travel fatigue no longer offset by physiological surplus. ` +
-      `TACTICAL DECISION :: Load-manage starter pitch count // elevate monitor flags.`
+      `WARNING :: Recovery at ${pct}% — fatigue catching up with the roster. ` +
+      `Travel load is winning out — body clock not fully reset. ` +
+      `GAME PLAN :: Limit starter pitch count // bump flagged players to watch list.`
     )
   }
   return (
-    `CRITICAL DEBT :: Physiological edge collapsed. Tactical advantage has inverted. ` +
-    `TACTICAL DECISION :: Hold pattern // recommend roster rest rotation // abort aggressive posture.`
+    `DANGER ZONE :: Recovery at ${pct}% — team is running on fumes. Any edge is gone. ` +
+    `GAME PLAN :: Hold aggressive calls // rest key rotation players // play it safe.`
   )
 }
 
@@ -140,7 +140,7 @@ export default function DecisionTerminal({ m, recovery }: Props) {
 
       {/* Actions */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 14 }}>
-        <TermAction primary icon="✓" label="ACCEPT TACTICAL DECISION" color="#22d3ee" />
+        <TermAction primary icon="✓" label="CONFIRM GAME PLAN" color="#22d3ee" />
         <TermAction icon="◎" label="FLAG FOR MONITORING" color="#fbbf24" />
         <TermAction icon="⊘" label="OVERRIDE / HOLD" color="#64748b" />
       </div>

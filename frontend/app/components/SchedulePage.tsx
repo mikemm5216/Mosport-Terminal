@@ -268,7 +268,7 @@ function GameBarPreview({ m, onOpen }: { m: Match; onOpen: (m: Match) => void })
         paddingTop: 14, borderTop: "1px dashed rgba(148,163,184,0.1)",
       }}>
         <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, color: "#475569", letterSpacing: "0.24em" }}>
-          FULL CAUSAL BREAKDOWN · ROSTER READINESS · DECISION ENGINE →
+          FULL GAME BREAKDOWN · ROSTER READINESS · MATCHUP ENGINE →
         </span>
         <div style={{ flex: 1 }} />
         <button

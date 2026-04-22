@@ -73,7 +73,7 @@ export default function MatchupGauge({ m, adjustedOverride }: Props) {
       label: "ROSTER READINESS Δ",
       magnitude: 0.026,
       dir: "+",
-      detail: `Aggregate recovery surplus ${Math.round(m.recovery_away * 100)}% vs ${Math.round(m.recovery_home * 100)}% // largest delta on slate`,
+      detail: `Recovery edge: ${Math.round(m.recovery_away * 100)}% vs ${Math.round(m.recovery_home * 100)}% — biggest gap on today's slate`,
     },
   ]
 

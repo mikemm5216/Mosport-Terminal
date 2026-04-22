@@ -192,7 +192,7 @@ export function BioBar({ value, color = "#34d399", height = 8 }: { value: number
 // ── Tactical label ─────────────────────────────────────────────
 const TACTICAL_MAP: Record<TacticalLabel, { bg: string; bd: string; fg: string; t: string }> = {
   HIGH_CONFIDENCE:   { bg: "rgba(52,211,153,0.08)",  bd: "#34d399", fg: "#6ee7b7", t: "HIGH CONFIDENCE" },
-  OUTLIER_POTENTIAL: { bg: "rgba(34,211,238,0.08)",  bd: "#22d3ee", fg: "#67e8f9", t: "OUTLIER POTENTIAL" },
+  OUTLIER_POTENTIAL: { bg: "rgba(34,211,238,0.08)",  bd: "#22d3ee", fg: "#67e8f9", t: "UPSET POTENTIAL" },
   UNCERTAIN:         { bg: "rgba(100,116,139,0.08)", bd: "#475569", fg: "#94a3b8", t: "UNCERTAIN ZONE" },
   VULNERABILITY:     { bg: "rgba(244,63,94,0.08)",   bd: "#f43f5e", fg: "#fda4af", t: "VULNERABILITY ALERT" },
 }

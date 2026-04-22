@@ -1,36 +1,27 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Python
+.venv/
+__pycache__/
+*.pyc
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
+# Node / Next
+node_modules/
+.next/
+dist/
+build/
 
-# testing
-/coverage
+# Data / artifacts
+data/
+*.parquet
+*.csv
+*.tsv
+*.pkl
+*.pickle
+*.joblib
+*.onnx
+*.db
+*.sqlite
+*.sqlite3
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# Logs / misc
+*.log
 .DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
-.env*.local
-.env
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
