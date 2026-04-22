@@ -22,7 +22,12 @@
       "Bash(curl -s http://localhost:8811/health)",
       "Bash(curl -s -X POST http://localhost:8811/organism/run -H 'Content-Type: application/json' -d '{\"game_id\":\"nba_2026_bos_mia\",\"sport\":\"basketball\",\"home_team\":\"Boston Celtics\",\"away_team\":\"Miami Heat\",\"market_home_prob\":0.71,\"signals\":{\"pressure\":0.88,\"fatigue\":0.19,\"volatility\":0.88,\"momentum\":0.5,\"mismatch\":1.0},\"tags\":[\"pre_game\"]}')",
       "Bash(curl -s -X POST http://localhost:8811/organism/run -H 'Content-Type: application/json' -d '{\"game_id\":\"nba_2026_bos_mia\",\"sport\":\"basketball\",\"home_team\":\"Boston Celtics\",\"away_team\":\"Miami Heat\",\"market_home_prob\":0.71,\"signals\":{\"pressure\":0.69,\"fatigue\":0.19,\"volatility\":0.69,\"momentum\":0.5,\"mismatch\":1.0},\"tags\":[\"pre_game\"]}')",
-      "Bash(curl -s -X POST http://localhost:8811/organism/run -H 'Content-Type: application/json' -d '{\"game_id\":\"mlb_2026_min_nym\",\"sport\":\"baseball\",\"home_team\":\"New York Mets\",\"away_team\":\"Minnesota Twins\",\"market_home_prob\":0.378,\"signals\":{\"pressure\":0.69,\"fatigue\":0.09,\"volatility\":0.69,\"momentum\":0.5,\"mismatch\":0.65},\"tags\":[\"pre_game\"]}')"
+      "Bash(curl -s -X POST http://localhost:8811/organism/run -H 'Content-Type: application/json' -d '{\"game_id\":\"mlb_2026_min_nym\",\"sport\":\"baseball\",\"home_team\":\"New York Mets\",\"away_team\":\"Minnesota Twins\",\"market_home_prob\":0.378,\"signals\":{\"pressure\":0.69,\"fatigue\":0.09,\"volatility\":0.69,\"momentum\":0.5,\"mismatch\":0.65},\"tags\":[\"pre_game\"]}')",
+      "Bash(git count-objects *)",
+      "Bash(git rev-list *)",
+      "Bash(git cat-file *)",
+      "Bash(sort -k3 -rn)",
+      "Bash(git ls-tree *)"
     ]
   }
 }
