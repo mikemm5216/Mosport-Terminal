@@ -17,7 +17,8 @@
       "Bash(npx next *)",
       "Bash(netstat -ano)",
       "Bash(taskkill /F /PID 19176)",
-      "PowerShell(Stop-Process *)"
+      "PowerShell(Stop-Process *)",
+      "Bash(npx tsc *)"
     ]
   }
 }

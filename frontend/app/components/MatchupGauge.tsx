@@ -2,6 +2,8 @@
 
 import type { Match } from '../data/mockData'
 import { leagueTheme, RingGauge, TacticalLabel } from './ui'
+import type { V11Decision } from '../lib/v11'
+import { V11_LABEL_MAP, actionLabel } from '../lib/v11'
 
 function CausalFactor({ label, magnitude, dir, detail }: {
   label: string; magnitude: number; dir: "+" | "−"; detail: string
@@ -40,15 +42,20 @@ function CausalFactor({ label, magnitude, dir, detail }: {
 interface Props {
   m: Match
   adjustedOverride?: number
+  v11?: V11Decision | null
 }
 
-export default function MatchupGauge({ m, adjustedOverride }: Props) {
+export default function MatchupGauge({ m, adjustedOverride, v11 }: Props) {
   const t = leagueTheme(m.league)
-  const baseline = m.baseline_win
-  const adjusted = adjustedOverride ?? m.physio_adjusted
-  const delta = adjusted - baseline
+
+  // When V11 is live, use its values; otherwise fall back to mock
+  const baseline = v11 ? v11.market_home_prob   : m.baseline_win
+  const adjusted = v11 ? v11.final_probability_home : (adjustedOverride ?? m.physio_adjusted)
+  const delta    = v11 ? v11.edge_vs_market          : (adjusted - baseline)
   const positive = delta >= 0
-  const wpaColor = positive ? "#22d3ee" : "#f43f5e"
+  const edgeColor = positive ? "#22d3ee" : "#f43f5e"
+
+  const tacLabel = v11 ? (V11_LABEL_MAP[v11.label] ?? m.tactical_label) : m.tactical_label
 
   const factors: { label: string; magnitude: number; dir: "+" | "−"; detail: string }[] = [
     {
@@ -92,9 +99,22 @@ export default function MatchupGauge({ m, adjustedOverride }: Props) {
           <span style={{ width: 14, height: 1, background: "#64748b", opacity: 0.5 }} />
           MATCHUP GAUGE / TACTICAL EDGE
         </div>
-        <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", letterSpacing: "0.22em" }}>
-          COMPLEXITY {(m.matchup_complexity * 100).toFixed(0)} / 100
-        </div>
+        {v11 ? (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "3px 8px", borderRadius: 2,
+            background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.3)",
+          }}>
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#34d399", boxShadow: "0 0 6px #34d399" }} />
+            <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, fontWeight: 800, color: "#34d399", letterSpacing: "0.24em" }}>
+              {v11.dominant_agent} DOMINANT
+            </span>
+          </div>
+        ) : (
+          <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", letterSpacing: "0.22em" }}>
+            COMPLEXITY {(m.matchup_complexity * 100).toFixed(0)} / 100
+          </div>
+        )}
       </div>
 
       {/* Dual ring gauges */}
@@ -107,18 +127,18 @@ export default function MatchupGauge({ m, adjustedOverride }: Props) {
           />
         </div>
 
-        {/* Delta + WPA */}
+        {/* Edge shift */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
           <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", letterSpacing: "0.3em", fontWeight: 800 }}>EDGE SHIFT</div>
           <div style={{
             fontFamily: "var(--font-mono), monospace", fontSize: 30, fontWeight: 800,
-            color: wpaColor, letterSpacing: "-0.04em",
-            textShadow: `0 0 22px ${wpaColor}55`,
+            color: edgeColor, letterSpacing: "-0.04em",
+            textShadow: `0 0 22px ${edgeColor}55`,
           }}>
             {positive ? "+" : "−"}{(Math.abs(delta) * 100).toFixed(1)}%
           </div>
-          <div style={{ fontSize: 16, color: wpaColor, fontWeight: 800 }}>{positive ? "↑" : "↓"}</div>
-          <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, color: wpaColor, letterSpacing: "0.26em", fontWeight: 800 }}>
+          <div style={{ fontSize: 16, color: edgeColor, fontWeight: 800 }}>{positive ? "↑" : "↓"}</div>
+          <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, color: edgeColor, letterSpacing: "0.26em", fontWeight: 800 }}>
             WIN IMPACT
           </div>
         </div>
@@ -127,7 +147,7 @@ export default function MatchupGauge({ m, adjustedOverride }: Props) {
           <RingGauge
             value={adjusted} size={170} thickness={10}
             color="#22d3ee" track="#0b1220"
-            label="PHYSIO ADJUSTED" sublabel="MOSPORT CORE"
+            label={v11 ? "ARBITER OUTPUT" : "PHYSIO ADJUSTED"} sublabel="MOSPORT CORE"
           />
         </div>
       </div>
@@ -138,13 +158,19 @@ export default function MatchupGauge({ m, adjustedOverride }: Props) {
         padding: "12px 14px", background: "rgba(34,211,238,0.04)",
         border: "1px solid rgba(34,211,238,0.2)", borderRadius: 4, marginBottom: 18,
       }}>
-        <TacticalLabel label={m.tactical_label} />
-        <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, color: "#94a3b8", letterSpacing: "0.1em" }}>
-          edge favors <span style={{ color: "#fff", fontWeight: 800 }}>{m.perspective}</span> roster / {m.away.abbr}
-        </span>
+        <TacticalLabel label={tacLabel} />
+        {v11 ? (
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, color: "#94a3b8", letterSpacing: "0.1em" }}>
+            → <span style={{ color: "#fff", fontWeight: 800 }}>{actionLabel(v11.action, m.home.abbr, m.away.abbr)}</span>
+          </span>
+        ) : (
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, color: "#94a3b8", letterSpacing: "0.1em" }}>
+            edge favors <span style={{ color: "#fff", fontWeight: 800 }}>{m.perspective}</span> roster / {m.away.abbr}
+          </span>
+        )}
       </div>
 
-      {/* Causal factors */}
+      {/* Key factors */}
       <div style={{
         fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 700,
         letterSpacing: "0.32em", color: "#64748b", textTransform: "uppercase",

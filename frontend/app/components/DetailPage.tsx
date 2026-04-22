@@ -6,13 +6,15 @@ import { leagueTheme, TeamMark, LeagueBadge, LiveDot } from './ui'
 import MatchupGauge from './MatchupGauge'
 import WhoopBioPanel from './WhoopBioPanel'
 import DecisionTerminal from './DecisionTerminal'
+import { matchToV11Input } from '../lib/v11'
+import type { V11Decision } from '../lib/v11'
 
 interface Props {
   m: Match
   onBack: () => void
 }
 
-function SystemFooter() {
+function SystemFooter({ live }: { live: boolean }) {
   return (
     <div style={{
       maxWidth: 1400, margin: "0 auto", padding: "12px 24px",
@@ -21,20 +23,49 @@ function SystemFooter() {
       fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#334155",
       letterSpacing: "0.22em",
     }}>
-      <span>CORE_VER 4.3.0 &nbsp; // &nbsp; DATA_SD_BOX_SECURE</span>
-      <span>TACTICAL ENGINE: MOSPORT &nbsp; // &nbsp; ENCRYPTION: AES-256</span>
+      <span>CORE_VER 11.1.0 &nbsp; // &nbsp; MULTI-AGENT RUNTIME</span>
+      <span style={{ color: live ? "#34d399" : "#334155" }}>
+        {live ? "● ENGINE LIVE" : "○ ENGINE OFFLINE"} &nbsp; // &nbsp; ARBITER: AES-256
+      </span>
     </div>
   )
 }
 
 export default function DetailPage({ m, onBack }: Props) {
   const [recovery, setRecovery] = useState(m.recovery_away)
-  useEffect(() => { setRecovery(m.recovery_away) }, [m.id])
+  const [v11, setV11] = useState<V11Decision | null>(null)
+  const [v11Live, setV11Live] = useState(false)
 
-  // Socket: recovery changes → adjusted win%
+  // Reset on match change
+  useEffect(() => {
+    setRecovery(m.recovery_away)
+    setV11(null)
+  }, [m.id])
+
+  // Re-call V11 whenever recovery changes (debounced 300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const input = matchToV11Input(m, recovery)
+      fetch('/api/organism', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data && !data.error) {
+            setV11(data as V11Decision)
+            setV11Live(true)
+          }
+        })
+        .catch(() => {})
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [m.id, recovery])
+
+  // Fallback local-computed adjusted probability (used when V11 offline)
   const adjusted = useMemo(() => {
-    const baselineRec = m.recovery_away
-    const delta = (recovery - baselineRec) * 0.3
+    const delta = (recovery - m.recovery_away) * 0.3
     return Math.max(0.02, Math.min(0.98, m.physio_adjusted + delta))
   }, [recovery, m])
 
@@ -56,9 +87,12 @@ export default function DetailPage({ m, onBack }: Props) {
           WAR ROOM / MATCH {m.id.toUpperCase()}
         </span>
         <div style={{ flex: 1 }} />
-        <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, color: "#22d3ee", letterSpacing: "0.26em" }}>
-          ENCRYPTED STREAM // DATALINK ACTIVE
-        </span>
+        {v11Live && (
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#34d399", letterSpacing: "0.26em", display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399", boxShadow: "0 0 8px #34d399", display: "inline-block", animation: "pulse-dot 1.4s infinite" }} />
+            V11.1 ARBITER LIVE
+          </span>
+        )}
       </div>
 
       {/* Match header */}
@@ -97,7 +131,7 @@ export default function DetailPage({ m, onBack }: Props) {
             VS
           </div>
           <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", letterSpacing: "0.28em", fontWeight: 700 }}>
-            CITI FIELD · DOME CLOSED
+            {m.home.city} · HOME GROUND
           </div>
         </div>
 
@@ -117,14 +151,14 @@ export default function DetailPage({ m, onBack }: Props) {
 
       {/* Two-column layout */}
       <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 18, marginBottom: 18 }}>
-        <MatchupGauge m={m} adjustedOverride={adjusted} />
+        <MatchupGauge m={m} adjustedOverride={adjusted} v11={v11} />
         <WhoopBioPanel m={m} recovery={recovery} setRecovery={setRecovery} />
       </div>
 
       {/* Decision terminal */}
-      <DecisionTerminal m={m} recovery={recovery} />
+      <DecisionTerminal m={m} recovery={recovery} v11={v11} />
 
-      <SystemFooter />
+      <SystemFooter live={v11Live} />
     </div>
   )
 }
