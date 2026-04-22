@@ -1,23 +1,21 @@
-import Sidebar       from './components/Sidebar'
-import DecisionCard  from './components/DecisionCard'
-import UpsetHunter   from './components/UpsetHunter'
-import WhoopBioPanel from './components/WhoopBioPanel'
-import { GAMES, WHOOP_DATA } from './data/mockData'
+import OutperformanceAlert from './components/UpsetHunter'
+import DecisionCard        from './components/DecisionCard'
+import DashboardClient     from './components/DashboardClient'
+import { GAMES }           from './data/mockData'
 
 export default function Home() {
-  const urgent = GAMES.filter(g => ['STRONG', 'UPSET'].includes(g.decision.label))
-  const others  = GAMES.filter(g => !['STRONG', 'UPSET'].includes(g.decision.label))
+  const highConviction = GAMES.filter(g =>
+    g.decision.label === 'OUTPERFORMANCE' && g.confidence >= 0.65
+  )
+  const monitor = GAMES.filter(g => !highConviction.includes(g))
 
   return (
     <div
       className="min-h-screen grid"
-      style={{ gridTemplateColumns: '180px 1fr 260px', background: '#050505' }}
+      style={{ gridTemplateColumns: '280px 1fr 270px', background: '#050505' }}
     >
-      {/* ── Sidebar ─────────────────────────────── */}
-      <Sidebar />
-
-      {/* ── Main Feed ───────────────────────────── */}
-      <main className="py-6 px-6 overflow-y-auto">
+      <DashboardClient>
+        {/* Decision Stream header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-xl font-bold text-white tracking-tight">Decision Stream</h1>
@@ -29,42 +27,43 @@ export default function Home() {
             </span>
           </div>
           <p className="text-xs" style={{ color: '#71717A' }}>
-            {GAMES.length} MLB games today &middot; {urgent.length} actionable signals
+            {GAMES.length} MLB games today &middot;{' '}
+            {highConviction.length} outperformance signals
           </p>
         </div>
 
-        <UpsetHunter games={GAMES} />
+        <OutperformanceAlert games={GAMES} />
 
-        {urgent.length > 0 && (
+        {highConviction.length > 0 && (
           <section className="mb-4">
-            <SectionLabel text="High Conviction" count={urgent.length} color="#22C55E" />
+            <SectionLabel
+              text="High Conviction"
+              count={highConviction.length}
+              color="#22C55E"
+            />
             <div className="space-y-3">
-              {urgent.map((g, i) => (
+              {highConviction.map((g, i) => (
                 <DecisionCard key={g.game_id} game={g} index={i} />
               ))}
             </div>
           </section>
         )}
 
-        {others.length > 0 && (
-          <section className="mt-6">
-            <SectionLabel text="Monitor" count={others.length} color="#3F3F46" />
+        {monitor.length > 0 && (
+          <section>
+            <SectionLabel
+              text="Monitor"
+              count={monitor.length}
+              color="#3F3F46"
+            />
             <div className="space-y-3">
-              {others.map((g, i) => (
-                <DecisionCard key={g.game_id} game={g} index={urgent.length + i} />
+              {monitor.map((g, i) => (
+                <DecisionCard key={g.game_id} game={g} index={highConviction.length + i} />
               ))}
             </div>
           </section>
         )}
-      </main>
-
-      {/* ── Bio Panel ───────────────────────────── */}
-      <aside
-        className="py-6 px-4 overflow-y-auto"
-        style={{ borderLeft: '1px solid #1a1a22' }}
-      >
-        <WhoopBioPanel data={WHOOP_DATA} />
-      </aside>
+      </DashboardClient>
     </div>
   )
 }
@@ -78,10 +77,8 @@ function SectionLabel({ text, count, color }: {
       <span className="text-[10px] font-mono tracking-widest uppercase" style={{ color: '#71717A' }}>
         {text}
       </span>
-      <span
-        className="text-[9px] font-mono px-1.5 rounded"
-        style={{ background: '#1a1a22', color: '#52525B' }}
-      >
+      <span className="text-[9px] font-mono px-1.5 rounded"
+        style={{ background: '#1a1a22', color: '#52525B' }}>
         {count}
       </span>
     </div>

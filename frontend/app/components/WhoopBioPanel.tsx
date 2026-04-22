@@ -4,12 +4,12 @@ import type { WhoopSync } from '../data/mockData'
 
 interface Props {
   data: WhoopSync
+  onRecoveryChange?: (v: number) => void
 }
 
-// SVG heartbeat path — simplified ECG wave
 const ECG_PATH = 'M0,20 L15,20 L20,5 L25,35 L30,20 L35,20 L40,20 L45,8 L50,32 L55,20 L70,20'
 
-export default function WhoopBioPanel({ data }: Props) {
+export default function WhoopBioPanel({ data, onRecoveryChange }: Props) {
   const isMiracle = data.mode === 'MIRACLE'
   const isRisk    = data.mode === 'RISK'
 
@@ -18,7 +18,7 @@ export default function WhoopBioPanel({ data }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <span className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase">
-          Bio Panel
+          Roster Readiness &amp; Biometrics
         </span>
         <span
           className="text-[9px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider"
@@ -32,10 +32,7 @@ export default function WhoopBioPanel({ data }: Props) {
       </div>
 
       {/* Heartbeat card */}
-      <div
-        className="rounded-xl p-4"
-        style={{ background: '#121217', border: '1px solid #27272A' }}
-      >
+      <div className="rounded-xl p-4" style={{ background: '#121217', border: '1px solid #27272A' }}>
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] text-zinc-500 uppercase tracking-wider">WHOOP Sync</span>
           {isMiracle && (
@@ -46,7 +43,6 @@ export default function WhoopBioPanel({ data }: Props) {
           )}
         </div>
 
-        {/* ECG animation */}
         <div className="mb-3 overflow-hidden rounded" style={{ height: 40, background: '#0a0a0f' }}>
           <svg width="100%" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
             <path
@@ -62,24 +58,18 @@ export default function WhoopBioPanel({ data }: Props) {
           </svg>
         </div>
 
-        {/* HRV */}
-        <BioRow
-          label="HRV Delta"
-          value={data.hrv_delta}
-          positive
-          sub="vs 30-day baseline"
-        />
+        <BioRow label="HRV Delta" value={data.hrv_delta} positive sub="vs 30-day baseline" />
       </div>
 
-      {/* Recovery card */}
-      <div
-        className="rounded-xl p-4"
-        style={{ background: '#121217', border: '1px solid #27272A' }}
-      >
-        <BioRow label="Recovery" value={`${data.recovery}%`} positive={data.recovery >= 70} />
+      {/* Aggregate Recovery card */}
+      <div className="rounded-xl p-4" style={{ background: '#121217', border: '1px solid #27272A' }}>
+        <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest mb-2">
+          Aggregate Recovery %
+        </div>
+        <BioRow label="Recovery" value={`${data.recovery.toFixed(1)}%`} positive={data.recovery >= 70} />
         <div className="mt-2 h-2 rounded-full bg-zinc-800 overflow-hidden">
           <div
-            className="h-full rounded-full transition-all duration-1000"
+            className="h-full rounded-full transition-all duration-700"
             style={{
               width:      `${data.recovery}%`,
               background: data.recovery >= 70
@@ -88,16 +78,30 @@ export default function WhoopBioPanel({ data }: Props) {
             }}
           />
         </div>
+
+        {/* Slider to simulate socket update */}
+        {onRecoveryChange && (
+          <input
+            type="range" min={60} max={100} step={0.5}
+            value={data.recovery}
+            onChange={e => onRecoveryChange(parseFloat(e.target.value))}
+            className="w-full mt-2 accent-green-500"
+            style={{ height: 4, opacity: 0.6 }}
+            title="Simulate recovery change"
+          />
+        )}
+
         <div className="mt-3 pt-3" style={{ borderTop: '1px solid #1e1e26' }}>
           <BioRow
             label="Sleep Debt"
             value={`${data.sleep_debt_hrs}h`}
             positive={data.sleep_debt_hrs < 1}
+            sub="HRV Trend ↑"
           />
         </div>
         <div className="mt-3 pt-3" style={{ borderTop: '1px solid #1e1e26' }}>
           <BioRow
-            label="Strain"
+            label="Strain Load"
             value={data.strain.toFixed(1)}
             positive={data.strain < 14}
             sub="/ 21 max"
@@ -114,29 +118,24 @@ export default function WhoopBioPanel({ data }: Props) {
         }}
       >
         <div className="text-[9px] text-zinc-500 uppercase tracking-wider mb-2">
-          Decision Impact
+          Tactical Decision Impact
         </div>
-        <div
-          className="text-[12px] font-semibold leading-snug"
-          style={{ color: isMiracle ? '#86EFAC' : '#FCA5A5' }}
-        >
-          Bio-data {isMiracle ? 'increased' : 'reduced'} decision confidence by{' '}
+        <div className="text-[12px] font-semibold leading-snug"
+          style={{ color: isMiracle ? '#86EFAC' : '#FCA5A5' }}>
+          Biometrics {isMiracle ? 'elevated' : 'reduced'} roster readiness by{' '}
           <span className="text-white">
             {isMiracle ? '+' : '−'}{Math.round(data.impact_score * 100 * (1 + data.recovery / 100))}%
           </span>
         </div>
         <div className="mt-2 text-[10px] text-zinc-600">
           {isMiracle
-            ? 'Optimal biometric state → Enhanced mode active'
-            : 'Elevated strain → reduced bet sizing recommended'}
+            ? 'Optimal physiological state → Enhanced load capacity active'
+            : 'Elevated strain → reduced tactical load recommended'}
         </div>
       </div>
 
       {/* Socket animation */}
-      <div
-        className="rounded-xl p-4"
-        style={{ background: '#121217', border: '1px solid #27272A' }}
-      >
+      <div className="rounded-xl p-4" style={{ background: '#121217', border: '1px solid #27272A' }}>
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Data Feed</span>
           <span className="text-[9px] font-mono text-zinc-600">CONNECTED</span>
@@ -167,10 +166,7 @@ function BioRow({ label, value, positive, sub }: {
         <span className="text-[11px] text-zinc-400">{label}</span>
         {sub && <span className="text-[9px] text-zinc-600 ml-1">{sub}</span>}
       </div>
-      <span
-        className="text-sm font-bold font-mono"
-        style={{ color: positive ? '#22C55E' : '#EF4444' }}
-      >
+      <span className="text-sm font-bold font-mono" style={{ color: positive ? '#22C55E' : '#EF4444' }}>
         {value}
       </span>
     </div>
