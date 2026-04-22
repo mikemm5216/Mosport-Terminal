@@ -44,13 +44,59 @@ class ArbiterAgent(BaseAgent):
         sharp_score = scores.get("SharpAgent", 0.0)
         analyst_score = scores.get("AnalystAgent", 0.0)
 
+        sport = world_state.get("sport", "baseball").lower()
+
         # --- 3.2 DOMINANCE LOGIC ---
-        if mismatch >= 0.65 and volatility < 0.70:
-            dominant = "SHARP"
-        elif volatility <= 0.50 and market_home_prob >= 0.53:
-            dominant = "ANALYST"
-        else:
-            dominant = "HYBRID"
+        if sport == "basketball":
+            if mismatch >= 0.70 and volatility < 0.60:
+                dominant = "SHARP"
+            elif volatility <= 0.50 and market_home_prob >= 0.55:
+                dominant = "ANALYST"
+            else:
+                dominant = "HYBRID"
+                
+            upset_trigger = (
+                sharp_lean == "AWAY" and
+                analyst_lean == "HOME" and
+                market_home_prob >= 0.55 and
+                mismatch >= 0.70
+            )
+            chaos_threshold = 0.75
+            shift = min(0.10, 0.03 + (mismatch - 0.70) * 0.35) if upset_trigger else 0
+            
+        elif sport in ["soccer", "football"]:
+            if mismatch >= 0.60 and volatility < 0.65:
+                dominant = "SHARP"
+            elif volatility <= 0.55 and market_home_prob >= 0.52:
+                dominant = "ANALYST"
+            else:
+                dominant = "HYBRID"
+                
+            upset_trigger = (
+                sharp_lean == "AWAY" and
+                analyst_lean == "HOME" and
+                market_home_prob >= 0.52 and
+                mismatch >= 0.60
+            )
+            chaos_threshold = 0.65
+            shift = min(0.10, 0.03 + (mismatch - 0.60) * 0.35) if upset_trigger else 0
+            
+        else: # baseball
+            if mismatch >= 0.65 and volatility < 0.70:
+                dominant = "SHARP"
+            elif volatility <= 0.50 and market_home_prob >= 0.53:
+                dominant = "ANALYST"
+            else:
+                dominant = "HYBRID"
+                
+            upset_trigger = (
+                sharp_lean == "AWAY" and
+                analyst_lean == "HOME" and
+                market_home_prob >= 0.54 and
+                mismatch >= 0.65
+            )
+            chaos_threshold = 0.70
+            shift = min(0.10, 0.03 + (mismatch - 0.65) * 0.35) if upset_trigger else 0
 
         # --- 3.3 Weighted resolution ---
         if dominant == "SHARP":
@@ -69,15 +115,7 @@ class ArbiterAgent(BaseAgent):
         base_prob = 0.5 + blended * 0.15
 
         # --- 4 TRUE UPSET (NOT LABEL ONLY) ---
-        upset_trigger = (
-            sharp_lean == "AWAY" and
-            analyst_lean == "HOME" and
-            market_home_prob >= 0.54 and
-            mismatch >= 0.65
-        )
-
         if upset_trigger:
-            shift = min(0.10, 0.03 + (mismatch - 0.65) * 0.35)
             final_prob = base_prob - shift
         else:
             final_prob = base_prob
@@ -91,7 +129,7 @@ class ArbiterAgent(BaseAgent):
         decision_score = round(abs(edge_vs_market), 4)
 
         # --- 6 LABEL ---
-        if volatility >= 0.70:
+        if volatility >= chaos_threshold:
             label = "CHAOS"
         elif upset_trigger:
             label = "UPSET"

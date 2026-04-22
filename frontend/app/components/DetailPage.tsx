@@ -128,7 +128,11 @@ export default function DetailPage({ m, onBack }: Props) {
             }
           </div>
           <div style={{ fontFamily: "var(--font-inter), Inter", fontWeight: 900, fontSize: 18, color: "#94a3b8", letterSpacing: "0.2em", fontStyle: "italic" }}>
-            VS
+            {m.score ? (
+              <span style={{ color: m.status === "LIVE" ? "#ef4444" : "#fff", fontSize: 32 }}>
+                {m.score.away} <span style={{ color: "#334155" }}>–</span> {m.score.home}
+              </span>
+            ) : "TBD"}
           </div>
           <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", letterSpacing: "0.28em", fontWeight: 700 }}>
             {m.home.city} · HOME GROUND

@@ -13,26 +13,38 @@ class SharpAgent(BaseAgent):
 
     def run(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         mismatch = input_data["mismatch"]
+        sport = input_data.get("sport", "baseball").lower()
 
-        if mismatch >= 0.65:
+        # Sport-specific thresholds
+        if sport == "basketball":
+            thresh_high = 0.70
+            thresh_low = 0.30
+        elif sport in ["soccer", "football"]:
+            thresh_high = 0.60
+            thresh_low = 0.40
+        else:
+            thresh_high = 0.65
+            thresh_low = 0.35
+
+        if mismatch >= thresh_high:
             lean = "AWAY"
             confidence = 0.75
             reasoning = (
-                f"High mismatch detected at {mismatch:.2f}. "
+                f"[{sport.upper()}] High mismatch detected at {mismatch:.2f}. "
                 f"Fading market -- taking strong AWAY position."
             )
-        elif mismatch <= 0.35:
+        elif mismatch <= thresh_low:
             lean = "HOME"
             confidence = 0.70
             reasoning = (
-                f"Low mismatch at {mismatch:.2f} suggests HOME dominance. "
+                f"[{sport.upper()}] Low mismatch at {mismatch:.2f} suggests HOME dominance. "
                 f"Taking aggressive HOME position."
             )
         else:
             lean = "NO_EDGE"
             confidence = 0.45
             reasoning = (
-                f"Mismatch at {mismatch:.2f} is within neutral zone. "
+                f"[{sport.upper()}] Mismatch at {mismatch:.2f} is within neutral zone. "
                 f"Observing with high caution."
             )
 
@@ -41,7 +53,7 @@ class SharpAgent(BaseAgent):
             lean=lean,
             confidence=round(confidence, 4),
             reasoning=reasoning,
-            features_used=["mismatch"],
+            features_used=["mismatch", "sport"],
         )
 
         return opinion.model_dump()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Match, League, KeyPlayer } from '../data/mockData'
 import { TODAY_MATCHES, getKeyPlayers } from '../data/mockData'
 import { leagueTheme, TeamMark, LeagueBadge, LiveDot, TacticalLabel, wpaColor } from './ui'
@@ -299,17 +299,20 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
   const statusLabel = isLive ? "● IN_PLAY" : isFinal ? "✓ FINAL" : "SCHEDULED"
 
   return (
-    <div style={{
-      background: expanded ? "#071127" : "#050b1b",
-      borderTop: `1px solid ${expanded ? t.hex + "55" : "rgba(148,163,184,0.08)"}`,
-      borderRight: `1px solid ${expanded ? t.hex + "55" : "rgba(148,163,184,0.08)"}`,
-      borderBottom: `1px solid ${expanded ? t.hex + "55" : "rgba(148,163,184,0.08)"}`,
-      borderLeft: `2px solid ${t.hex}`,
-      borderRadius: 4, transition: "all 180ms ease", overflow: "hidden",
-    }}>
+    <div
+      onMouseEnter={() => !expanded && onToggle()}
+      onMouseLeave={() => expanded && onToggle()}
+      style={{
+        background: expanded ? "#071127" : "#050b1b",
+        borderTop: `1px solid ${expanded ? t.hex + "55" : "rgba(148,163,184,0.08)"}`,
+        borderRight: `1px solid ${expanded ? t.hex + "55" : "rgba(148,163,184,0.08)"}`,
+        borderBottom: `1px solid ${expanded ? t.hex + "55" : "rgba(148,163,184,0.08)"}`,
+        borderLeft: `2px solid ${t.hex}`,
+        borderRadius: 4, transition: "all 180ms ease", overflow: "hidden",
+      }}
+    >
       {/* Header row */}
       <div
-        onClick={onToggle}
         style={{
           display: "grid",
           gridTemplateColumns: "110px 220px 160px 220px 90px 28px",
@@ -347,7 +350,7 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
               <span style={{ fontFamily: "var(--font-mono), monospace", fontWeight: 800, fontSize: 32, color: isLive ? "#ef4444" : "#fff", letterSpacing: "-0.04em", minWidth: 42, textAlign: "left" }}>{m.score.home}</span>
             </>
           ) : (
-            <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 800, color: "#334155", letterSpacing: "0.4em" }}>VS</span>
+            <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 800, color: "#334155", letterSpacing: "0.4em" }}>TBD</span>
           )}
         </div>
 
@@ -383,10 +386,20 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
 const LEAGUES: Array<"ALL" | League> = ["ALL", "MLB", "NBA", "EPL", "UCL", "NHL"]
 
 export default function SchedulePage({ onOpen }: { onOpen: (m: Match) => void }) {
-  const [expandedId, setExpandedId] = useState<string | null>("mlb_2026_min_nym")
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<"ALL" | League>("ALL")
+  const [matches, setMatches] = useState<Match[]>(TODAY_MATCHES)
 
-  const filtered = filter === "ALL" ? TODAY_MATCHES : TODAY_MATCHES.filter(m => m.league === filter)
+  useEffect(() => {
+    fetch('/api/games')
+      .then(r => r.json())
+      .then(({ matches: live }: { matches: Match[] }) => {
+        if (live && live.length > 0) setMatches(live)
+      })
+      .catch(() => {})
+  }, [])
+
+  const filtered = filter === "ALL" ? matches : matches.filter(m => m.league === filter)
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "36px 24px 60px", minHeight: "calc(100vh - 160px)" }}>

@@ -86,16 +86,25 @@ export default function TopBar({ onHome }: Props) {
 
         {/* Primary nav */}
         <nav style={{ display: "flex", gap: 4, marginLeft: 12 }}>
-          {(["SCHEDULE", "LEAGUES", "TEAMS", "SIGNALS", "LAB"] as const).map((n, i) => (
-            <div key={n} style={{
-              padding: "6px 12px",
-              fontFamily: "var(--font-mono), monospace",
-              fontWeight: 700, fontSize: 10, letterSpacing: "0.24em",
-              color: i === 0 ? "#22d3ee" : "#64748b",
-              borderBottom: i === 0 ? "1px solid #22d3ee" : "1px solid transparent",
-              cursor: "pointer",
-            }}>{n}</div>
-          ))}
+          {(["SCHEDULE", "LEAGUES", "TEAMS", "SIGNALS", "LAB"] as const).map((n, i) => {
+            const isSchedule = i === 0;
+            return (
+              <div 
+                key={n} 
+                title={!isSchedule ? "Coming Soon" : undefined}
+                style={{
+                  padding: "6px 12px",
+                  fontFamily: "var(--font-mono), monospace",
+                  fontWeight: 700, fontSize: 10, letterSpacing: "0.24em",
+                  color: isSchedule ? "#22d3ee" : "rgba(100,116,139,0.5)",
+                  borderBottom: isSchedule ? "1px solid #22d3ee" : "1px solid transparent",
+                  cursor: isSchedule ? "pointer" : "not-allowed",
+                }}
+              >
+                {n}
+              </div>
+            );
+          })}
         </nav>
 
         <div style={{ flex: 1 }} />
