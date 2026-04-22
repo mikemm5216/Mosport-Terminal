@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import EntityLogo from "@/src/components/EntityLogo";
 import { ENTITY_REGISTRY } from "@/src/config/entityRegistry";
 import Link from 'next/link';

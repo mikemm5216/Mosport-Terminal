@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { ENTITY_REGISTRY } from "@/src/config/entityRegistry";
 import Link from 'next/link';
 import { prisma } from "@/lib/prisma";
