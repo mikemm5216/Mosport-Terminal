@@ -81,7 +81,7 @@ function RosterRow({ p }: { p: Player }) {
 
 export default function WhoopBioPanel({ m, recovery, setRecovery }: Props) {
   const [trend, setTrend] = useState(() =>
-    Array.from({ length: 24 }, (_, i) => 70 + Math.sin(i * 0.4) * 8 + (Math.random() * 4 - 2))
+    Array.from({ length: 24 }, (_, i) => 70 + Math.sin(i * 0.4) * 8)
   )
 
   useEffect(() => {

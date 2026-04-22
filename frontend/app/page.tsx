@@ -12,15 +12,14 @@ type PageState =
   | { screen: "detail"; matchId: string }
 
 export default function Home() {
-  const [page, setPage] = useState<PageState>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("mosport_page")
-        if (saved) return JSON.parse(saved)
-      } catch { /* ignore */ }
-    }
-    return { screen: "schedule" }
-  })
+  const [page, setPage] = useState<PageState>({ screen: "schedule" })
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("mosport_page")
+      if (saved) setPage(JSON.parse(saved))
+    } catch { /* ignore */ }
+  }, [])
 
   useEffect(() => {
     localStorage.setItem("mosport_page", JSON.stringify(page))

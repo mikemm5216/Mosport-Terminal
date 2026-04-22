@@ -48,14 +48,15 @@ interface Props {
 }
 
 export default function TopBar({ onHome }: Props) {
-  const [time, setTime] = useState(new Date())
+  const [time, setTime] = useState<Date | null>(null)
   useEffect(() => {
+    setTime(new Date())
     const t = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(t)
   }, [])
-  const hh = String(time.getUTCHours()).padStart(2, "0")
-  const mm = String(time.getUTCMinutes()).padStart(2, "0")
-  const ss = String(time.getUTCSeconds()).padStart(2, "0")
+  const hh = time ? String(time.getUTCHours()).padStart(2, "0") : "--"
+  const mm = time ? String(time.getUTCMinutes()).padStart(2, "0") : "--"
+  const ss = time ? String(time.getUTCSeconds()).padStart(2, "0") : "--"
 
   return (
     <div style={{
