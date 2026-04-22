@@ -1,232 +1,288 @@
-// MoSport v4.0.1 — Sports Performance Intelligence Layer
-// Live data: 2026-04-21 via the-odds-api.com + physiological overlay
+// MoSport Terminal — Multi-sport mock data layer
 
-export type Label = 'OUTPERFORMANCE' | 'VULNERABILITY' | 'MONITOR' | 'TACTICAL' | 'COLLAPSE'
+export type League = "MLB" | "NBA" | "EPL" | "UCL" | "NHL"
+export type TacticalLabel = "HIGH_CONFIDENCE" | "OUTLIER_POTENTIAL" | "UNCERTAIN" | "VULNERABILITY"
+export type MatchStatus = "SCHEDULED" | "LIVE" | "FINAL"
+export type ReadinessFlag = "CLEAR" | "MONITOR" | "REST"
+export type Perspective = "HOME" | "AWAY"
 
-export interface DecisionFactor {
-  key: string
-  label: string
-  value: string
-  positive: boolean
+export interface Team {
+  abbr: string
+  name: string
+  city: string
 }
 
-export interface CausalFactor {
-  factor: string
-  impact: 'positive' | 'negative' | 'neutral'
+export interface Score {
+  away: number
+  home: number
 }
 
-export interface WhoopSync {
-  mode: 'MIRACLE' | 'NORMAL' | 'RISK'
-  hrv_delta: string
-  recovery: number
-  sleep_debt_hrs: number
+export interface Player {
+  num: string
+  name: string
+  pos: string
+  hrv: number        // HRV delta %
+  sleep: number      // sleep debt hours
+  risk: number       // 0–1
+  flag: ReadinessFlag
   strain: number
-  impact_score: number
+  recovery: number
 }
 
-export interface GameDecision {
-  game_id: string
-  away_team: string
-  home_team: string
-  away_code: string
-  home_code: string
-  game_time_utc: string
-  baseline_win_pct: number      // model baseline (no bio adjustment)
-  adjusted_win_pct: number      // physiologically adjusted
-  wpa: number                   // performance impact %
-  market_expectation: number    // Vegas line (American)
-  best_side: 'HOME' | 'AWAY'
-  confidence: number
-  entropy_score?: number
-  decision_factors: DecisionFactor[]
-  causal_factors: CausalFactor[]
-  decision: {
-    label: Label
-    score: number
-  }
-  whoop_sync: WhoopSync
+export interface Match {
+  id: string
+  league: League
+  status: MatchStatus
+  time: string
+  away: Team
+  home: Team
+  score: Score | null
+  baseline_win: number       // 0–1 (away team adjusted win %)
+  physio_adjusted: number    // 0–1
+  wpa: number                // win probability added
+  perspective: Perspective   // which side the edge favors
+  tactical_label: TacticalLabel
+  matchup_complexity: number // 0–1
+  recovery_away: number      // 0–1
+  recovery_home: number      // 0–1
+  featured?: boolean
+  settled?: boolean
+  settled_accurate?: boolean
 }
 
-export const WHOOP_DATA: WhoopSync = {
-  mode:           'MIRACLE',
-  hrv_delta:      '+14%',
-  recovery:       91,
-  sleep_debt_hrs: 0.4,
-  strain:         8.2,
-  impact_score:   0.082,
+export interface RosterData {
+  away: Player[]
+  home: Player[]
 }
 
-export const GAMES: GameDecision[] = [
+// ── League themes ──────────────────────────────────────────────
+export const LEAGUE_THEMES: Record<League, { hex: string; soft: string }> = {
+  NBA: { hex: "#22d3ee", soft: "rgba(34,211,238,0.12)" },
+  MLB: { hex: "#f43f5e", soft: "rgba(244,63,94,0.12)" },
+  EPL: { hex: "#a78bfa", soft: "rgba(167,139,250,0.12)" },
+  UCL: { hex: "#34d399", soft: "rgba(52,211,153,0.12)" },
+  NHL: { hex: "#60a5fa", soft: "rgba(96,165,250,0.12)" },
+}
+
+// ── Team colors ────────────────────────────────────────────────
+export const TEAM_COLORS: Record<string, string> = {
+  MIN: "#002B5C", NYM: "#FF5910", LAD: "#005A9C", NYY: "#0C2340", HOU: "#EB6E1F",
+  BOS: "#BD3039", ATL: "#CE1141", SD: "#FFC425", CHC: "#0E3386", SEA: "#0C2C56",
+  LAL: "#552583", GSW: "#1D428A", MIA: "#98002E", DEN: "#0E2240",
+  PHX: "#1D1160", MIL: "#00471B", PHI: "#006BB6", DAL: "#00538C", BKN: "#000000",
+  RMA: "#FEBE10", BAR: "#A50044", MCI: "#6CABDD", LIV: "#C8102E", ARS: "#EF0107",
+  BAY: "#DC052D", PSG: "#004170", JUV: "#000000", TOT: "#132257", MUN: "#DA291C",
+  KC: "#E31837", SF: "#AA0000", BUF: "#00338D",
+  NYR: "#0038A8", CWS: "#27251F", ARI: "#A71930", SFG: "#FD5A1E", CLE: "#E31937",
+}
+
+// ── Today's match slate ────────────────────────────────────────
+export const TODAY_MATCHES: Match[] = [
   {
-    game_id:            'mlb_2026_0421_min_nym',
-    away_team:          'Minnesota Twins',
-    home_team:          'New York Mets',
-    away_code:          'MIN',
-    home_code:          'NYM',
-    game_time_utc:      '23:11',
-    baseline_win_pct:   37.8,
-    adjusted_win_pct:   43.2,
-    wpa:                9.3,
-    market_expectation: 153,
-    best_side:          'AWAY',
-    confidence:         0.68,
-    entropy_score:      0.91,
-    decision:           { label: 'OUTPERFORMANCE', score: 93 },
-    whoop_sync:         WHOOP_DATA,
-    decision_factors: [
-      { key: 'bullpen_fatigue', label: 'Bullpen Fatigue Penalty', value: '−2.1%', positive: false },
-      { key: 'travel_burden',   label: 'Travel Burden',           value: '−1.4%', positive: false },
-      { key: 'matchup_synergy', label: 'Matchup Synergy',         value: '+8.0%', positive: true  },
-      { key: 'bio_override',    label: 'Biometric Override',      value: '+3.2%', positive: true  },
-    ],
-    causal_factors: [
-      { factor: 'Model 43.2% vs Baseline Projection 37.8%: mispriced by market',   impact: 'positive' },
-      { factor: 'Market Expectation +153: performance leverage 1.53x per unit',     impact: 'positive' },
-      { factor: 'Away travel burden: BOS→NYM 2-day gap',                            impact: 'negative' },
-      { factor: 'High tactical entropy (0.91): market disagrees → edge window',     impact: 'positive' },
-    ],
+    id: "mlb_2026_min_nym",
+    league: "MLB",
+    status: "SCHEDULED",
+    time: "19:10",
+    away: { abbr: "MIN", name: "Minnesota Twins",     city: "MINNEAPOLIS" },
+    home: { abbr: "NYM", name: "New York Mets",       city: "QUEENS, NY" },
+    score: null,
+    baseline_win: 0.378,
+    physio_adjusted: 0.432,
+    wpa: 0.054,
+    perspective: "AWAY",
+    tactical_label: "OUTLIER_POTENTIAL",
+    matchup_complexity: 0.87,
+    recovery_away: 0.91,
+    recovery_home: 0.65,
+    featured: true,
   },
   {
-    game_id:            'mlb_2026_0421_cws_ari',
-    away_team:          'Chicago White Sox',
-    home_team:          'Arizona Diamondbacks',
-    away_code:          'CWS',
-    home_code:          'ARI',
-    game_time_utc:      '01:41',
-    baseline_win_pct:   61.8,
-    adjusted_win_pct:   63.4,
-    wpa:                4.0,
-    market_expectation: -146,
-    best_side:          'HOME',
-    confidence:         0.74,
-    decision:           { label: 'OUTPERFORMANCE', score: 74 },
-    whoop_sync:         WHOOP_DATA,
-    decision_factors: [
-      { key: 'home_advantage',  label: 'Home Performance Rate',  value: '+6.2%', positive: true  },
-      { key: 'sp_fatigue',      label: 'Starter Load Penalty',   value: '−3.1%', positive: false },
-      { key: 'bullpen_usage',   label: 'Bullpen Load (4 in 3d)', value: '−2.0%', positive: false },
-      { key: 'exit_velocity',   label: 'Exit Velocity Edge',     value: '+4.1%', positive: true  },
-    ],
-    causal_factors: [
-      { factor: 'ARI home performance rate: +6.2% above league average',           impact: 'positive' },
-      { factor: 'CWS starter load: 112-pitch count last start — recovery penalty', impact: 'positive' },
-      { factor: 'CWS bullpen: 4 pitchers deployed past 3 days',                    impact: 'positive' },
-      { factor: 'ARI exit velocity z-score +0.8 vs CWS rotation',                 impact: 'positive' },
-      { factor: 'Chase Field altitude factor: neutral for both rosters',            impact: 'neutral'  },
-    ],
+    id: "nba_2026_lal_gsw",
+    league: "NBA",
+    status: "LIVE",
+    time: "Q3 07:42",
+    away: { abbr: "LAL", name: "Los Angeles Lakers",   city: "LOS ANGELES" },
+    home: { abbr: "GSW", name: "Golden State Warriors", city: "SAN FRANCISCO" },
+    score: { away: 78, home: 84 },
+    baseline_win: 0.54,
+    physio_adjusted: 0.49,
+    wpa: -0.05,
+    perspective: "HOME",
+    tactical_label: "UNCERTAIN",
+    matchup_complexity: 0.41,
+    recovery_away: 0.72,
+    recovery_home: 0.58,
   },
   {
-    game_id:            'mlb_2026_0421_lad_sfg',
-    away_team:          'Los Angeles Dodgers',
-    home_team:          'San Francisco Giants',
-    away_code:          'LAD',
-    home_code:          'SFG',
-    game_time_utc:      '01:46',
-    baseline_win_pct:   42.1,
-    adjusted_win_pct:   43.9,
-    wpa:                3.0,
-    market_expectation: 152,
-    best_side:          'HOME',
-    confidence:         0.71,
-    decision:           { label: 'OUTPERFORMANCE', score: 71 },
-    whoop_sync:         WHOOP_DATA,
-    decision_factors: [
-      { key: 'market_gap',      label: 'Market Gap',             value: '+4.2%', positive: true  },
-      { key: 'sp_rest',         label: 'Starter Rest Penalty',   value: '−2.8%', positive: false },
-      { key: 'run_diff',        label: 'Run Differential Trend', value: '+3.1%', positive: true  },
-      { key: 'park_factor',     label: 'Oracle Park Factor',     value: '+1.8%', positive: true  },
-    ],
-    causal_factors: [
-      { factor: 'SFG adjusted win: 43.9% vs market baseline 41.8%',               impact: 'positive' },
-      { factor: 'LAD starter rest: 3-day rotation gap — load management flag',    impact: 'positive' },
-      { factor: 'LAD run differential: −10 last 5 games',                          impact: 'positive' },
-      { factor: 'Oracle Park: suppresses LAD power profile',                       impact: 'positive' },
-      { factor: 'LAD market overvalued at −180 baseline',                          impact: 'positive' },
-    ],
+    id: "epl_2026_mci_liv",
+    league: "EPL",
+    status: "SCHEDULED",
+    time: "15:00",
+    away: { abbr: "LIV", name: "Liverpool FC",        city: "LIVERPOOL" },
+    home: { abbr: "MCI", name: "Manchester City",     city: "MANCHESTER" },
+    score: null,
+    baseline_win: 0.61,
+    physio_adjusted: 0.69,
+    wpa: 0.082,
+    perspective: "HOME",
+    tactical_label: "HIGH_CONFIDENCE",
+    matchup_complexity: 0.33,
+    recovery_away: 0.59,
+    recovery_home: 0.84,
   },
   {
-    game_id:            'mlb_2026_0421_hou_cle',
-    away_team:          'Houston Astros',
-    home_team:          'Cleveland Guardians',
-    away_code:          'HOU',
-    home_code:          'CLE',
-    game_time_utc:      '22:11',
-    baseline_win_pct:   46.0,
-    adjusted_win_pct:   48.6,
-    wpa:                2.6,
-    market_expectation: 118,
-    best_side:          'AWAY',
-    confidence:         0.61,
-    entropy_score:      0.87,
-    decision:           { label: 'OUTPERFORMANCE', score: 61 },
-    whoop_sync:         WHOOP_DATA,
-    decision_factors: [
-      { key: 'model_gap',       label: 'Performance Gap',        value: '+2.6%', positive: true  },
-      { key: 'sp_era',          label: 'Opponent SP Load',       value: '+3.4%', positive: true  },
-      { key: 'pythagorean',     label: 'Pythagorean Edge',       value: '+1.8%', positive: true  },
-      { key: 'h2h',             label: 'Head-to-Head Record',    value: '+2.1%', positive: true  },
-    ],
-    causal_factors: [
-      { factor: 'HOU adjusted 48.6% vs market baseline 43.0%: performance gap',   impact: 'positive' },
-      { factor: 'CLE starter: ERA 6.1 last 3 starts — load management concern',   impact: 'positive' },
-      { factor: 'HOU pythagorean: outperforming record projection',                impact: 'positive' },
-      { factor: 'H2H: HOU 7-3 last 10 matchups vs CLE',                           impact: 'positive' },
-    ],
+    id: "ucl_2026_rma_bar",
+    league: "UCL",
+    status: "LIVE",
+    time: "74' +2",
+    away: { abbr: "BAR", name: "FC Barcelona",        city: "BARCELONA" },
+    home: { abbr: "RMA", name: "Real Madrid",         city: "MADRID" },
+    score: { away: 1, home: 2 },
+    baseline_win: 0.50,
+    physio_adjusted: 0.55,
+    wpa: 0.047,
+    perspective: "HOME",
+    tactical_label: "HIGH_CONFIDENCE",
+    matchup_complexity: 0.69,
+    recovery_away: 0.74,
+    recovery_home: 0.79,
   },
   {
-    game_id:            'mlb_2026_0421_nyy_bos',
-    away_team:          'New York Yankees',
-    home_team:          'Boston Red Sox',
-    away_code:          'NYY',
-    home_code:          'BOS',
-    game_time_utc:      '22:46',
-    baseline_win_pct:   47.2,
-    adjusted_win_pct:   47.1,
-    wpa:                -0.1,
-    market_expectation: -108,
-    best_side:          'AWAY',
-    confidence:         0.38,
-    decision:           { label: 'MONITOR', score: 38 },
-    whoop_sync:         WHOOP_DATA,
-    decision_factors: [
-      { key: 'market_align',    label: 'Market Alignment',       value: '0.0%',  positive: true  },
-      { key: 'vig_drag',        label: 'Market Friction',        value: '−0.1%', positive: false },
-      { key: 'rivalry_var',     label: 'Rivalry Variance',       value: '±4.2%', positive: false },
-    ],
-    causal_factors: [
-      { factor: 'Model probability aligns with market baseline: no tactical edge', impact: 'neutral'  },
-      { factor: 'Market friction erodes any marginal performance signal',           impact: 'negative' },
-      { factor: 'Rivalry game: high variance — unpredictable tactical outcome',    impact: 'negative' },
-    ],
+    id: "mlb_2026_lad_nyy",
+    league: "MLB",
+    status: "SCHEDULED",
+    time: "19:05",
+    away: { abbr: "LAD", name: "Los Angeles Dodgers", city: "LOS ANGELES" },
+    home: { abbr: "NYY", name: "New York Yankees",    city: "THE BRONX" },
+    score: null,
+    baseline_win: 0.47,
+    physio_adjusted: 0.44,
+    wpa: -0.03,
+    perspective: "HOME",
+    tactical_label: "UNCERTAIN",
+    matchup_complexity: 0.52,
+    recovery_away: 0.67,
+    recovery_home: 0.70,
   },
   {
-    game_id:            'mlb_2026_0421_atl_wsn',
-    away_team:          'Atlanta Braves',
-    home_team:          'Washington Nationals',
-    away_code:          'ATL',
-    home_code:          'WSN',
-    game_time_utc:      '22:46',
-    baseline_win_pct:   41.8,
-    adjusted_win_pct:   55.2,
-    wpa:                1.0,
-    market_expectation: -134,
-    best_side:          'AWAY',
-    confidence:         0.52,
-    decision:           { label: 'VULNERABILITY', score: 52 },
-    whoop_sync:         WHOOP_DATA,
-    decision_factors: [
-      { key: 'model_diverge',   label: 'Model Divergence',       value: '+13.4%', positive: true  },
-      { key: 'bp_exhausted',    label: 'Bullpen Exhaustion',     value: '+5.2%',  positive: true  },
-      { key: 'motivation_gap',  label: 'Motivation Asymmetry',   value: '+3.1%',  positive: true  },
-      { key: 'chaos_signal',    label: 'Tactical Instability',   value: '−6.8%',  positive: false },
-    ],
-    causal_factors: [
-      { factor: 'ATL model 55.2% diverges sharply from market baseline 41.8%',    impact: 'positive' },
-      { factor: 'WSN bullpen exhaustion: 5 pitchers deployed yesterday',           impact: 'positive' },
-      { factor: 'Late-season motivation asymmetry: ATL in contention',             impact: 'positive' },
-      { factor: 'High model/market divergence → VULNERABILITY instability signal', impact: 'negative' },
-    ],
+    id: "nba_2026_bos_mia",
+    league: "NBA",
+    status: "SCHEDULED",
+    time: "20:30",
+    away: { abbr: "MIA", name: "Miami Heat",          city: "MIAMI" },
+    home: { abbr: "BOS", name: "Boston Celtics",      city: "BOSTON" },
+    score: null,
+    baseline_win: 0.71,
+    physio_adjusted: 0.64,
+    wpa: -0.07,
+    perspective: "AWAY",
+    tactical_label: "VULNERABILITY",
+    matchup_complexity: 0.88,
+    recovery_away: 0.81,
+    recovery_home: 0.48,
+  },
+  {
+    id: "epl_2026_ars_tot",
+    league: "EPL",
+    status: "FINAL",
+    time: "FT",
+    away: { abbr: "TOT", name: "Tottenham Hotspur",  city: "LONDON" },
+    home: { abbr: "ARS", name: "Arsenal FC",          city: "LONDON" },
+    score: { away: 1, home: 3 },
+    baseline_win: 0.58,
+    physio_adjusted: 0.72,
+    wpa: 0.14,
+    perspective: "HOME",
+    tactical_label: "HIGH_CONFIDENCE",
+    matchup_complexity: 0.44,
+    recovery_away: 0.61,
+    recovery_home: 0.82,
+    settled: true,
+    settled_accurate: true,
+  },
+  {
+    id: "nhl_2026_bos_nyr",
+    league: "NHL",
+    status: "SCHEDULED",
+    time: "19:00",
+    away: { abbr: "NYR", name: "New York Rangers",   city: "NEW YORK" },
+    home: { abbr: "BOS", name: "Boston Bruins",      city: "BOSTON" },
+    score: null,
+    baseline_win: 0.55,
+    physio_adjusted: 0.58,
+    wpa: 0.025,
+    perspective: "HOME",
+    tactical_label: "UNCERTAIN",
+    matchup_complexity: 0.48,
+    recovery_away: 0.65,
+    recovery_home: 0.73,
   },
 ]
 
-export const FEATURED_GAME = GAMES[0]
+export const FEATURED_MATCH = TODAY_MATCHES.find(m => m.featured)!
+
+// ── Roster mock data ───────────────────────────────────────────
+export const ROSTER_DATA: Record<string, RosterData> = {
+  "mlb_2026_min_nym": {
+    away: [
+      { num: "49", name: "Pablo López",    pos: "SP", hrv: +14, sleep: 0.4, risk: 0.08, flag: "CLEAR",   strain: 11.2, recovery: 94 },
+      { num: "22", name: "Byron Buxton",   pos: "CF", hrv: +8,  sleep: 0.9, risk: 0.12, flag: "CLEAR",   strain: 14.0, recovery: 89 },
+      { num: "4",  name: "Carlos Correa",  pos: "SS", hrv: +3,  sleep: 1.2, risk: 0.18, flag: "MONITOR", strain: 16.4, recovery: 78 },
+      { num: "25", name: "Byron Larnach",  pos: "LF", hrv: +11, sleep: 0.6, risk: 0.10, flag: "CLEAR",   strain: 12.1, recovery: 91 },
+    ],
+    home: [
+      { num: "20", name: "Pete Alonso",       pos: "1B", hrv: -6,  sleep: 2.1, risk: 0.36, flag: "REST",    strain: 19.2, recovery: 52 },
+      { num: "12", name: "Francisco Lindor",  pos: "SS", hrv: -2,  sleep: 1.4, risk: 0.24, flag: "MONITOR", strain: 17.8, recovery: 64 },
+      { num: "39", name: "Edwin Díaz",        pos: "CP", hrv: -12, sleep: 2.8, risk: 0.48, flag: "REST",    strain: 20.5, recovery: 41 },
+      { num: "7",  name: "Brandon Nimmo",     pos: "CF", hrv: +1,  sleep: 1.1, risk: 0.22, flag: "MONITOR", strain: 15.9, recovery: 71 },
+    ],
+  },
+}
+
+// ── Key players for inline preview ─────────────────────────────
+export interface KeyPlayer {
+  name: string
+  initials: string
+  pos: string
+  hrv: number      // 0–1 delta
+  sleep: number    // hours debt
+  flag: ReadinessFlag
+}
+
+export const KEY_PLAYERS: Record<string, KeyPlayer[]> = {
+  "mlb_2026_min_nym_away": [
+    { name: "Pablo López",   initials: "PL", pos: "SP · #49", hrv: 0.14, sleep: 0.4, flag: "CLEAR" },
+    { name: "Byron Buxton",  initials: "BB", pos: "CF · #25", hrv: 0.08, sleep: 0.6, flag: "CLEAR" },
+  ],
+  "mlb_2026_min_nym_home": [
+    { name: "Kodai Senga",   initials: "KS", pos: "SP · #34", hrv: -0.06, sleep: 1.4, flag: "MONITOR" },
+    { name: "Edwin Díaz",    initials: "ED", pos: "RP · #39", hrv: -0.12, sleep: 2.1, flag: "REST" },
+  ],
+  "nba_2026_lal_gsw_away": [
+    { name: "LeBron James",  initials: "LJ", pos: "F · #23", hrv: 0.02,  sleep: 0.8, flag: "CLEAR" },
+    { name: "Anthony Davis", initials: "AD", pos: "C · #3",  hrv: -0.04, sleep: 1.1, flag: "MONITOR" },
+  ],
+  "nba_2026_lal_gsw_home": [
+    { name: "Stephen Curry",  initials: "SC", pos: "PG · #30", hrv: 0.06, sleep: 0.5,  flag: "CLEAR" },
+    { name: "Draymond Green", initials: "DG", pos: "F · #23",  hrv: -0.09, sleep: 1.6, flag: "MONITOR" },
+  ],
+  "epl_2026_mci_liv_away": [
+    { name: "Mohamed Salah",  initials: "MS", pos: "FW · #11", hrv: 0.04, sleep: 0.7,  flag: "CLEAR" },
+    { name: "Virgil van Dijk",initials: "VD", pos: "CB · #4",  hrv: -0.11, sleep: 1.8, flag: "MONITOR" },
+  ],
+  "epl_2026_mci_liv_home": [
+    { name: "Erling Haaland",   initials: "EH", pos: "FW · #9",  hrv: 0.11, sleep: 0.3, flag: "CLEAR" },
+    { name: "Kevin De Bruyne",  initials: "KB", pos: "MF · #17", hrv: 0.07, sleep: 0.5, flag: "CLEAR" },
+  ],
+}
+
+function defaultPlayers(m: Match, side: "away" | "home"): KeyPlayer[] {
+  return [
+    { name: `Captain · ${m[side].abbr}`, initials: m[side].abbr.slice(0, 2), pos: "ROSTER LEAD", hrv: 0.03, sleep: 0.9, flag: "CLEAR" },
+    { name: "Key Starter",               initials: "KS",                     pos: "STARTER",     hrv: -0.02, sleep: 1.1, flag: "MONITOR" },
+  ]
+}
+
+export function getKeyPlayers(m: Match, side: "away" | "home"): KeyPlayer[] {
+  return KEY_PLAYERS[`${m.id}_${side}`] ?? defaultPlayers(m, side)
+}

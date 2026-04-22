@@ -12,7 +12,12 @@
       "Bash(npm run *)",
       "Bash(curl -s http://localhost:3000)",
       "Bash(git push *)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(npx next *)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /F /PID 19176)",
+      "PowerShell(Stop-Process *)"
     ]
   }
 }

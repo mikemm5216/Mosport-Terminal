@@ -1,153 +1,161 @@
 'use client'
 
-import type { GameDecision, DecisionFactor } from '../data/mockData'
+import type { Match } from '../data/mockData'
+import { leagueTheme, RingGauge, TacticalLabel } from './ui'
+
+function CausalFactor({ label, magnitude, dir, detail }: {
+  label: string; magnitude: number; dir: "+" | "−"; detail: string
+}) {
+  const positive = dir === "+"
+  const color = positive ? "#34d399" : "#f43f5e"
+  const width = Math.min(100, Math.abs(magnitude) * 100 * 3)
+  return (
+    <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(148,163,184,0.05)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+        <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 800, color: "#e2e8f0", letterSpacing: "0.14em" }}>
+          {label}
+        </span>
+        <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, fontWeight: 800, color, letterSpacing: "-0.02em" }}>
+          {dir}{(Math.abs(magnitude) * 100).toFixed(1)}%
+        </span>
+      </div>
+      <div style={{ position: "relative", height: 4, background: "#0b1220", borderRadius: 2, overflow: "hidden" }}>
+        <div style={{
+          position: "absolute",
+          left: positive ? "50%" : undefined,
+          right: positive ? undefined : "50%",
+          top: 0, height: "100%", width: `${width / 2}%`,
+          background: `linear-gradient(${positive ? "90deg" : "270deg"}, ${color}, ${color}88)`,
+          boxShadow: `0 0 8px ${color}88`,
+        }} />
+        <div style={{ position: "absolute", left: "50%", top: -1, bottom: -1, width: 1, background: "#334155" }} />
+      </div>
+      <div style={{ marginTop: 5, fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#64748b", letterSpacing: "0.08em" }}>
+        {detail}
+      </div>
+    </div>
+  )
+}
 
 interface Props {
-  game: GameDecision
-  adjustedWin: number
+  m: Match
+  adjustedOverride?: number
 }
 
-function SemiGauge({
-  pct, color, label, value,
-}: { pct: number; color: string; label: string; value: string }) {
-  const r = 72, cx = 90, cy = 84
-  const sw = 9
+export default function MatchupGauge({ m, adjustedOverride }: Props) {
+  const t = leagueTheme(m.league)
+  const baseline = m.baseline_win
+  const adjusted = adjustedOverride ?? m.physio_adjusted
+  const delta = adjusted - baseline
+  const positive = delta >= 0
+  const wpaColor = positive ? "#22d3ee" : "#f43f5e"
 
-  const bgPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`
-
-  let fillPath = ''
-  if (pct > 0.005) {
-    const angle = Math.PI * Math.min(pct, 0.999)
-    const ex = cx - r * Math.cos(angle)
-    const ey = cy - r * Math.sin(angle)
-    fillPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${ex} ${ey}`
-  }
+  const factors: { label: string; magnitude: number; dir: "+" | "−"; detail: string }[] = [
+    {
+      label: "BULLPEN FATIGUE PENALTY",
+      magnitude: m.recovery_home < 0.7 ? 0.024 : 0.015,
+      dir: m.recovery_home < 0.7 ? "−" : "+",
+      detail: `${m.home.abbr} bullpen load flagged — 3 high-leverage relievers on MONITOR`,
+    },
+    {
+      label: "TRAVEL BURDEN",
+      magnitude: 0.018,
+      dir: "−",
+      detail: `${m.away.abbr} west-coast origin // 2h tz shift // 7h flight recovery lag`,
+    },
+    {
+      label: "MATCHUP SYNERGY",
+      magnitude: 0.033,
+      dir: "+",
+      detail: `${m.away.abbr} SP vs ${m.home.abbr} RHB wOBA-diff +0.042 // platoon advantage in lineup`,
+    },
+    {
+      label: "ROSTER READINESS Δ",
+      magnitude: 0.026,
+      dir: "+",
+      detail: `Aggregate recovery surplus ${Math.round(m.recovery_away * 100)}% vs ${Math.round(m.recovery_home * 100)}% // largest delta on slate`,
+    },
+  ]
 
   return (
-    <div className="flex flex-col items-center">
-      <svg width="100%" viewBox="0 0 180 100" style={{ overflow: 'visible' }}>
-        <path d={bgPath} fill="none" stroke="#27272A" strokeWidth={sw} strokeLinecap="round" />
-        {fillPath && (
-          <path d={fillPath} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round"
-            style={{ filter: `drop-shadow(0 0 4px ${color}66)` }} />
-        )}
-        <text x={cx} y={cy + 10} textAnchor="middle"
-          fill="white" fontSize="18" fontWeight="700" fontFamily="monospace">
-          {value}
-        </text>
-      </svg>
-      <span className="text-[9px] font-mono tracking-widest uppercase mt-1"
-        style={{ color: '#52525B' }}>
-        {label}
-      </span>
+    <div style={{
+      background: "#050b1b",
+      border: "1px solid rgba(148,163,184,0.08)",
+      borderRadius: 6, padding: "22px 24px",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+        <div style={{
+          fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 700,
+          letterSpacing: "0.32em", color: "#64748b", textTransform: "uppercase",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <span style={{ width: 14, height: 1, background: "#64748b", opacity: 0.5 }} />
+          MATCHUP GAUGE / TACTICAL EDGE
+        </div>
+        <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", letterSpacing: "0.22em" }}>
+          COMPLEXITY {(m.matchup_complexity * 100).toFixed(0)} / 100
+        </div>
+      </div>
+
+      {/* Dual ring gauges */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 16, padding: "8px 0 20px" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <RingGauge
+            value={baseline} size={170} thickness={10}
+            color="#60a5fa" track="#0b1220"
+            label="BASELINE" sublabel="MARKET EXPECTATION"
+          />
+        </div>
+
+        {/* Delta + WPA */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+          <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", letterSpacing: "0.3em", fontWeight: 800 }}>WPA</div>
+          <div style={{
+            fontFamily: "var(--font-mono), monospace", fontSize: 30, fontWeight: 800,
+            color: wpaColor, letterSpacing: "-0.04em",
+            textShadow: `0 0 22px ${wpaColor}55`,
+          }}>
+            {positive ? "+" : "−"}{(Math.abs(delta) * 100).toFixed(1)}%
+          </div>
+          <div style={{ fontSize: 16, color: wpaColor, fontWeight: 800 }}>{positive ? "↑" : "↓"}</div>
+          <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, color: wpaColor, letterSpacing: "0.26em", fontWeight: 800 }}>
+            PERFORMANCE IMPACT
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <RingGauge
+            value={adjusted} size={170} thickness={10}
+            color="#22d3ee" track="#0b1220"
+            label="PHYSIO ADJUSTED" sublabel="MOSPORT CORE"
+          />
+        </div>
+      </div>
+
+      {/* Tactical label */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 12,
+        padding: "12px 14px", background: "rgba(34,211,238,0.04)",
+        border: "1px solid rgba(34,211,238,0.2)", borderRadius: 4, marginBottom: 18,
+      }}>
+        <TacticalLabel label={m.tactical_label} />
+        <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, color: "#94a3b8", letterSpacing: "0.1em" }}>
+          edge favors <span style={{ color: "#fff", fontWeight: 800 }}>{m.perspective}</span> roster / {m.away.abbr}
+        </span>
+      </div>
+
+      {/* Causal factors */}
+      <div style={{
+        fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 700,
+        letterSpacing: "0.32em", color: "#64748b", textTransform: "uppercase",
+        display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
+      }}>
+        <span style={{ width: 14, height: 1, background: "#64748b", opacity: 0.5 }} />
+        CAUSAL FACTORS
+      </div>
+      <div>
+        {factors.map((f, i) => <CausalFactor key={i} {...f} />)}
+      </div>
     </div>
-  )
-}
-
-function FactorRow({ f }: { f: DecisionFactor }) {
-  const color = f.positive ? '#22C55E' : '#EF4444'
-  return (
-    <div className="flex items-center justify-between py-1.5"
-      style={{ borderBottom: '1px solid #18181f' }}>
-      <div className="flex items-center gap-2">
-        <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: color }} />
-        <span className="text-[10px] text-zinc-400">{f.label}</span>
-      </div>
-      <span className="text-[10px] font-mono font-semibold" style={{ color }}>
-        {f.value}
-      </span>
-    </div>
-  )
-}
-
-export default function MatchupGauge({ game, adjustedWin }: Props) {
-  const basePct = game.baseline_win_pct / 100
-  const adjPct  = adjustedWin / 100
-  const wpa     = adjustedWin - game.baseline_win_pct
-  const label   = game.decision.label
-
-  const accentColor =
-    label === 'OUTPERFORMANCE' ? '#22C55E' :
-    label === 'VULNERABILITY'  ? '#EF4444' :
-    label === 'TACTICAL'       ? '#A855F7' : '#52525B'
-
-  return (
-    <aside
-      className="sticky top-0 h-screen flex flex-col py-6 px-4 overflow-y-auto"
-      style={{ borderRight: '1px solid #1a1a22' }}
-    >
-      {/* Header */}
-      <div className="mb-5">
-        <div className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase mb-1">
-          Matchup Gauge
-        </div>
-        <div className="text-sm font-bold text-white">
-          {game.away_code} <span className="text-zinc-600">@</span> {game.home_code}
-        </div>
-        <div className="text-[10px] text-zinc-600 font-mono">{game.game_time_utc} UTC</div>
-      </div>
-
-      {/* Gauges */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <SemiGauge
-          pct={basePct}
-          color="#52525B"
-          label="BASELINE WIN%"
-          value={`${game.baseline_win_pct.toFixed(1)}%`}
-        />
-        <SemiGauge
-          pct={adjPct}
-          color={accentColor}
-          label="ADJUSTED WIN%"
-          value={`${adjustedWin.toFixed(1)}%`}
-        />
-      </div>
-
-      {/* WPA callout */}
-      <div
-        className="rounded-xl px-4 py-3 mb-4"
-        style={{
-          background: `rgba(${label === 'OUTPERFORMANCE' ? '34,197,94' : '239,68,68'},0.07)`,
-          border: `1px solid ${accentColor}33`,
-        }}
-      >
-        <div className="text-[9px] font-mono tracking-widest text-zinc-500 uppercase mb-1">
-          Performance Impact
-        </div>
-        <div className="text-xl font-bold font-mono" style={{ color: accentColor }}>
-          {wpa >= 0 ? '+' : ''}{wpa.toFixed(1)}pp
-        </div>
-        <div className="text-[10px] text-zinc-500 mt-0.5">
-          WPA {game.wpa >= 0 ? '+' : ''}{game.wpa.toFixed(1)}% · {game.best_side === 'AWAY' ? game.away_code : game.home_code} tactical advantage
-        </div>
-      </div>
-
-      {/* Decision factors */}
-      <div className="flex-1">
-        <div className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase mb-2">
-          Decision Factors
-        </div>
-        <div>
-          {game.decision_factors.map(f => (
-            <FactorRow key={f.key} f={f} />
-          ))}
-        </div>
-      </div>
-
-      {/* Market expectation */}
-      <div className="mt-4 pt-4" style={{ borderTop: '1px solid #1a1a22' }}>
-        <div className="text-[9px] font-mono tracking-widest text-zinc-600 uppercase mb-1">
-          Market Expectation
-        </div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-base font-bold font-mono text-white">
-            {game.market_expectation >= 0 ? '+' : ''}{game.market_expectation}
-          </span>
-          <span className="text-[10px] text-zinc-600">
-            {game.best_side} · CONF {Math.round(game.confidence * 100)}%
-          </span>
-        </div>
-      </div>
-    </aside>
   )
 }

@@ -1,86 +1,55 @@
-import OutperformanceAlert from './components/UpsetHunter'
-import DecisionCard        from './components/DecisionCard'
-import DashboardClient     from './components/DashboardClient'
-import { GAMES }           from './data/mockData'
+'use client'
+
+import { useState, useEffect } from 'react'
+import type { Match } from './data/mockData'
+import { TODAY_MATCHES } from './data/mockData'
+import TopBar from './components/TopBar'
+import SchedulePage from './components/SchedulePage'
+import DetailPage from './components/DetailPage'
+
+type PageState =
+  | { screen: "schedule" }
+  | { screen: "detail"; matchId: string }
 
 export default function Home() {
-  const highConviction = GAMES.filter(g =>
-    g.decision.label === 'OUTPERFORMANCE' && g.confidence >= 0.65
-  )
-  const monitor = GAMES.filter(g => !highConviction.includes(g))
+  const [page, setPage] = useState<PageState>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("mosport_page")
+        if (saved) return JSON.parse(saved)
+      } catch { /* ignore */ }
+    }
+    return { screen: "schedule" }
+  })
+
+  useEffect(() => {
+    localStorage.setItem("mosport_page", JSON.stringify(page))
+  }, [page])
+
+  const match = page.screen === "detail"
+    ? TODAY_MATCHES.find(m => m.id === page.matchId)
+    : null
+
+  function handleOpen(m: Match) {
+    setPage({ screen: "detail", matchId: m.id })
+  }
+
+  function handleBack() {
+    setPage({ screen: "schedule" })
+  }
 
   return (
-    <div
-      className="min-h-screen grid"
-      style={{ gridTemplateColumns: '280px 1fr 270px', background: '#050505' }}
-    >
-      <DashboardClient>
-        {/* Decision Stream header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-xl font-bold text-white tracking-tight">Decision Stream</h1>
-            <span
-              className="text-[9px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider"
-              style={{ background: 'rgba(34,197,94,0.1)', color: '#22C55E' }}
-            >
-              LIVE · Apr 21 2026
-            </span>
-          </div>
-          <p className="text-xs" style={{ color: '#71717A' }}>
-            {GAMES.length} MLB games today &middot;{' '}
-            {highConviction.length} outperformance signals
-          </p>
-        </div>
+    <div style={{ minHeight: "100vh", background: "#020617" }}>
+      <TopBar onHome={handleBack} />
 
-        <OutperformanceAlert games={GAMES} />
-
-        {highConviction.length > 0 && (
-          <section className="mb-4">
-            <SectionLabel
-              text="High Conviction"
-              count={highConviction.length}
-              color="#22C55E"
-            />
-            <div className="space-y-3">
-              {highConviction.map((g, i) => (
-                <DecisionCard key={g.game_id} game={g} index={i} />
-              ))}
-            </div>
-          </section>
+      <div className="fade-in" key={page.screen + (page.screen === "detail" ? page.matchId : "")}>
+        {page.screen === "schedule" && (
+          <SchedulePage onOpen={handleOpen} />
         )}
-
-        {monitor.length > 0 && (
-          <section>
-            <SectionLabel
-              text="Monitor"
-              count={monitor.length}
-              color="#3F3F46"
-            />
-            <div className="space-y-3">
-              {monitor.map((g, i) => (
-                <DecisionCard key={g.game_id} game={g} index={highConviction.length + i} />
-              ))}
-            </div>
-          </section>
+        {page.screen === "detail" && match && (
+          <DetailPage m={match} onBack={handleBack} />
         )}
-      </DashboardClient>
-    </div>
-  )
-}
-
-function SectionLabel({ text, count, color }: {
-  text: string; count: number; color: string
-}) {
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-      <span className="text-[10px] font-mono tracking-widest uppercase" style={{ color: '#71717A' }}>
-        {text}
-      </span>
-      <span className="text-[9px] font-mono px-1.5 rounded"
-        style={{ background: '#1a1a22', color: '#52525B' }}>
-        {count}
-      </span>
+      </div>
     </div>
   )
 }

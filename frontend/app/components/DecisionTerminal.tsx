@@ -1,116 +1,146 @@
 'use client'
 
-import type { WhoopSync, GameDecision } from '../data/mockData'
+import { useState, useEffect, useMemo } from 'react'
+import type { Match } from '../data/mockData'
+
+type Mode = "MIRACLE" | "NOMINAL" | "CAUTION" | "CRITICAL"
+
+const MODE_COLOR: Record<Mode, string> = {
+  MIRACLE:  "#22d3ee",
+  NOMINAL:  "#34d399",
+  CAUTION:  "#fbbf24",
+  CRITICAL: "#f43f5e",
+}
+
+function getMode(recovery: number): Mode {
+  if (recovery > 0.85) return "MIRACLE"
+  if (recovery > 0.70) return "NOMINAL"
+  if (recovery > 0.55) return "CAUTION"
+  return "CRITICAL"
+}
+
+function buildMessage(recovery: number, m: Match): string {
+  const pct = Math.round(recovery * 100)
+  if (recovery > 0.85) {
+    return (
+      `MIRACLE MODE ACTIVE :: Recovery surplus (${pct}%) mitigates travel fatigue penalty. ` +
+      `HRV drift on ${m.away.abbr} SP +14% vs 30d baseline. ` +
+      `TACTICAL DECISION :: Load-managed aggressive bullpen deploy pattern. ` +
+      `Outperformance potential maximal — model confidence HIGH.`
+    )
+  }
+  if (recovery > 0.70) {
+    return (
+      `NOMINAL BAND :: Recovery within operational tolerance. ` +
+      `Mild edge persists for ${m.away.abbr} rotation. ` +
+      `TACTICAL DECISION :: Standard deployment // monitor 7th-inning bullpen bridge.`
+    )
+  }
+  if (recovery > 0.55) {
+    return (
+      `VULNERABILITY ALERT :: Recovery degradation detected. ` +
+      `Travel fatigue no longer offset by physiological surplus. ` +
+      `TACTICAL DECISION :: Load-manage starter pitch count // elevate monitor flags.`
+    )
+  }
+  return (
+    `CRITICAL DEBT :: Physiological edge collapsed. Tactical advantage has inverted. ` +
+    `TACTICAL DECISION :: Hold pattern // recommend roster rest rotation // abort aggressive posture.`
+  )
+}
+
+function TermAction({ icon, label, color, primary }: { icon: string; label: string; color: string; primary?: boolean }) {
+  return (
+    <button style={{
+      padding: "12px 14px",
+      background: primary ? color : "transparent",
+      border: primary ? "none" : `1px solid ${color}40`,
+      borderRadius: 3,
+      fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 800,
+      color: primary ? "#020617" : color, letterSpacing: "0.24em",
+      cursor: "pointer", display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
+      boxShadow: primary ? `0 0 18px ${color}44` : "none",
+    }}>
+      <span>{icon}</span>{label}
+    </button>
+  )
+}
 
 interface Props {
-  whoopData: WhoopSync
-  featuredGame: GameDecision
-  adjustedWin: number
+  m: Match
+  recovery: number
 }
 
-const RECOMMENDATIONS: Record<string, {
-  title: string
-  body: string
-  tactical: string
-}> = {
-  MIRACLE_OUTPERFORMANCE: {
-    title: 'Miracle Mode Active',
-    body: '高恢復指標覆蓋客場疲勞懲罰。Biometric state optimal — physiological drag neutralized.',
-    tactical: '建議：進攻性換投策略。Deploy aggressive load rotation. Lean into adjusted win% projection.',
-  },
-  MIRACLE_VULNERABILITY: {
-    title: 'Miracle Mode / Instability Alert',
-    body: '高恢復指標強化進攻性，但市場分歧信號需謹慎。High recovery amplifies edge but model divergence warrants caution.',
-    tactical: '建議：縮小倉位。Reduce tactical load — high variance environment.',
-  },
-  RISK_OUTPERFORMANCE: {
-    title: 'Recovery Deficiency Detected',
-    body: '生理數據低於閾值 — 影響決策信心。Recovery below threshold — decision confidence suppressed.',
-    tactical: '建議：守備性策略。Reduce exposure — load management protocol active.',
-  },
-  NORMAL_MONITOR: {
-    title: 'Neutral Biometric State',
-    body: '生理指標正常範圍。No edge detected in current matchup — standby recommended.',
-    tactical: '建議：觀望。No tactical action required.',
-  },
-}
+export default function DecisionTerminal({ m, recovery }: Props) {
+  const [line, setLine] = useState("")
+  const message = useMemo(() => buildMessage(recovery, m), [recovery, m])
 
-function getRecommendationKey(mode: string, label: string) {
-  if (mode === 'MIRACLE' && label === 'OUTPERFORMANCE') return 'MIRACLE_OUTPERFORMANCE'
-  if (mode === 'MIRACLE' && label === 'VULNERABILITY')  return 'MIRACLE_VULNERABILITY'
-  if (mode === 'RISK')                                   return 'RISK_OUTPERFORMANCE'
-  return 'NORMAL_MONITOR'
-}
+  useEffect(() => {
+    setLine("")
+    let i = 0
+    const t = setInterval(() => {
+      i++
+      setLine(message.slice(0, i))
+      if (i >= message.length) clearInterval(t)
+    }, 14)
+    return () => clearInterval(t)
+  }, [message])
 
-export default function DecisionTerminal({ whoopData, featuredGame, adjustedWin }: Props) {
-  const key  = getRecommendationKey(whoopData.mode, featuredGame.decision.label)
-  const rec  = RECOMMENDATIONS[key]
-  const wpa  = adjustedWin - featuredGame.baseline_win_pct
-  const team = featuredGame.best_side === 'AWAY' ? featuredGame.away_code : featuredGame.home_code
-
-  const isMiracle = whoopData.mode === 'MIRACLE'
-  const borderColor = isMiracle ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'
-  const accentColor = isMiracle ? '#22C55E' : '#EF4444'
-  const bgColor     = isMiracle ? 'rgba(34,197,94,0.04)' : 'rgba(239,68,68,0.04)'
+  const mode = getMode(recovery)
+  const modeColor = MODE_COLOR[mode]
 
   return (
-    <div
-      className="rounded-xl p-5"
-      style={{ background: bgColor, border: `1px solid ${borderColor}` }}
-    >
-      {/* Header row */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <span className="text-[9px] font-mono tracking-widest text-zinc-500 uppercase">
-            Decision Terminal
-          </span>
-          <span
-            className="text-[9px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider"
-            style={{ background: `${accentColor}18`, color: accentColor }}
-          >
-            {whoopData.mode} MODE
-          </span>
-          <span
-            className="text-[9px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider"
-            style={{ background: 'rgba(168,85,247,0.12)', color: '#A855F7' }}
-          >
-            {featuredGame.decision.label}
+    <div style={{
+      background: "#040917",
+      border: "1px solid rgba(148,163,184,0.1)",
+      borderLeft: `3px solid ${modeColor}`,
+      borderRadius: 6, padding: "18px 22px",
+    }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: "50%", background: modeColor,
+            boxShadow: `0 0 12px ${modeColor}`, animation: "pulse-dot 1.4s infinite",
+            display: "inline-block",
+          }} />
+          <span style={{
+            fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 800,
+            color: modeColor, letterSpacing: "0.32em",
+          }}>
+            DECISION_ENGINE_CORE_v4 // MODE :: {mode}
           </span>
         </div>
-        <div className="flex items-center gap-4 text-[10px] font-mono text-zinc-500">
-          <span>CONF {Math.round(featuredGame.confidence * 100)}%</span>
-          <span style={{ color: accentColor }}>
-            WPA {wpa >= 0 ? '+' : ''}{wpa.toFixed(1)}pp
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", letterSpacing: "0.24em" }}>
+            SIG_ID 0x{m.id.slice(-6).toUpperCase()}
           </span>
-          <span>RECOVERY {whoopData.recovery}%</span>
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", letterSpacing: "0.24em" }}>
+            LATENCY 14MS
+          </span>
         </div>
       </div>
 
-      {/* Recommendation body */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <div className="text-sm font-bold text-white mb-1">{rec.title}</div>
-          <div className="text-[11px] text-zinc-400 leading-relaxed">{rec.body}</div>
-        </div>
-        <div
-          className="rounded-lg px-4 py-3"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid #27272A' }}
-        >
-          <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest mb-1">
-            Primary Recommendation
-          </div>
-          <div className="text-[11px] leading-snug" style={{ color: accentColor }}>
-            {rec.tactical}
-          </div>
-          <div className="mt-2 pt-2 flex items-center gap-3 text-[9px] font-mono text-zinc-600"
-            style={{ borderTop: '1px solid #1e1e26' }}>
-            <span>TEAM: {team}</span>
-            <span>·</span>
-            <span>IMPACT: {featuredGame.wpa >= 0 ? '+' : ''}{featuredGame.wpa.toFixed(1)}% WPA</span>
-            <span>·</span>
-            <span>HRV {whoopData.hrv_delta}</span>
-          </div>
-        </div>
+      {/* Typewriter output */}
+      <div style={{
+        background: "#020617", border: "1px solid rgba(148,163,184,0.06)",
+        borderRadius: 3, padding: "14px 16px",
+        fontFamily: "var(--font-mono), monospace", fontSize: 12,
+        color: "#e2e8f0", lineHeight: 1.7, minHeight: 64,
+      }}>
+        <span style={{ color: modeColor, fontWeight: 800 }}>&gt;&gt;&nbsp;</span>
+        {line}
+        <span style={{
+          display: "inline-block", width: 8, height: 14, background: modeColor,
+          marginLeft: 2, verticalAlign: "middle", animation: "blink 1s steps(2) infinite",
+        }} />
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 14 }}>
+        <TermAction primary icon="✓" label="ACCEPT TACTICAL DECISION" color="#22d3ee" />
+        <TermAction icon="◎" label="FLAG FOR MONITORING" color="#fbbf24" />
+        <TermAction icon="⊘" label="OVERRIDE / HOLD" color="#64748b" />
       </div>
     </div>
   )

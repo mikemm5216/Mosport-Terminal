@@ -1,0 +1,123 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { TODAY_MATCHES } from '../data/mockData'
+import { leagueTheme, LiveDot } from './ui'
+
+function GameStatusTicker() {
+  const matches = TODAY_MATCHES
+  const renderItem = (m: typeof matches[0], key: string | number) => {
+    const t = leagueTheme(m.league)
+    const isLive = m.status === "LIVE"
+    const isFinal = m.status === "FINAL"
+    const scoreStr = m.score ? `${m.score.away} – ${m.score.home}` : m.time
+    const statusColor = isLive ? "#ef4444" : isFinal ? "#34d399" : t.hex
+    return (
+      <span key={key} style={{ display: "inline-flex", alignItems: "center", gap: 8, marginRight: 28 }}>
+        <span style={{ color: t.hex, fontWeight: 800 }}>{m.league}</span>
+        <span style={{ color: "#64748b" }}>·</span>
+        <span style={{ color: "#e2e8f0", fontWeight: 800 }}>{m.away.abbr}</span>
+        <span style={{ color: "#334155" }}>@</span>
+        <span style={{ color: "#e2e8f0", fontWeight: 800 }}>{m.home.abbr}</span>
+        <span style={{ marginLeft: 4, color: statusColor, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          {isLive && <LiveDot size={4} />}
+          {isFinal ? `FINAL ${scoreStr}` : isLive ? `LIVE ${scoreStr}` : scoreStr}
+        </span>
+        <span style={{ color: "#1e293b", marginLeft: 16 }}>◆</span>
+      </span>
+    )
+  }
+
+  return (
+    <div style={{
+      borderTop: "1px solid rgba(148,163,184,0.05)",
+      padding: "6px 24px", overflow: "hidden", whiteSpace: "nowrap",
+      fontFamily: "var(--font-mono), monospace", fontSize: 10,
+      color: "#475569", letterSpacing: "0.18em",
+    }}>
+      <div style={{ animation: "tick-marquee 80s linear infinite", display: "inline-block" }}>
+        {matches.map((m, i) => renderItem(m, i))}
+        {matches.map((m, i) => renderItem(m, i + 1000))}
+      </div>
+    </div>
+  )
+}
+
+interface Props {
+  onHome: () => void
+}
+
+export default function TopBar({ onHome }: Props) {
+  const [time, setTime] = useState(new Date())
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  const hh = String(time.getUTCHours()).padStart(2, "0")
+  const mm = String(time.getUTCMinutes()).padStart(2, "0")
+  const ss = String(time.getUTCSeconds()).padStart(2, "0")
+
+  return (
+    <div style={{
+      position: "sticky", top: 0, zIndex: 50,
+      background: "rgba(2,6,23,0.9)", backdropFilter: "blur(12px)",
+      borderBottom: "1px solid rgba(148,163,184,0.08)",
+    }}>
+      <div style={{
+        maxWidth: 1400, margin: "0 auto", padding: "14px 24px",
+        display: "flex", alignItems: "center", gap: 20,
+      }}>
+        {/* Logo */}
+        <div onClick={onHome} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 4,
+            background: "linear-gradient(135deg, #22d3ee, #0891b2)",
+            display: "grid", placeItems: "center",
+            boxShadow: "0 0 18px rgba(34,211,238,0.5)",
+          }}>
+            <span style={{ fontFamily: "var(--font-inter), Inter", fontWeight: 900, fontSize: 16, color: "#020617" }}>M</span>
+          </div>
+          <span style={{
+            fontFamily: "var(--font-inter), Inter, sans-serif",
+            fontWeight: 900, fontSize: 16, color: "#fff", letterSpacing: "0.18em",
+          }}>MOSPORT</span>
+        </div>
+
+        {/* Primary nav */}
+        <nav style={{ display: "flex", gap: 4, marginLeft: 12 }}>
+          {(["SCHEDULE", "LEAGUES", "TEAMS", "SIGNALS", "LAB"] as const).map((n, i) => (
+            <div key={n} style={{
+              padding: "6px 12px",
+              fontFamily: "var(--font-mono), monospace",
+              fontWeight: 700, fontSize: 10, letterSpacing: "0.24em",
+              color: i === 0 ? "#22d3ee" : "#64748b",
+              borderBottom: i === 0 ? "1px solid #22d3ee" : "1px solid transparent",
+              cursor: "pointer",
+            }}>{n}</div>
+          ))}
+        </nav>
+
+        <div style={{ flex: 1 }} />
+
+        {/* System status */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <LiveDot color="#34d399" size={5} />
+            <span style={{
+              fontFamily: "var(--font-mono), monospace", fontSize: 9,
+              color: "#34d399", fontWeight: 800, letterSpacing: "0.28em",
+            }}>SYSTEM ACTIVE</span>
+          </div>
+          <div style={{
+            fontFamily: "var(--font-mono), monospace", fontSize: 10,
+            color: "#475569", letterSpacing: "0.18em",
+          }}>
+            UTC {hh}:{mm}<span style={{ color: "#1e293b" }}>:{ss}</span>
+          </div>
+        </div>
+      </div>
+
+      <GameStatusTicker />
+    </div>
+  )
+}
