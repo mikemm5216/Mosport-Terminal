@@ -53,7 +53,9 @@ export function matchToV11Input(m: Match, recoveryOverride?: number) {
   const mismatch = parseFloat(Math.min(1, Math.max(0,
     (rec - m.recovery_home) * 2.5 + Math.max(0, m.baseline_win - 0.5) * 3
   )).toFixed(2))
-  const volatility = parseFloat(m.matchup_complexity.toFixed(2))
+  // Cap at 0.69 so extreme complexity doesn't auto-trigger CHAOS label —
+  // let the mismatch/recovery signals drive the interesting outcomes instead
+  const volatility = parseFloat(Math.min(0.69, m.matchup_complexity).toFixed(2))
 
   return {
     game_id: m.id,

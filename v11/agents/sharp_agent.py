@@ -19,7 +19,7 @@ class SharpAgent(BaseAgent):
             confidence = 0.75
             reasoning = (
                 f"High mismatch detected at {mismatch:.2f}. "
-                f"Fading market — taking strong AWAY position."
+                f"Fading market -- taking strong AWAY position."
             )
         elif mismatch <= 0.35:
             lean = "HOME"
