@@ -85,7 +85,7 @@ export default function Home() {
       <TopBar onHome={handleBack} activeTab={activeTab} onTabChange={handleTabChange} />
 
       <div className="fade-in" key={fadeKey}>
-        {page.screen === "schedule"    && <SchedulePage onOpen={handleOpen} />}
+        {page.screen === "schedule"    && <SchedulePage onOpen={handleOpen} onOpenLab={() => handleTabChange("LAB")} />}
         {page.screen === "detail"      && <DetailPage m={page.match} onBack={handleBack} />}
         {page.screen === "lab"         && <LabPage />}
         {page.screen === "leagues"     && <LeaguesPage onTeam={(a, l) => handleTeam(a, l, "leagues")} />}

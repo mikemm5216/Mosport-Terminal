@@ -66,49 +66,57 @@ export default function TopBar({ onHome, activeTab = "SCHEDULE", onTabChange }: 
 
   return (
     <div style={{
-      position: "sticky", top: 0, zIndex: 50,
-      background: "rgba(2,6,23,0.9)", backdropFilter: "blur(12px)",
-      borderBottom: "1px solid rgba(148,163,184,0.08)",
+      position: "sticky", top: 0, zIndex: 100,
+      background: "rgba(2,6,23,0.95)", backdropFilter: "blur(16px)",
+      borderBottom: "1px solid rgba(34,211,238,0.1)",
+      paddingTop: isMobile ? "env(safe-area-inset-top)" : 0,
     }}>
       <div style={{
         maxWidth: 1400, margin: "0 auto",
-        padding: isMobile ? "10px 14px" : "14px 24px",
-        display: "flex", alignItems: "center", gap: isMobile ? 10 : 20,
+        padding: isMobile ? "12px 16px" : "14px 24px",
+        display: "flex", alignItems: "center", gap: isMobile ? 12 : 20,
       }}>
         {/* Logo */}
-        <div onClick={onHome} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }}>
+        <div onClick={onHome} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flexShrink: 0 }}>
           <div style={{
             width: isMobile ? 24 : 28, height: isMobile ? 24 : 28, borderRadius: 4,
             background: "linear-gradient(135deg, #22d3ee, #0891b2)",
             display: "grid", placeItems: "center",
-            boxShadow: "0 0 18px rgba(34,211,238,0.5)",
+            boxShadow: "0 0 15px rgba(34,211,238,0.4)",
           }}>
             <span style={{ fontFamily: "var(--font-inter), Inter", fontWeight: 900, fontSize: isMobile ? 13 : 16, color: "#020617" }}>M</span>
           </div>
           <span style={{
             fontFamily: "var(--font-inter), Inter, sans-serif",
-            fontWeight: 900, fontSize: isMobile ? 13 : 16, color: "#fff", letterSpacing: "0.18em",
+            fontWeight: 900, fontSize: isMobile ? 14 : 16, color: "#fff", letterSpacing: "0.22em",
           }}>MOSPORT</span>
         </div>
 
-        {/* Primary nav — hidden on mobile */}
-        {!isMobile && (
+        {/* Navigation context for mobile / Nav for desktop */}
+        {isMobile ? (
+          <div style={{
+            marginLeft: 4, padding: "4px 8px", background: "rgba(34,211,238,0.05)", 
+            borderRadius: 2, border: "1px solid rgba(34,211,238,0.2)"
+          }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, fontWeight: 900, color: "#22d3ee", letterSpacing: "0.2em" }}>
+              {activeTab}
+            </span>
+          </div>
+        ) : (
           <nav style={{ display: "flex", gap: 4, marginLeft: 12 }}>
             {(["SCHEDULE", "LEAGUES", "PLAYERS", "LAB"] as const).map((n) => {
               const isActive = activeTab === n
-              const isAllowed = true
               return (
                 <div
                   key={n}
-                  onClick={() => isAllowed && onTabChange && onTabChange(n)}
-                  title={!isAllowed ? "Coming Soon" : undefined}
+                  onClick={() => onTabChange && onTabChange(n)}
                   style={{
                     padding: "6px 12px",
                     fontFamily: "var(--font-mono), monospace",
                     fontWeight: 700, fontSize: 10, letterSpacing: "0.24em",
                     color: isActive ? "#22d3ee" : "rgba(100,116,139,0.5)",
                     borderBottom: isActive ? "1px solid #22d3ee" : "1px solid transparent",
-                    cursor: isAllowed ? "pointer" : "not-allowed",
+                    cursor: "pointer",
                   }}
                 >
                   {n}
@@ -121,7 +129,7 @@ export default function TopBar({ onHome, activeTab = "SCHEDULE", onTabChange }: 
         <div style={{ flex: 1 }} />
 
         {/* System status */}
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 16, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 16, flexShrink: 0 }}>
           {!isMobile && (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <LiveDot color="#34d399" size={5} />
@@ -136,12 +144,12 @@ export default function TopBar({ onHome, activeTab = "SCHEDULE", onTabChange }: 
             color: "#475569", letterSpacing: "0.18em",
           }}>
             {isMobile ? `${hh}:${mm}` : `UTC ${hh}:${mm}`}
-            <span style={{ color: "#1e293b" }}>{isMobile ? "" : `:${ss}`}</span>
+            {!isMobile && <span style={{ color: "#1e293b" }}>:{ss}</span>}
           </div>
         </div>
       </div>
 
-      <GameStatusTicker />
+      {!isMobile && <GameStatusTicker />}
     </div>
   )
 }

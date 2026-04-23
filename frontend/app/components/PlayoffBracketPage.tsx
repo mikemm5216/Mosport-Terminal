@@ -37,51 +37,52 @@ function gameWinProb(home: BracketTeam, away: BracketTeam): number {
  * Returns the champion abbreviation
  */
 function runOneBracket(firstRound: BracketSeries[], league: League): string {
-  const all: BracketSeries[] = JSON.parse(JSON.stringify(firstRound))
-  const conferences: PlayoffConference[] = ['West', 'East']
-
-  // Round 1 is already in firstRound
   const winnersR1: Record<string, BracketTeam> = {}
-  for (const s of all) {
+  for (const s of firstRound) {
     const { winner } = simulateSeries(s.home, s.away, s.winsHome, s.winsAway)
     winnersR1[s.id] = winner === s.home.abbr ? s.home : s.away
   }
 
+  const conferences: PlayoffConference[] = ['West', 'East']
+  
   // Round 2 (Semis)
   const winnersR2: Record<string, BracketTeam> = {}
   for (const conf of conferences) {
-    const r1S = all.filter(s => s.round === 1 && s.conference === conf)
+    const r1S = firstRound.filter(s => s.round === 1 && s.conference === conf)
+    // Map R1 winners to R2 slots
     for (let i = 0; i < r1S.length; i += 2) {
       const tA = winnersR1[r1S[i].id]
       const tB = winnersR1[r1S[i + 1].id]
+      if (!tA || !tB) continue
       const [h, a] = tA.edge >= tB.edge ? [tA, tB] : [tB, tA]
       const { winner } = simulateSeries(h, a, 0, 0)
-      winnersR2[`${conf}-${i}`] = winner === h.abbr ? h : a
+      winnersR2[`${conf}-${i/2}`] = winner === h.abbr ? h : a
     }
   }
 
   // Round 3 (Conf Finals)
   const winnersR3: Record<string, BracketTeam> = {}
   for (const conf of conferences) {
-    const tA = winnersR2[`${conf}-0`]
-    const tB = winnersR2[`${conf}-2`] // Corrected index for 4 teams in R1
-    // Wait, the index for R2 depends on R1 count. 
-    // Simplified for fixed 8-team conference:
     const tC = winnersR2[`${conf}-0`]
     const tD = winnersR2[`${conf}-1`]
+    if (!tC || !tD) continue
     const [h, a] = tC.edge >= tD.edge ? [tC, tD] : [tD, tC]
     const { winner } = simulateSeries(h, a, 0, 0)
     winnersR3[conf] = winner === h.abbr ? h : a
   }
 
   // Round 4 (Finals)
-  const [h, a] = winnersR3['East'].edge >= winnersR3['West'].edge ? [winnersR3['East'], winnersR3['West']] : [winnersR3['West'], winnersR3['East']]
+  const eastC = winnersR3['East']
+  const westC = winnersR3['West']
+  if (!eastC || !westC) return eastC?.abbr || westC?.abbr || "UNK"
+  
+  const [h, a] = eastC.edge >= westC.edge ? [eastC, westC] : [westC, eastC]
   const { winner } = simulateSeries(h, a, 0, 0)
   return winner
 }
 
 // For UI display of a single series prediction (uses 10k sub-simulations for speed)
-function predictSeries(s: BracketSeries, iterations = 10000): { winner: string; prob: number } {
+function predictSeries(s: BracketSeries, iterations = 5000): { winner: string; prob: number } {
   if (s.status === 'completed' && s.winner) return { winner: s.winner, prob: 1 }
   let homeWins = 0
   for (let i = 0; i < iterations; i++) {
@@ -94,46 +95,46 @@ function predictSeries(s: BracketSeries, iterations = 10000): { winner: string; 
   }
 }
 
-// ── Fixed simulation logic for the bracket view ──────────────────
-// This creates the "most likely" bracket for display
 function simulateBracket(firstRound: BracketSeries[], league: League): BracketSeries[] {
   const all: BracketSeries[] = [...firstRound]
   const conferences: PlayoffConference[] = ['East', 'West']
 
-  for (let round = 1; round <= 3; round++) {
-    const currentRound = all.filter(s => s.round === round)
-    for (const conf of conferences) {
-      const confSeries = currentRound.filter(s => s.conference === conf)
-      if (confSeries.length === 0) continue
-      const predictions = confSeries.map(s => {
-        const { winner } = predictSeries(s, 5000)
-        return winner === s.home.abbr ? s.home : s.away
-      })
-      const nextRound = round + 1
-      const nextConf: PlayoffConference = nextRound === 4 ? 'Finals' : conf
-      for (let i = 0; i < predictions.length; i += 2) {
-        if (!predictions[i + 1]) break
-        const [h, a] = predictions[i].edge >= predictions[i + 1].edge ? [predictions[i], predictions[i + 1]] : [predictions[i+1], predictions[i]]
-        all.push({
-          id: `${league}-r${nextRound}-${conf}-${i / 2}`,
-          league, round: nextRound as 1|2|3|4, conference: nextConf,
-          home: h, away: a, winsHome: 0, winsAway: 0, status: 'pending'
-        })
-      }
-    }
-    if (round === 3) {
-      const eastF = all.find(s => s.round === 3 && s.conference === 'East')
-      const westF = all.find(s => s.round === 3 && s.conference === 'West')
-      if (eastF && westF) {
-        const { winner: ew } = predictSeries(eastF, 5000)
-        const { winner: ww } = predictSeries(westF, 5000)
-        const eT = ew === eastF.home.abbr ? eastF.home : eastF.away
-        const wT = ww === westF.home.abbr ? westF.home : westF.away
-        const [h, a] = eT.edge >= wT.edge ? [eT, wT] : [wT, eT]
-        all.push({ id: `${league}-finals`, league, round: 4, conference: 'Finals', home: h, away: a, winsHome: 0, winsAway: 0, status: 'pending' })
-      }
+  // Round 2 Generation
+  for (const conf of conferences) {
+    const r1S = firstRound.filter(s => s.round === 1 && s.conference === conf)
+    for (let i = 0; i < r1S.length; i += 2) {
+      const { winner: w1 } = predictSeries(r1S[i], 2000)
+      const { winner: w2 } = predictSeries(r1S[i+1], 2000)
+      const t1 = w1 === r1S[i].home.abbr ? r1S[i].home : r1S[i].away
+      const t2 = w2 === r1S[i+1].home.abbr ? r1S[i+1].home : r1S[i+1].away
+      const [h, a] = t1.edge >= t2.edge ? [t1, t2] : [t2, t1]
+      all.push({ id: `${league}-r2-${conf}-${i/2}`, league, round: 2, conference: conf, home: h, away: a, winsHome: 0, winsAway: 0, status: 'pending' })
     }
   }
+
+  // Round 3 Generation
+  for (const conf of conferences) {
+    const r2S = all.filter(s => s.round === 2 && s.conference === conf)
+    const { winner: w1 } = predictSeries(r2S[0], 2000)
+    const { winner: w2 } = predictSeries(r2S[1], 2000)
+    const t1 = w1 === r2S[0].home.abbr ? r2S[0].home : r2S[0].away
+    const t2 = w2 === r2S[1].home.abbr ? r2S[1].home : r2S[1].away
+    const [h, a] = t1.edge >= t2.edge ? [t1, t2] : [t2, t1]
+    all.push({ id: `${league}-r3-${conf}`, league, round: 3, conference: conf, home: h, away: a, winsHome: 0, winsAway: 0, status: 'pending' })
+  }
+
+  // Round 4 (Finals)
+  const eF = all.find(s => s.round === 3 && s.conference === 'East')
+  const wF = all.find(s => s.round === 3 && s.conference === 'West')
+  if (eF && wF) {
+    const { winner: we } = predictSeries(eF, 2000)
+    const { winner: ww } = predictSeries(wF, 2000)
+    const tE = we === eF.home.abbr ? eF.home : eF.away
+    const tW = ww === wF.home.abbr ? wF.home : wF.away
+    const [h, a] = tE.edge >= tW.edge ? [tE, tW] : [tW, tE]
+    all.push({ id: `${league}-finals`, league, round: 4, conference: 'Finals', home: h, away: a, winsHome: 0, winsAway: 0, status: 'pending' })
+  }
+
   return all
 }
 
@@ -233,8 +234,37 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
 
   if (isMobile) {
     return (
-      <div style={{ padding: embedded ? 0 : 20, textAlign: "center", color: "#475569", fontFamily: "var(--font-mono)" }}>
-        [ MOBILE VIEW OPTIMIZED: PLEASE ROTATE OR USE DESKTOP FOR FULL BUTTERFLY BRACKET ]
+      <div style={{ padding: embedded ? 0 : 20 }}>
+        {!embedded && (
+          <div style={{ marginBottom: 24 }}>
+            <h1 style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 24, color: "#fff" }}>
+              {selectedLeague} 2026 <span style={{ color: t.hex }}>PREDICTION</span>
+            </h1>
+          </div>
+        )}
+        
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Mobile Summary Card */}
+          <div style={{ 
+            padding: 16, background: "rgba(15,23,42,0.6)", borderRadius: 4, 
+            border: `1px solid ${t.hex}33`, borderLeft: `4px solid ${t.hex}` 
+          }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.2em", marginBottom: 8 }}>PROJECTED CHAMPION</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <TeamLogo teamAbbr={championTeam?.abbr || ""} league={league} size={48} accentColor={t.hex} />
+              <div>
+                <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 24, color: "#fff" }}>{championTeam?.abbr}</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#34d399", fontWeight: 800 }}>
+                  {(mcConfidence * 100).toFixed(1)}% CONFIDENCE
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#334155", textAlign: "center", padding: "10px 0" }}>
+            [ FULL BRACKET INTEL IN WAR ROOM ]
+          </div>
+        </div>
       </div>
     )
   }

@@ -372,37 +372,67 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
       {isMobile ? (
         /* ── Mobile header ── */
         <div style={{
-          display: "flex", alignItems: "center", padding: "14px 14px", gap: 8, cursor: "pointer",
+          display: "flex", flexDirection: "column", padding: "16px", gap: 14, cursor: "pointer",
         }}>
-          {/* Teams */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <TeamMark abbr={m.away.abbr} league={m.league} size={24} />
-              <span style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontStyle: "italic", fontSize: 17, color: "#fff", letterSpacing: "-0.02em" }}>{m.away.abbr}</span>
-              <span style={{ color: "#334155", fontSize: 11, fontFamily: "var(--font-mono), monospace" }}>@</span>
-              <span style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontStyle: "italic", fontSize: 17, color: "#fff", letterSpacing: "-0.02em" }}>{m.home.abbr}</span>
-              <TeamMark abbr={m.home.abbr} league={m.league} size={24} />
-            </div>
-            {m.playoff && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, fontWeight: 800, color: t.hex, letterSpacing: "0.2em" }}>PLAYOFFS</span>
-                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, color: "#475569" }}>·</span>
-                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, color: "#64748b", letterSpacing: "0.1em" }}>{m.playoff.summary}</span>
+          {/* Top Row: Matchup + Status */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <TeamMark abbr={m.away.abbr} league={m.league} size={28} />
+                <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontStyle: "italic", fontSize: 22, color: "#fff", letterSpacing: "-0.03em" }}>{m.away.abbr}</span>
+                <span style={{ color: "#334155", fontSize: 12, fontFamily: "var(--font-mono)" }}>@</span>
+                <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontStyle: "italic", fontSize: 22, color: "#fff", letterSpacing: "-0.03em" }}>{m.home.abbr}</span>
+                <TeamMark abbr={m.home.abbr} league={m.league} size={28} />
               </div>
-            )}
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 800, color: isLive ? "#ef4444" : "#e2e8f0" }}>{m.time}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.1em" }}>{m.league} · {statusLabel}</div>
+            </div>
           </div>
-          {/* Time + status */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
-            <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 800, color: isLive ? "#ef4444" : "#e2e8f0" }}>{m.time}</span>
-            <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, fontWeight: 800, color: statusColor, letterSpacing: "0.26em" }}>{statusLabel}</span>
+
+          {/* Decision Row */}
+          <div style={{ 
+            display: "flex", alignItems: "center", gap: 12, 
+            padding: "10px 12px", background: "rgba(15,23,42,0.6)", borderRadius: 4,
+            borderLeft: `2px solid ${wpaColor(m.tactical_label)}`
+          }}>
+            <div style={{
+              padding: "4px 8px", background: `${wpaColor(m.tactical_label)}15`, borderRadius: 2,
+              fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 900, color: wpaColor(m.tactical_label), letterSpacing: "0.1em"
+            }}>
+              [{m.tactical_label}]
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.1em" }}>DECISION SCORE</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 900, color: "#fff" }}>{Math.abs(m.wpa).toFixed(2)}</span>
+            </div>
+            <div style={{ flex: 1 }} />
+            <div style={{ display: "flex", gap: 8 }}>
+              {["Mismatch", "Fatigue", "Stress"].map((s, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#64748b" }}>{s}</span>
+                  <span style={{ color: i === 0 ? "#34d399" : "#fbbf24", fontSize: 8 }}>↑</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <LeagueBadge league={m.league} />
-          <span style={{
-            display: "inline-block",
-            color: expanded ? t.hex : "#334155",
-            fontSize: 16, transition: "transform 180ms, color 180ms",
-            transform: expanded ? "rotate(90deg)" : "none",
-          }}>›</span>
+
+          {/* Short Decision Sentence */}
+          <div style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#94a3b8", lineHeight: 1.5, fontStyle: "italic" }}>
+            {m.tactical_label === "UPSET" ? "Market favors stability. Mosport detects an outlier condition." : 
+             m.tactical_label === "STRONG" ? "Signals align for high-conviction baseline performance." :
+             "Decision engine detects high volatility. Tactical caution advised."}
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: t.hex, letterSpacing: "0.2em" }}>TAP FOR INTELLIGENCE LAYER →</span>
+            <span style={{
+              color: expanded ? t.hex : "#334155",
+              fontSize: 16, transition: "transform 180ms",
+              transform: expanded ? "rotate(90deg)" : "none",
+            }}>›</span>
+          </div>
         </div>
       ) : (
         /* ── Desktop / tablet header ── */
@@ -494,7 +524,7 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
 // ── Schedule page ──────────────────────────────────────────────
 const LEAGUES: Array<"ALL" | League> = ["ALL", "MLB", "NBA", "EPL", "UCL", "NHL"]
 
-export default function SchedulePage({ onOpen }: { onOpen: (m: Match) => void }) {
+export default function SchedulePage({ onOpen, onOpenLab }: { onOpen: (m: Match) => void; onOpenLab?: () => void }) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<"ALL" | League>("ALL")
   const [selectedDate, setSelectedDate] = useState(TODAY_DATE)
@@ -573,23 +603,32 @@ export default function SchedulePage({ onOpen }: { onOpen: (m: Match) => void })
         )}
       </div>
 
-      {/* League filter */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 14, flexWrap: "wrap" }}>
+      {/* League filter — Horizontal scroll on mobile */}
+      <div style={{ 
+        display: "flex", alignItems: "center", gap: 6, marginBottom: 16, 
+        overflowX: isMobile ? "auto" : "visible",
+        paddingBottom: isMobile ? 10 : 0,
+        scrollbarWidth: "none",
+        msOverflowStyle: "none",
+        WebkitOverflowScrolling: "touch",
+      }}>
         {LEAGUES.map(l => (
           <button key={l} onClick={() => setFilter(l)} style={{
-            padding: isMobile ? "5px 10px" : "6px 14px",
-            background: filter === l ? "rgba(34,211,238,0.08)" : "transparent",
-            border: filter === l ? "1px solid rgba(34,211,238,0.35)" : "1px solid rgba(148,163,184,0.08)",
-            borderRadius: 3,
-            fontFamily: "var(--font-mono), monospace", fontSize: isMobile ? 9 : 10, fontWeight: 800,
-            color: filter === l ? "#22d3ee" : "#64748b",
-            letterSpacing: "0.28em", cursor: "pointer",
+            padding: "6px 14px",
+            background: filter === l ? "rgba(34,211,238,0.1)" : "rgba(15,23,42,0.4)",
+            border: filter === l ? "1px solid rgba(34,211,238,0.4)" : "1px solid rgba(148,163,184,0.1)",
+            borderRadius: 4,
+            fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 800,
+            color: filter === l ? "#22d3ee" : "#475569",
+            letterSpacing: "0.24em", cursor: "pointer",
+            flexShrink: 0,
+            transition: "all 150ms",
           }}>{l}</button>
         ))}
       </div>
 
       {/* Game bars */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {filtered.map(m => (
           <GameBar
             key={m.id}
@@ -600,6 +639,25 @@ export default function SchedulePage({ onOpen }: { onOpen: (m: Match) => void })
           />
         ))}
       </div>
+
+      {/* Mobile Lab Entry Point */}
+      {isMobile && (
+        <div 
+          onClick={() => onOpenLab?.()}
+          style={{
+            marginTop: 24, padding: "16px", background: "rgba(34,211,238,0.05)", 
+            border: "1px solid rgba(34,211,238,0.2)", borderRadius: 4,
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            cursor: "pointer"
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 7, fontWeight: 800, color: "#22d3ee", letterSpacing: "0.2em" }}>SYSTEM DIAGNOSTICS</span>
+            <span style={{ fontFamily: "var(--font-inter)", fontSize: 13, fontWeight: 900, color: "#fff" }}>View Engine Report →</span>
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#22d3ee" }}>9,500 GMS</div>
+        </div>
+      )}
 
       {filtered.length === 0 && (
         <div style={{
