@@ -319,12 +319,7 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
     borderRadius: 4, transition: "all 180ms ease", overflow: "hidden",
   }
 
-  const hoverProps = isMobile
-    ? { onClick: onToggle }
-    : {
-        onMouseEnter: () => !expanded && onToggle(),
-        onMouseLeave: () => expanded && onToggle(),
-      }
+  const hoverProps = { onClick: onToggle }
 
   return (
     <div {...hoverProps} style={containerStyle}>

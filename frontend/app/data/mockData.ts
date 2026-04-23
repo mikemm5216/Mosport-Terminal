@@ -275,11 +275,35 @@ export const KEY_PLAYERS: Record<string, KeyPlayer[]> = {
     { name: "Kevin De Bruyne",  initials: "KB", pos: "MF · #17", hrv: 0.07, sleep: 0.5, flag: "CLEAR" },
   ],
 }
+const TEAM_STARS_MAP: Record<string, { p1: string; i1: string; p2: string; i2: string }> = {
+  MIL: { p1: "C. Yelich", i1: "CY", p2: "F. Peralta", i2: "FP" },
+  DET: { p1: "T. Skubal", i1: "TS", p2: "R. Greene", i2: "RG" },
+  SDP: { p1: "F. Tatis Jr", i1: "FT", p2: "M. Machado", i2: "MM" },
+  SD:  { p1: "F. Tatis Jr", i1: "FT", p2: "M. Machado", i2: "MM" },
+  WSN: { p1: "C. Abrams", i1: "CA", p2: "M. Gore", i2: "MG" },
+  WSH: { p1: "C. Abrams", i1: "CA", p2: "M. Gore", i2: "MG" },
+  ATL: { p1: "R. Acuña Jr", i1: "RA", p2: "M. Fried", i2: "MF" },
+  PHI: { p1: "B. Harper", i1: "BH", p2: "Z. Wheeler", i2: "ZW" },
+  CHC: { p1: "D. Swanson", i1: "DS", p2: "J. Steele", i2: "JS" },
+  PIT: { p1: "O. Cruz", i1: "OC", p2: "M. Keller", i2: "MK" },
+  TEX: { p1: "C. Seager", i1: "CS", p2: "M. Semien", i2: "MS" },
+  COL: { p1: "E. Tovar", i1: "ET", p2: "R. McMahon", i2: "RM" },
+}
 
 function defaultPlayers(m: Match, side: "away" | "home"): KeyPlayer[] {
+  const abbr = m[side].abbr;
+  const stars = TEAM_STARS_MAP[abbr];
+  
+  if (stars) {
+    return [
+      { name: stars.p1, initials: stars.i1, pos: "FRANCHISE LEAD", hrv: 0.03, sleep: 0.9, flag: "CLEAR" },
+      { name: stars.p2, initials: stars.i2, pos: "KEY STARTER", hrv: -0.02, sleep: 1.1, flag: "MONITOR" },
+    ];
+  }
+
   return [
-    { name: `Captain · ${m[side].abbr}`, initials: m[side].abbr.slice(0, 2), pos: "ROSTER LEAD", hrv: 0.03, sleep: 0.9, flag: "CLEAR" },
-    { name: "Key Starter",               initials: "KS",                     pos: "STARTER",     hrv: -0.02, sleep: 1.1, flag: "MONITOR" },
+    { name: `Captain · ${abbr}`, initials: abbr.slice(0, 2), pos: "ROSTER LEAD", hrv: 0.03, sleep: 0.9, flag: "CLEAR" },
+    { name: "Key Starter",       initials: "KS",             pos: "STARTER",     hrv: -0.02, sleep: 1.1, flag: "MONITOR" },
   ]
 }
 
