@@ -46,9 +46,11 @@ function GameStatusTicker() {
 
 interface Props {
   onHome: () => void
+  activeTab?: string
+  onTabChange?: (tab: string) => void
 }
 
-export default function TopBar({ onHome }: Props) {
+export default function TopBar({ onHome, activeTab = "SCHEDULE", onTabChange }: Props) {
   const [time, setTime] = useState<Date | null>(null)
   const width = useWindowWidth()
   const isMobile = width < 640
@@ -92,19 +94,21 @@ export default function TopBar({ onHome }: Props) {
         {/* Primary nav — hidden on mobile */}
         {!isMobile && (
           <nav style={{ display: "flex", gap: 4, marginLeft: 12 }}>
-            {(["SCHEDULE", "LEAGUES", "TEAMS", "SIGNALS", "LAB"] as const).map((n, i) => {
-              const isSchedule = i === 0
+            {(["SCHEDULE", "LEAGUES", "PLAYERS", "LAB"] as const).map((n) => {
+              const isActive = activeTab === n
+              const isAllowed = n === "SCHEDULE" || n === "LAB"
               return (
                 <div
                   key={n}
-                  title={!isSchedule ? "Coming Soon" : undefined}
+                  onClick={() => isAllowed && onTabChange && onTabChange(n)}
+                  title={!isAllowed ? "Coming Soon" : undefined}
                   style={{
                     padding: "6px 12px",
                     fontFamily: "var(--font-mono), monospace",
                     fontWeight: 700, fontSize: 10, letterSpacing: "0.24em",
-                    color: isSchedule ? "#22d3ee" : "rgba(100,116,139,0.5)",
-                    borderBottom: isSchedule ? "1px solid #22d3ee" : "1px solid transparent",
-                    cursor: isSchedule ? "pointer" : "not-allowed",
+                    color: isActive ? "#22d3ee" : "rgba(100,116,139,0.5)",
+                    borderBottom: isActive ? "1px solid #22d3ee" : "1px solid transparent",
+                    cursor: isAllowed ? "pointer" : "not-allowed",
                   }}
                 >
                   {n}
