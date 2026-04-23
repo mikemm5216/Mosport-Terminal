@@ -134,19 +134,6 @@ function LeagueBlock({ league, isMobile, onTeam, onPlayoffs }: { league: League;
         </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          {meta.season.includes("Playoffs") && (
-            <button
-              onClick={onPlayoffs}
-              style={{
-                fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 800,
-                color: "#f8fafc", padding: "5px 12px", background: `linear-gradient(90deg, ${t.hex} 0%, ${t.hex}cc 100%)`,
-                border: "none", borderRadius: 2, cursor: "pointer", letterSpacing: "0.1em",
-                boxShadow: `0 0 12px ${t.hex}44`,
-              }}
-            >
-              [ VIEW BRACKET ]
-            </button>
-          )}
           {liveCount > 0 && (
             <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, fontWeight: 800, color: "#ef4444", padding: "3px 8px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 2, letterSpacing: "0.18em" }}>● {liveCount} LIVE</span>
           )}
@@ -253,10 +240,9 @@ function LeagueBlock({ league, isMobile, onTeam, onPlayoffs }: { league: League;
 
 interface LeaguesPageProps {
   onTeam?: (teamAbbr: string, league: League) => void
-  onPlayoffs?: () => void
 }
 
-export default function LeaguesPage({ onTeam, onPlayoffs }: LeaguesPageProps = {}) {
+export default function LeaguesPage({ onTeam }: LeaguesPageProps = {}) {
   const width = useWindowWidth()
   const isMobile = width < 640
   const liveTotal = TODAY_MATCHES.filter(m => m.status === "LIVE").length
@@ -284,7 +270,7 @@ export default function LeaguesPage({ onTeam, onPlayoffs }: LeaguesPageProps = {
       </div>
 
       {ALL_LEAGUES.map(league => (
-        <LeagueBlock key={league} league={league} isMobile={isMobile} onTeam={onTeam} onPlayoffs={onPlayoffs} />
+        <LeagueBlock key={league} league={league} isMobile={isMobile} onTeam={onTeam} />
       ))}
     </div>
   )

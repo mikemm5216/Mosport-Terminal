@@ -88,8 +88,7 @@ export default function Home() {
         {page.screen === "schedule"    && <SchedulePage onOpen={handleOpen} />}
         {page.screen === "detail"      && <DetailPage m={page.match} onBack={handleBack} />}
         {page.screen === "lab"         && <LabPage />}
-        {page.screen === "leagues"     && <LeaguesPage onTeam={(a, l) => handleTeam(a, l, "leagues")} onPlayoffs={() => setPage({ screen: "playoffs" })} />}
-        {page.screen === "playoffs"    && <PlayoffBracketPage />}
+        {page.screen === "leagues"     && <LeaguesPage onTeam={(a, l) => handleTeam(a, l, "leagues")} />}
         {page.screen === "players"     && (
           <PlayersPage
             onTeam={(a, l) => handleTeam(a, l, "players")}

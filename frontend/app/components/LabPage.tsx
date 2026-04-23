@@ -2,6 +2,7 @@
 
 import { useWindowWidth } from '../lib/useWindowWidth'
 import { RingGauge, BioBar, LiveDot } from './ui'
+import PlayoffBracketPage from './PlayoffBracketPage'
 
 const RING_METRICS = [
   { label: "EDGE CAPTURE", value: 0.684, color: "#22d3ee", sublabel: "RATE"     },
@@ -175,6 +176,18 @@ export default function LabPage() {
             <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 800, color: "#a78bfa" }}>{row.upsets.toFixed(1)}%</span>
           </div>
         ))}
+      </div>
+
+      {/* ── Playoff prediction ───────────────────────────────────── */}
+      <SectionTitle text="PLAYOFF PREDICTION REPORT — 2026" />
+      <div style={{ marginBottom: 60 }}>
+        {/* The Exact Bracket Image from User */}
+        <div style={{ border: "1px solid rgba(148,163,184,0.1)", borderRadius: 4, overflow: "hidden", background: "rgba(15,23,42,0.6)", padding: 2, marginBottom: 20 }}>
+          <img src="/bracket.png" alt="NBA Bracket 2026" style={{ width: "100%", height: "auto", display: "block", borderRadius: 2 }} />
+        </div>
+        
+        {/* The Interactive Prediction Model */}
+        <PlayoffBracketPage embedded={true} />
       </div>
 
       {/* ── Terminal footer ──────────────────────────────────────── */}

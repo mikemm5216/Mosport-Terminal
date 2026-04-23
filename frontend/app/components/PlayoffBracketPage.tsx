@@ -353,7 +353,7 @@ function ChampionHero({ team, league, prob }: { team: BracketTeam; league: Leagu
 
 // ── Main component ─────────────────────────────────────────────
 
-export default function PlayoffBracketPage() {
+export default function PlayoffBracketPage({ embedded = false }: { embedded?: boolean } = {}) {
   const width = useWindowWidth()
   const isMobile = width < 768
   const [selectedLeague, setSelectedLeague] = useState<"NBA" | "NHL">("NBA")
@@ -397,7 +397,7 @@ export default function PlayoffBracketPage() {
   const CONFERENCES: PlayoffConference[] = ['West', 'East']
 
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto", padding: isMobile ? "28px 16px 60px" : "44px 28px 80px" }}>
+    <div style={embedded ? { width: "100%", marginTop: 40 } : { maxWidth: 1400, margin: "0 auto", padding: isMobile ? "28px 16px 60px" : "44px 28px 80px" }}>
 
       {/* Page header */}
       <div style={{ marginBottom: 28 }}>
