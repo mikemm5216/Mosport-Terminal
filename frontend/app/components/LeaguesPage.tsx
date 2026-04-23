@@ -86,7 +86,7 @@ function FixtureRow({ m, isLast }: { m: Match; isLast: boolean }) {
   )
 }
 
-function LeagueBlock({ league, isMobile }: { league: League; isMobile: boolean }) {
+function LeagueBlock({ league, isMobile, onTeam }: { league: League; isMobile: boolean; onTeam?: (abbr: string, league: League) => void }) {
   const t = leagueTheme(league)
   const meta = LEAGUE_META[league]
   const standings = LEAGUE_STANDINGS[league]
@@ -164,16 +164,22 @@ function LeagueBlock({ league, isMobile }: { league: League; isMobile: boolean }
           const isPlaying = fixtures.some(f => f.away.abbr === team.abbr || f.home.abbr === team.abbr)
 
           return (
-            <div key={team.abbr} style={{
-              display: "grid",
-              gridTemplateColumns: isMobile
-                ? "50px 56px 1fr 64px"
-                : "56px 1fr 72px 88px 1fr 56px",
-              alignItems: "center",
-              padding: "9px 0",
-              borderBottom: i < standings.length - 1 ? "1px solid rgba(148,163,184,0.04)" : "none",
-              background: isPlaying ? `${t.hex}06` : "transparent",
-            }}>
+            <div
+              key={team.abbr}
+              onClick={onTeam ? () => onTeam(team.abbr, league) : undefined}
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile
+                  ? "50px 56px 1fr 64px"
+                  : "56px 1fr 72px 88px 1fr 56px",
+                alignItems: "center",
+                padding: "9px 0",
+                borderBottom: i < standings.length - 1 ? "1px solid rgba(148,163,184,0.04)" : "none",
+                background: isPlaying ? `${t.hex}06` : "transparent",
+                cursor: onTeam ? "pointer" : "default",
+                transition: "background 0.15s",
+              }}
+            >
               {/* Team abbr */}
               <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                 {isPlaying && <span style={{ width: 3, height: 14, background: t.hex, borderRadius: 1, display: "inline-block", boxShadow: `0 0 4px ${t.hex}` }} />}
@@ -214,7 +220,11 @@ function LeagueBlock({ league, isMobile }: { league: League; isMobile: boolean }
   )
 }
 
-export default function LeaguesPage() {
+interface LeaguesPageProps {
+  onTeam?: (teamAbbr: string, league: League) => void
+}
+
+export default function LeaguesPage({ onTeam }: LeaguesPageProps = {}) {
   const width = useWindowWidth()
   const isMobile = width < 640
   const liveTotal = TODAY_MATCHES.filter(m => m.status === "LIVE").length
@@ -226,7 +236,7 @@ export default function LeaguesPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
           <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 800, letterSpacing: "0.32em", color: "#475569" }}>LEAGUE INTELLIGENCE</span>
           <span style={{ color: "#1e293b", fontFamily: "var(--font-mono), monospace", fontSize: 9 }}>//</span>
-          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.28em", color: "#334155" }}>TEAM STATUS · FIXTURES</span>
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.28em", color: "#334155" }}>TEAM STATUS · FIXTURES · CLICK TO ANALYZE</span>
         </div>
 
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
@@ -242,7 +252,7 @@ export default function LeaguesPage() {
       </div>
 
       {ALL_LEAGUES.map(league => (
-        <LeagueBlock key={league} league={league} isMobile={isMobile} />
+        <LeagueBlock key={league} league={league} isMobile={isMobile} onTeam={onTeam} />
       ))}
     </div>
   )
