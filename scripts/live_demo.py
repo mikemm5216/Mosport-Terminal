@@ -16,6 +16,7 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 from datetime import date, datetime
 from pathlib import Path
@@ -25,8 +26,6 @@ import pandas as pd
 import requests
 
 REAL_GAMES_PATH = Path("data/real_games/mlb_games_real.parquet")
-
-ODDS_API_KEY_DEFAULT = "7a473a48e8f3dd68b6824e8f9112974a"
 
 BOOK_PRIORITY = ["draftkings", "fanduel", "betmgm", "caesars",
                  "pointsbet_us", "barstool"]
@@ -293,7 +292,7 @@ def print_live_report(games: list, top_n: int = None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MoSport Live Demo")
-    parser.add_argument("--key", default=ODDS_API_KEY_DEFAULT)
+    parser.add_argument("--key", default=os.environ.get("ODDS_API_KEY", ""))
     parser.add_argument("--top",  type=int, default=None,
                         help="Show only top N games by EV (default: all)")
     args = parser.parse_args()

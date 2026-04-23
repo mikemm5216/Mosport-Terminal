@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { Match, TacticalLabel } from '../../data/mockData'
 
-const ODDS_API_KEY = process.env.ODDS_API_KEY ?? '7a473a48e8f3dd68b6824e8f9112974a'
+const ODDS_API_KEY = process.env.ODDS_API_KEY
 const BOOK_PRIORITY = ['draftkings', 'fanduel', 'betmgm', 'caesars', 'pointsbet_us']
 
 const TEAM_MAP: Record<string, string> = {
@@ -111,6 +111,9 @@ type OddsEvent = {
 }
 
 export async function GET() {
+  if (!ODDS_API_KEY) {
+    return NextResponse.json({ error: 'ODDS_API_KEY_NOT_SET', matches: [] }, { status: 503 })
+  }
   try {
     const res = await fetch(
       `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h&oddsFormat=american`,

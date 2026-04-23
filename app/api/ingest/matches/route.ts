@@ -6,7 +6,7 @@ import { getShortName } from "@/lib/teams";
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-const ODDS_API_KEY = process.env.ODDS_API_KEY || "demo_key";
+const ODDS_API_KEY = process.env.ODDS_API_KEY;
 
 interface UnifiedMatchData {
   match_id: string;

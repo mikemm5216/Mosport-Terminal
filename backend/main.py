@@ -23,7 +23,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-ODDS_API_KEY = os.getenv("ODDS_API_KEY", "7a473a48e8f3dd68b6824e8f9112974a")
+ODDS_API_KEY = os.getenv("ODDS_API_KEY")
+if not ODDS_API_KEY:
+    raise RuntimeError("ODDS_API_KEY environment variable is not set")
 ODDS_API_BASE = "https://api.the-odds-api.com"
 BOOK_PRIORITY = ["draftkings", "fanduel", "betmgm", "caesars", "pointsbet_us"]
 
