@@ -1,0 +1,8 @@
+[providers]
+node = "20"
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start -- -p ${PORT:-3000}"
