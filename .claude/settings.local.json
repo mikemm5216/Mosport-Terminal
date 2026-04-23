@@ -32,7 +32,17 @@
       "Bash(python3 -c ' *)",
       "Bash(node -e ' *)",
       "Bash(curl -s \"https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard\")",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(mv fra/lill.png fra/lil.png)",
+      "Bash(mv fra/nice.png fra/nce.png)",
+      "Bash(mv fra/lyon.png fra/ol.png)",
+      "Bash(mv fra/bre.png fra/sbr.png)",
+      "Bash(mv fra/hac.png fra/leh.png)",
+      "WebSearch",
+      "WebFetch(domain:www.footylogos.com)",
+      "Bash(curl -sL \"https://cdn.prod.website-files.com/68f550992570ca0322737dc2/68faaf4e6b675831919a2119_stade-de-reims-footballlogos-org.png\" -o sdr.png)",
+      "Bash(curl -sL \"https://cdn.prod.website-files.com/68f550992570ca0322737dc2/68f603f82e426084b25d328e_aj-auxerre-footballlogos-org.png\" -o aja.png)",
+      "Bash(curl -sL \"https://cdn.prod.website-files.com/68f550992570ca0322737dc2/68fab0aca60ff7bf564a059f_as-saint-etienne-footballlogos-org.png\" -o ste.png)"
     ]
   }
 }
