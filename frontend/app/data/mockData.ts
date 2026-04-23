@@ -271,8 +271,48 @@ export const KEY_PLAYERS: Record<string, KeyPlayer[]> = {
     { name: "Virgil van Dijk",initials: "VD", pos: "CB · #4",  hrv: -0.11, sleep: 1.8, flag: "MONITOR" },
   ],
   "epl_2026_mci_liv_home": [
-    { name: "Erling Haaland",   initials: "EH", pos: "FW · #9",  hrv: 0.11, sleep: 0.3, flag: "CLEAR" },
-    { name: "Kevin De Bruyne",  initials: "KB", pos: "MF · #17", hrv: 0.07, sleep: 0.5, flag: "CLEAR" },
+    { name: "Erling Haaland",     initials: "EH", pos: "FW · #9",  hrv: 0.11,  sleep: 0.3, flag: "CLEAR"   },
+    { name: "Kevin De Bruyne",    initials: "KB", pos: "MF · #17", hrv: 0.07,  sleep: 0.5, flag: "CLEAR"   },
+  ],
+  "epl_2026_ars_tot_home": [
+    { name: "Bukayo Saka",        initials: "BS", pos: "FW · #7",  hrv: 0.08,  sleep: 0.5, flag: "CLEAR"   },
+    { name: "Martin Ødegaard",    initials: "MO", pos: "MF · #8",  hrv: 0.05,  sleep: 0.7, flag: "CLEAR"   },
+  ],
+  "epl_2026_ars_tot_away": [
+    { name: "Son Heung-min",      initials: "SH", pos: "FW · #7",  hrv: -0.05, sleep: 1.2, flag: "MONITOR" },
+    { name: "James Maddison",     initials: "JM", pos: "MF · #10", hrv: -0.09, sleep: 1.8, flag: "MONITOR" },
+  ],
+  "ucl_2026_rma_bar_home": [
+    { name: "Vinicius Jr",        initials: "VJ", pos: "FW · #7",  hrv: 0.09,  sleep: 0.4, flag: "CLEAR"   },
+    { name: "Jude Bellingham",    initials: "JB", pos: "MF · #5",  hrv: 0.06,  sleep: 0.6, flag: "CLEAR"   },
+  ],
+  "ucl_2026_rma_bar_away": [
+    { name: "Robert Lewandowski", initials: "RL", pos: "FW · #9",  hrv: 0.04,  sleep: 0.8, flag: "CLEAR"   },
+    { name: "Pedri",              initials: "PE", pos: "MF · #8",  hrv: -0.07, sleep: 1.4, flag: "MONITOR" },
+  ],
+  "nhl_2026_bos_nyr_home": [
+    { name: "Brad Marchand",      initials: "BM", pos: "LW · #63", hrv: 0.04,  sleep: 0.7, flag: "CLEAR"   },
+    { name: "Charlie McAvoy",     initials: "CM", pos: "D · #73",  hrv: 0.08,  sleep: 0.4, flag: "CLEAR"   },
+  ],
+  "nhl_2026_bos_nyr_away": [
+    { name: "Artemi Panarin",     initials: "AP", pos: "LW · #10", hrv: 0.06,  sleep: 0.5, flag: "CLEAR"   },
+    { name: "Jacob Trouba",       initials: "JT", pos: "D · #8",   hrv: -0.07, sleep: 1.3, flag: "MONITOR" },
+  ],
+  "mlb_2026_lad_nyy_away": [
+    { name: "Shohei Ohtani",      initials: "SO", pos: "DH · #17", hrv: 0.07,  sleep: 0.4, flag: "CLEAR"   },
+    { name: "Freddie Freeman",    initials: "FF", pos: "1B · #5",  hrv: 0.03,  sleep: 0.8, flag: "CLEAR"   },
+  ],
+  "mlb_2026_lad_nyy_home": [
+    { name: "Aaron Judge",        initials: "AJ", pos: "RF · #99", hrv: -0.04, sleep: 1.1, flag: "MONITOR" },
+    { name: "Juan Soto",          initials: "JS", pos: "LF · #22", hrv: 0.06,  sleep: 0.6, flag: "CLEAR"   },
+  ],
+  "nba_2026_bos_mia_home": [
+    { name: "Jayson Tatum",       initials: "JT", pos: "F · #0",   hrv: 0.09,  sleep: 0.4, flag: "CLEAR"   },
+    { name: "Jaylen Brown",       initials: "YB", pos: "G · #7",   hrv: 0.06,  sleep: 0.7, flag: "CLEAR"   },
+  ],
+  "nba_2026_bos_mia_away": [
+    { name: "Jimmy Butler",       initials: "JB", pos: "F · #22",  hrv: -0.11, sleep: 2.0, flag: "REST"    },
+    { name: "Bam Adebayo",        initials: "BA", pos: "C · #13",  hrv: -0.03, sleep: 1.0, flag: "MONITOR" },
   ],
 }
 const TEAM_STARS_MAP: Record<string, { p1: string; i1: string; p2: string; i2: string }> = {
@@ -309,4 +349,97 @@ function defaultPlayers(m: Match, side: "away" | "home"): KeyPlayer[] {
 
 export function getKeyPlayers(m: Match, side: "away" | "home"): KeyPlayer[] {
   return KEY_PLAYERS[`${m.id}_${side}`] ?? defaultPlayers(m, side)
+}
+
+// ── Team standings ─────────────────────────────────────────────
+export type FormResult = "W" | "L" | "D"
+
+export interface TeamRecord {
+  abbr: string
+  name: string
+  w: number
+  l: number
+  d: number
+  pts?: number
+  streak: string
+  form: FormResult[]
+  recovery: number  // 0-1 team avg
+  edge: number      // 0-1 model confidence
+}
+
+export const LEAGUE_STANDINGS: Record<League, TeamRecord[]> = {
+  MLB: [
+    { abbr: "LAD", name: "Dodgers",  w: 31, l: 15, d: 0, streak: "W5", form: ["W","W","W","W","W"], recovery: 0.88, edge: 0.74 },
+    { abbr: "MIN", name: "Twins",    w: 28, l: 18, d: 0, streak: "W3", form: ["W","W","W","L","W"], recovery: 0.82, edge: 0.68 },
+    { abbr: "NYY", name: "Yankees",  w: 26, l: 20, d: 0, streak: "W1", form: ["L","W","W","W","L"], recovery: 0.73, edge: 0.61 },
+    { abbr: "HOU", name: "Astros",   w: 24, l: 22, d: 0, streak: "W2", form: ["W","W","L","L","W"], recovery: 0.76, edge: 0.58 },
+    { abbr: "NYM", name: "Mets",     w: 22, l: 24, d: 0, streak: "L1", form: ["L","W","W","L","L"], recovery: 0.61, edge: 0.52 },
+    { abbr: "BOS", name: "Red Sox",  w: 20, l: 26, d: 0, streak: "L2", form: ["L","L","W","W","L"], recovery: 0.65, edge: 0.49 },
+  ],
+  NBA: [
+    { abbr: "BOS", name: "Celtics",  w: 5, l: 1, d: 0, streak: "W3", form: ["W","W","W","L","W"], recovery: 0.84, edge: 0.77 },
+    { abbr: "GSW", name: "Warriors", w: 4, l: 2, d: 0, streak: "W2", form: ["W","W","L","W","W"], recovery: 0.78, edge: 0.71 },
+    { abbr: "LAL", name: "Lakers",   w: 4, l: 3, d: 0, streak: "W1", form: ["L","W","L","W","W"], recovery: 0.71, edge: 0.64 },
+    { abbr: "MIA", name: "Heat",     w: 2, l: 4, d: 0, streak: "L2", form: ["L","L","W","L","W"], recovery: 0.62, edge: 0.52 },
+  ],
+  EPL: [
+    { abbr: "MCI", name: "Man City",  w: 25, l: 7,  d: 2, pts: 82, streak: "W2", form: ["W","W","D","W","W"], recovery: 0.84, edge: 0.79 },
+    { abbr: "LIV", name: "Liverpool", w: 24, l: 8,  d: 2, pts: 78, streak: "W4", form: ["W","W","W","W","D"], recovery: 0.77, edge: 0.73 },
+    { abbr: "ARS", name: "Arsenal",   w: 22, l: 9,  d: 3, pts: 74, streak: "W1", form: ["W","W","L","W","D"], recovery: 0.81, edge: 0.69 },
+    { abbr: "TOT", name: "Spurs",     w: 17, l: 14, d: 3, pts: 58, streak: "L1", form: ["L","W","D","L","W"], recovery: 0.66, edge: 0.54 },
+    { abbr: "MUN", name: "Man Utd",   w: 15, l: 16, d: 3, pts: 55, streak: "D1", form: ["D","W","L","D","W"], recovery: 0.62, edge: 0.48 },
+  ],
+  UCL: [
+    { abbr: "RMA", name: "Real Madrid", w: 8, l: 2, d: 0, streak: "W1", form: ["W","L","W","W","W"], recovery: 0.79, edge: 0.72 },
+    { abbr: "BAY", name: "Bayern",      w: 7, l: 3, d: 0, streak: "W2", form: ["W","W","L","W","W"], recovery: 0.76, edge: 0.68 },
+    { abbr: "BAR", name: "Barcelona",   w: 7, l: 3, d: 0, streak: "L1", form: ["L","W","W","L","W"], recovery: 0.74, edge: 0.65 },
+    { abbr: "PSG", name: "PSG",         w: 6, l: 4, d: 0, streak: "W1", form: ["W","L","W","L","W"], recovery: 0.71, edge: 0.61 },
+  ],
+  NHL: [
+    { abbr: "BOS", name: "Bruins",   w: 3, l: 1, d: 0, streak: "W2", form: ["W","W","L","W","W"], recovery: 0.79, edge: 0.71 },
+    { abbr: "FLA", name: "Panthers", w: 3, l: 1, d: 0, streak: "W1", form: ["L","W","W","W","L"], recovery: 0.76, edge: 0.68 },
+    { abbr: "NYR", name: "Rangers",  w: 1, l: 3, d: 0, streak: "L2", form: ["L","L","W","L","W"], recovery: 0.64, edge: 0.52 },
+    { abbr: "TBL", name: "Lightning",w: 1, l: 3, d: 0, streak: "L1", form: ["L","W","L","L","W"], recovery: 0.61, edge: 0.49 },
+  ],
+}
+
+// ── Player 5-game recovery trend (oldest → newest) ─────────────
+export const PLAYER_FORM: Record<string, number[]> = {
+  "Pablo López":          [0.87, 0.91, 0.88, 0.93, 0.94],
+  "Byron Buxton":         [0.84, 0.82, 0.88, 0.85, 0.89],
+  "Carlos Correa":        [0.74, 0.71, 0.78, 0.76, 0.78],
+  "Byron Larnach":        [0.88, 0.86, 0.90, 0.89, 0.91],
+  "Pete Alonso":          [0.58, 0.52, 0.48, 0.55, 0.52],
+  "Francisco Lindor":     [0.68, 0.64, 0.71, 0.66, 0.64],
+  "Edwin Díaz":           [0.48, 0.44, 0.42, 0.45, 0.41],
+  "Brandon Nimmo":        [0.72, 0.69, 0.74, 0.71, 0.71],
+  "Kodai Senga":          [0.72, 0.68, 0.71, 0.74, 0.70],
+  "LeBron James":         [0.84, 0.86, 0.88, 0.89, 0.87],
+  "Anthony Davis":        [0.74, 0.71, 0.68, 0.73, 0.74],
+  "Stephen Curry":        [0.89, 0.91, 0.93, 0.92, 0.94],
+  "Draymond Green":       [0.66, 0.62, 0.59, 0.64, 0.64],
+  "Mohamed Salah":        [0.82, 0.84, 0.86, 0.87, 0.85],
+  "Virgil van Dijk":      [0.68, 0.65, 0.62, 0.61, 0.65],
+  "Erling Haaland":       [0.91, 0.93, 0.95, 0.94, 0.96],
+  "Kevin De Bruyne":      [0.86, 0.88, 0.91, 0.89, 0.89],
+  "Bukayo Saka":          [0.84, 0.86, 0.88, 0.87, 0.89],
+  "Martin Ødegaard":      [0.80, 0.83, 0.82, 0.84, 0.82],
+  "Son Heung-min":        [0.74, 0.76, 0.73, 0.75, 0.74],
+  "James Maddison":       [0.62, 0.65, 0.63, 0.66, 0.62],
+  "Vinicius Jr":          [0.88, 0.90, 0.92, 0.91, 0.91],
+  "Jude Bellingham":      [0.86, 0.88, 0.90, 0.91, 0.89],
+  "Robert Lewandowski":   [0.80, 0.82, 0.84, 0.83, 0.82],
+  "Pedri":                [0.74, 0.72, 0.76, 0.73, 0.74],
+  "Brad Marchand":        [0.74, 0.76, 0.78, 0.77, 0.77],
+  "Charlie McAvoy":       [0.82, 0.84, 0.86, 0.85, 0.85],
+  "Artemi Panarin":       [0.80, 0.82, 0.84, 0.83, 0.84],
+  "Jacob Trouba":         [0.68, 0.70, 0.72, 0.71, 0.71],
+  "Shohei Ohtani":        [0.88, 0.90, 0.92, 0.93, 0.91],
+  "Freddie Freeman":      [0.82, 0.84, 0.86, 0.85, 0.83],
+  "Aaron Judge":          [0.72, 0.70, 0.74, 0.71, 0.71],
+  "Juan Soto":            [0.84, 0.82, 0.86, 0.83, 0.84],
+  "Jayson Tatum":         [0.86, 0.88, 0.90, 0.91, 0.89],
+  "Jaylen Brown":         [0.82, 0.84, 0.86, 0.85, 0.85],
+  "Jimmy Butler":         [0.52, 0.48, 0.46, 0.50, 0.47],
+  "Bam Adebayo":          [0.70, 0.68, 0.72, 0.71, 0.72],
 }
