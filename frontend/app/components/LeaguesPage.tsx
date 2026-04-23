@@ -3,6 +3,7 @@
 import { useWindowWidth } from '../lib/useWindowWidth'
 import { TODAY_MATCHES, LEAGUE_STANDINGS, type League, type Match, type FormResult } from '../data/mockData'
 import { leagueTheme, BioBar, LiveDot } from './ui'
+import TeamLogo from './TeamLogo'
 
 const ALL_LEAGUES: League[] = ["MLB", "NBA", "EPL", "UCL", "NHL"]
 
@@ -142,8 +143,8 @@ function LeagueBlock({ league, isMobile, onTeam }: { league: League; isMobile: b
         <div style={{
           display: "grid",
           gridTemplateColumns: isMobile
-            ? "50px 56px 1fr 64px"
-            : "56px 1fr 72px 88px 1fr 56px",
+            ? "76px 56px 1fr 64px"
+            : "100px 1fr 72px 88px 1fr 56px",
           gap: 0, padding: "6px 0",
           borderBottom: "1px solid rgba(148,163,184,0.06)",
           marginBottom: 4,
@@ -170,8 +171,8 @@ function LeagueBlock({ league, isMobile, onTeam }: { league: League; isMobile: b
               style={{
                 display: "grid",
                 gridTemplateColumns: isMobile
-                  ? "50px 56px 1fr 64px"
-                  : "56px 1fr 72px 88px 1fr 56px",
+                  ? "76px 56px 1fr 64px"
+                  : "100px 1fr 72px 88px 1fr 56px",
                 alignItems: "center",
                 padding: "9px 0",
                 borderBottom: i < standings.length - 1 ? "1px solid rgba(148,163,184,0.04)" : "none",
@@ -180,9 +181,10 @@ function LeagueBlock({ league, isMobile, onTeam }: { league: League; isMobile: b
                 transition: "background 0.15s",
               }}
             >
-              {/* Team abbr */}
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                {isPlaying && <span style={{ width: 3, height: 14, background: t.hex, borderRadius: 1, display: "inline-block", boxShadow: `0 0 4px ${t.hex}` }} />}
+              {/* Logo + abbr */}
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                {isPlaying && <span style={{ width: 3, height: 14, background: t.hex, borderRadius: 1, display: "inline-block", flexShrink: 0, boxShadow: `0 0 4px ${t.hex}` }} />}
+                <TeamLogo teamAbbr={team.abbr} league={league} size={24} accentColor={isPlaying ? t.hex : "#94a3b8"} />
                 <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 800, color: isPlaying ? t.hex : "#94a3b8", letterSpacing: "0.14em" }}>{team.abbr}</span>
               </div>
 
