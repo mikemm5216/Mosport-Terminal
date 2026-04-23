@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import {
   NBA_BRACKET_2026, NHL_BRACKET_2026,
@@ -11,23 +11,19 @@ import TeamLogo from './TeamLogo'
 
 // ── Prediction engine ──────────────────────────────────────────
 
-function binomialCoeff(n: number, k: number): number {
-  if (k === 0 || k === n) return 1
-  let r = 1
-  for (let i = 0; i < k; i++) r *= (n - i) / (i + 1)
-  return r
-}
+// ── Real Monte Carlo Prediction Engine ──────────────────────────
+// We run millions of iterations to find the empirical win probability
 
-function seriesWinProb(pGame: number, winsHome: number, winsAway: number): number {
-  if (winsHome === 4) return 1
-  if (winsAway === 4) return 0
-  const needsH = 4 - winsHome
-  const needsA = 4 - winsAway
-  let prob = 0
-  for (let a = 0; a < needsA; a++) {
-    prob += binomialCoeff(needsH - 1 + a, a) * Math.pow(pGame, needsH) * Math.pow(1 - pGame, a)
+function simulateSeries(home: BracketTeam, away: BracketTeam, winsHome: number, winsAway: number): { winner: string } {
+  let h = winsHome
+  let a = winsAway
+  const pGame = gameWinProb(home, away)
+  
+  while (h < 4 && a < 4) {
+    if (Math.random() < pGame) h++
+    else a++
   }
-  return Math.max(0.02, Math.min(0.98, prob))
+  return { winner: h === 4 ? home.abbr : away.abbr }
 }
 
 function gameWinProb(home: BracketTeam, away: BracketTeam): number {
@@ -36,17 +32,70 @@ function gameWinProb(home: BracketTeam, away: BracketTeam): number {
   return Math.max(0.25, Math.min(0.75, 0.52 + diff * 0.55 + recoveryBoost))
 }
 
-function predictSeries(s: BracketSeries): { winner: string; prob: number } {
+/**
+ * Runs a full bracket simulation 
+ * Returns the champion abbreviation
+ */
+function runOneBracket(firstRound: BracketSeries[], league: League): string {
+  const all: BracketSeries[] = JSON.parse(JSON.stringify(firstRound))
+  const conferences: PlayoffConference[] = ['West', 'East']
+
+  // Round 1 is already in firstRound
+  const winnersR1: Record<string, BracketTeam> = {}
+  for (const s of all) {
+    const { winner } = simulateSeries(s.home, s.away, s.winsHome, s.winsAway)
+    winnersR1[s.id] = winner === s.home.abbr ? s.home : s.away
+  }
+
+  // Round 2 (Semis)
+  const winnersR2: Record<string, BracketTeam> = {}
+  for (const conf of conferences) {
+    const r1S = all.filter(s => s.round === 1 && s.conference === conf)
+    for (let i = 0; i < r1S.length; i += 2) {
+      const tA = winnersR1[r1S[i].id]
+      const tB = winnersR1[r1S[i + 1].id]
+      const [h, a] = tA.edge >= tB.edge ? [tA, tB] : [tB, tA]
+      const { winner } = simulateSeries(h, a, 0, 0)
+      winnersR2[`${conf}-${i}`] = winner === h.abbr ? h : a
+    }
+  }
+
+  // Round 3 (Conf Finals)
+  const winnersR3: Record<string, BracketTeam> = {}
+  for (const conf of conferences) {
+    const tA = winnersR2[`${conf}-0`]
+    const tB = winnersR2[`${conf}-2`] // Corrected index for 4 teams in R1
+    // Wait, the index for R2 depends on R1 count. 
+    // Simplified for fixed 8-team conference:
+    const tC = winnersR2[`${conf}-0`]
+    const tD = winnersR2[`${conf}-1`]
+    const [h, a] = tC.edge >= tD.edge ? [tC, tD] : [tD, tC]
+    const { winner } = simulateSeries(h, a, 0, 0)
+    winnersR3[conf] = winner === h.abbr ? h : a
+  }
+
+  // Round 4 (Finals)
+  const [h, a] = winnersR3['East'].edge >= winnersR3['West'].edge ? [winnersR3['East'], winnersR3['West']] : [winnersR3['West'], winnersR3['East']]
+  const { winner } = simulateSeries(h, a, 0, 0)
+  return winner
+}
+
+// For UI display of a single series prediction (uses 10k sub-simulations for speed)
+function predictSeries(s: BracketSeries, iterations = 10000): { winner: string; prob: number } {
   if (s.status === 'completed' && s.winner) return { winner: s.winner, prob: 1 }
-  const pGame = gameWinProb(s.home, s.away)
-  const pHomeSeries = seriesWinProb(pGame, s.winsHome, s.winsAway)
-  const homeWins = pHomeSeries >= 0.5
+  let homeWins = 0
+  for (let i = 0; i < iterations; i++) {
+    if (simulateSeries(s.home, s.away, s.winsHome, s.winsAway).winner === s.home.abbr) homeWins++
+  }
+  const p = homeWins / iterations
   return {
-    winner: homeWins ? s.home.abbr : s.away.abbr,
-    prob: homeWins ? pHomeSeries : 1 - pHomeSeries,
+    winner: p >= 0.5 ? s.home.abbr : s.away.abbr,
+    prob: p >= 0.5 ? p : 1 - p
   }
 }
 
+// ── Fixed simulation logic for the bracket view ──────────────────
+// This creates the "most likely" bracket for display
 function simulateBracket(firstRound: BracketSeries[], league: League): BracketSeries[] {
   const all: BracketSeries[] = [...firstRound]
   const conferences: PlayoffConference[] = ['East', 'West']
@@ -57,32 +106,29 @@ function simulateBracket(firstRound: BracketSeries[], league: League): BracketSe
       const confSeries = currentRound.filter(s => s.conference === conf)
       if (confSeries.length === 0) continue
       const predictions = confSeries.map(s => {
-        const { winner } = predictSeries(s)
-        const winnerTeam = winner === s.home.abbr ? s.home : s.away
-        return { series: s, winner: winnerTeam }
+        const { winner } = predictSeries(s, 5000)
+        return winner === s.home.abbr ? s.home : s.away
       })
       const nextRound = round + 1
       const nextConf: PlayoffConference = nextRound === 4 ? 'Finals' : conf
       for (let i = 0; i < predictions.length; i += 2) {
         if (!predictions[i + 1]) break
-        const teamA = predictions[i].winner
-        const teamB = predictions[i + 1].winner
-        const [homeTeam, awayTeam] = teamA.edge >= teamB.edge ? [teamA, teamB] : [teamB, teamA]
+        const [h, a] = predictions[i].edge >= predictions[i + 1].edge ? [predictions[i], predictions[i + 1]] : [predictions[i+1], predictions[i]]
         all.push({
           id: `${league}-r${nextRound}-${conf}-${i / 2}`,
-          league, round: nextRound as 1 | 2 | 3 | 4, conference: nextConf,
-          home: homeTeam, away: awayTeam, winsHome: 0, winsAway: 0, status: 'pending',
+          league, round: nextRound as 1|2|3|4, conference: nextConf,
+          home: h, away: a, winsHome: 0, winsAway: 0, status: 'pending'
         })
       }
     }
     if (round === 3) {
-      const eastFinals = all.filter(s => s.round === 3 && s.conference === 'East')[0]
-      const westFinals = all.filter(s => s.round === 3 && s.conference === 'West')[0]
-      if (eastFinals && westFinals) {
-        const { winner: ew } = predictSeries(eastFinals)
-        const { winner: ww } = predictSeries(westFinals)
-        const eT = ew === eastFinals.home.abbr ? eastFinals.home : eastFinals.away
-        const wT = ww === westFinals.home.abbr ? westFinals.home : westFinals.away
+      const eastF = all.find(s => s.round === 3 && s.conference === 'East')
+      const westF = all.find(s => s.round === 3 && s.conference === 'West')
+      if (eastF && westF) {
+        const { winner: ew } = predictSeries(eastF, 5000)
+        const { winner: ww } = predictSeries(westF, 5000)
+        const eT = ew === eastF.home.abbr ? eastF.home : eastF.away
+        const wT = ww === westF.home.abbr ? westF.home : westF.away
         const [h, a] = eT.edge >= wT.edge ? [eT, wT] : [wT, eT]
         all.push({ id: `${league}-finals`, league, round: 4, conference: 'Finals', home: h, away: a, winsHome: 0, winsAway: 0, status: 'pending' })
       }
@@ -142,10 +188,48 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
   const [selectedLeague, setSelectedLeague] = useState<"NBA" | "NHL">("NBA")
   const league = selectedLeague
   const t = leagueTheme(league)
-  const allSeries = simulateBracket(selectedLeague === "NBA" ? NBA_BRACKET_2026 : NHL_BRACKET_2026, league)
+
+  // ── Monte Carlo State ────────────────────────────────────────
+  const [simProgress, setSimProgress] = useState(0)
+  const totalIterations = 10000000
+  const [mcConfidence, setMcConfidence] = useState(0)
+  const [isSimulating, setIsSimulating] = useState(false)
+
+  const initialSeries = selectedLeague === "NBA" ? NBA_BRACKET_2026 : NHL_BRACKET_2026
+  const allSeries = useMemo(() => simulateBracket(initialSeries, league), [initialSeries, league])
+  const finals = allSeries.find(s => s.round === 4)
+  const championTeam = finals ? (predictSeries(finals).winner === finals.home.abbr ? finals.home : finals.away) : null
+
+  useEffect(() => {
+    if (!championTeam) return
+    
+    setIsSimulating(true)
+    setSimProgress(0)
+    let current = 0
+    let champWins = 0
+    const chunkSize = 25000 // optimized chunk size
+    const championAbbr = championTeam.abbr
+
+    const runChunk = () => {
+      const end = Math.min(current + chunkSize, totalIterations)
+      for (let i = current; i < end; i++) {
+        if (runOneBracket(initialSeries, league) === championAbbr) champWins++
+      }
+      current = end
+      setSimProgress(current)
+
+      if (current < totalIterations) {
+        requestAnimationFrame(runChunk)
+      } else {
+        setMcConfidence(champWins / totalIterations)
+        setIsSimulating(false)
+      }
+    }
+
+    runChunk()
+  }, [league, championTeam, initialSeries])
 
   const getS = (round: number, conf: PlayoffConference) => allSeries.filter(s => s.round === round && s.conference === conf)
-  const finals = allSeries.find(s => s.round === 4)
 
   if (isMobile) {
     return (
@@ -158,10 +242,26 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
   return (
     <div style={embedded ? { width: "100%" } : { maxWidth: 1400, margin: "0 auto", padding: "40px 20px" }}>
       {!embedded && (
-        <div style={{ marginBottom: 40, textAlign: "center" }}>
-          <h1 style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 32, color: "#fff", letterSpacing: "-0.02em" }}>
-            {selectedLeague} 2026 <span style={{ color: t.hex }}>PLAYOFFS</span>
-          </h1>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 40, borderBottom: `1px solid ${t.hex}33`, paddingBottom: 20 }}>
+          <div>
+            <h1 style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 32, color: "#fff", letterSpacing: "-0.02em", margin: 0 }}>
+              {selectedLeague} 2026 <span style={{ color: t.hex }}>PLAYOFFS</span>
+            </h1>
+          </div>
+          
+          <div style={{ textAlign: "right", minWidth: 240 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#64748b", marginBottom: 6, letterSpacing: "0.1em" }}>
+              MONTE CARLO SIMULATION: {(simProgress / totalIterations * 100).toFixed(1)}%
+            </div>
+            <div style={{ width: "100%", height: 2, background: "rgba(255,255,255,0.05)", position: "relative", overflow: "hidden" }}>
+              <div style={{ 
+                position: "absolute", left: 0, top: 0, bottom: 0, 
+                width: `${(simProgress / totalIterations) * 100}%`,
+                background: t.hex,
+                boxShadow: `0 0 10px ${t.hex}`
+              }} />
+            </div>
+          </div>
         </div>
       )}
 
@@ -217,12 +317,16 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
         border: "1px solid rgba(148,163,184,0.1)", display: "flex", justifyContent: "center", gap: 40
       }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#334155", letterSpacing: "0.2em" }}>SIMULATION ITERATIONS</div>
-          <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: t.hex, fontSize: 18 }}>10,000,000</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", letterSpacing: "0.2em" }}>SIMULATION ITERATIONS</div>
+          <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: t.hex, fontSize: 18 }}>
+            {simProgress.toLocaleString()}
+          </div>
         </div>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#334155", letterSpacing: "0.2em" }}>PREDICTION CONFIDENCE</div>
-          <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: "#34d399", fontSize: 18 }}>94.2%</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", letterSpacing: "0.2em" }}>PREDICTION CONFIDENCE</div>
+          <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: isSimulating ? "#475569" : "#34d399", fontSize: 18 }}>
+            {isSimulating ? "CALCULATING..." : `${(mcConfidence * 100).toFixed(2)}%`}
+          </div>
         </div>
       </div>
     </div>
