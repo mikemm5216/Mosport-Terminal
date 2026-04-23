@@ -375,18 +375,21 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
           display: "flex", alignItems: "center", padding: "14px 14px", gap: 8, cursor: "pointer",
         }}>
           {/* Teams */}
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-            <TeamMark abbr={m.away.abbr} league={m.league} size={24} />
-            <span style={{
-              fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontStyle: "italic",
-              fontSize: 17, color: "#fff", letterSpacing: "-0.02em",
-            }}>{m.away.abbr}</span>
-            <span style={{ color: "#334155", fontSize: 11, fontFamily: "var(--font-mono), monospace" }}>@</span>
-            <span style={{
-              fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontStyle: "italic",
-              fontSize: 17, color: "#fff", letterSpacing: "-0.02em",
-            }}>{m.home.abbr}</span>
-            <TeamMark abbr={m.home.abbr} league={m.league} size={24} />
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <TeamMark abbr={m.away.abbr} league={m.league} size={24} />
+              <span style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontStyle: "italic", fontSize: 17, color: "#fff", letterSpacing: "-0.02em" }}>{m.away.abbr}</span>
+              <span style={{ color: "#334155", fontSize: 11, fontFamily: "var(--font-mono), monospace" }}>@</span>
+              <span style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontStyle: "italic", fontSize: 17, color: "#fff", letterSpacing: "-0.02em" }}>{m.home.abbr}</span>
+              <TeamMark abbr={m.home.abbr} league={m.league} size={24} />
+            </div>
+            {m.playoff && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, fontWeight: 800, color: t.hex, letterSpacing: "0.2em" }}>PLAYOFFS</span>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, color: "#475569" }}>·</span>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, color: "#64748b", letterSpacing: "0.1em" }}>{m.playoff.summary}</span>
+              </div>
+            )}
           </div>
           {/* Time + status */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
@@ -434,15 +437,27 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
           </div>
 
           {/* Score or TBD */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
-            {m.score ? (
-              <>
-                <span style={{ fontFamily: "var(--font-mono), monospace", fontWeight: 800, fontSize: isCompact ? 24 : 32, color: isLive ? "#ef4444" : "#fff", letterSpacing: "-0.04em", minWidth: 36, textAlign: "right" }}>{m.score.away}</span>
-                <span style={{ color: "#334155", fontSize: 16, fontWeight: 700 }}>–</span>
-                <span style={{ fontFamily: "var(--font-mono), monospace", fontWeight: 800, fontSize: isCompact ? 24 : 32, color: isLive ? "#ef4444" : "#fff", letterSpacing: "-0.04em", minWidth: 36, textAlign: "left" }}>{m.score.home}</span>
-              </>
-            ) : (
-              <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 800, color: "#334155", letterSpacing: "0.4em" }}>TBD</span>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, justifyContent: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {m.score ? (
+                <>
+                  <span style={{ fontFamily: "var(--font-mono), monospace", fontWeight: 800, fontSize: isCompact ? 24 : 32, color: isLive ? "#ef4444" : "#fff", letterSpacing: "-0.04em", minWidth: 36, textAlign: "right" }}>{m.score.away}</span>
+                  <span style={{ color: "#334155", fontSize: 16, fontWeight: 700 }}>–</span>
+                  <span style={{ fontFamily: "var(--font-mono), monospace", fontWeight: 800, fontSize: isCompact ? 24 : 32, color: isLive ? "#ef4444" : "#fff", letterSpacing: "-0.04em", minWidth: 36, textAlign: "left" }}>{m.score.home}</span>
+                </>
+              ) : (
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 800, color: "#334155", letterSpacing: "0.4em" }}>TBD</span>
+              )}
+            </div>
+            {m.playoff && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: isCompact ? 7 : 8, fontWeight: 800, color: t.hex, letterSpacing: "0.22em" }}>
+                  {m.playoff.round.toUpperCase()}
+                </span>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: isCompact ? 7 : 8, color: "#64748b", letterSpacing: "0.1em" }}>
+                  {m.playoff.summary}
+                </span>
+              </div>
             )}
           </div>
 

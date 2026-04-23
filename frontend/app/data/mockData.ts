@@ -29,6 +29,12 @@ export interface Player {
   recovery: number
 }
 
+export interface PlayoffInfo {
+  round: string              // "East 1st Round - Game 3"
+  summary: string            // "OKC leads series 2-0"
+  seriesWins: { home: number; away: number }
+}
+
 export interface Match {
   id: string
   league: League
@@ -45,6 +51,7 @@ export interface Match {
   matchup_complexity: number // 0–1
   recovery_away: number      // 0–1
   recovery_home: number      // 0–1
+  playoff?: PlayoffInfo      // present during postseason
   featured?: boolean
   settled?: boolean
   settled_accurate?: boolean
@@ -112,6 +119,7 @@ export const TODAY_MATCHES: Match[] = [
     matchup_complexity: 0.41,
     recovery_away: 0.72,
     recovery_home: 0.58,
+    playoff: { round: "West 1st Round - Game 4", summary: "Series tied 1-1", seriesWins: { home: 1, away: 1 } },
   },
   {
     id: "epl_2026_mci_liv",
@@ -180,6 +188,7 @@ export const TODAY_MATCHES: Match[] = [
     matchup_complexity: 0.88,
     recovery_away: 0.81,
     recovery_home: 0.48,
+    playoff: { round: "East 1st Round - Game 3", summary: "BOS leads series 2-0", seriesWins: { home: 2, away: 0 } },
   },
   {
     id: "epl_2026_ars_tot",
@@ -216,6 +225,7 @@ export const TODAY_MATCHES: Match[] = [
     matchup_complexity: 0.48,
     recovery_away: 0.65,
     recovery_home: 0.73,
+    playoff: { round: "East 1st Round - Game 2", summary: "BOS leads series 1-0", seriesWins: { home: 1, away: 0 } },
   },
 ]
 
@@ -568,3 +578,154 @@ export const PLAYER_FORM: Record<string, number[]> = {
   "Jimmy Butler":         [0.52, 0.48, 0.46, 0.50, 0.47],
   "Bam Adebayo":          [0.70, 0.68, 0.72, 0.71, 0.72],
 }
+
+// ── Playoff Bracket Types ──────────────────────────────────────
+
+export type PlayoffConference = 'East' | 'West' | 'Finals'
+
+export interface BracketTeam {
+  abbr: string
+  name: string
+  seed: number
+  edge: number      // 0–1 model edge score
+  recovery: number  // 0–1
+}
+
+export interface BracketSeries {
+  id: string
+  league: League
+  round: 1 | 2 | 3 | 4   // 1=first, 2=semis, 3=conf finals, 4=championship
+  conference: PlayoffConference
+  home: BracketTeam        // higher seed, home court
+  away: BracketTeam        // lower seed
+  winsHome: number
+  winsAway: number
+  status: 'in_progress' | 'completed' | 'pending'
+  winner?: string           // abbr
+}
+
+// ── NBA 2026 Playoff Bracket ───────────────────────────────────
+
+export const NBA_BRACKET_2026: BracketSeries[] = [
+  // West First Round
+  {
+    id: "nba-r1-west-0",
+    league: "NBA", round: 1, conference: "West",
+    home: { abbr: "OKC", name: "Thunder",       seed: 1, edge: 0.81, recovery: 0.84 },
+    away: { abbr: "PHX", name: "Suns",          seed: 8, edge: 0.54, recovery: 0.66 },
+    winsHome: 2, winsAway: 0, status: "in_progress",
+  },
+  {
+    id: "nba-r1-west-1",
+    league: "NBA", round: 1, conference: "West",
+    home: { abbr: "DEN", name: "Nuggets",       seed: 2, edge: 0.77, recovery: 0.79 },
+    away: { abbr: "MIN", name: "Timberwolves",  seed: 7, edge: 0.60, recovery: 0.71 },
+    winsHome: 2, winsAway: 1, status: "in_progress",
+  },
+  {
+    id: "nba-r1-west-2",
+    league: "NBA", round: 1, conference: "West",
+    home: { abbr: "LAL", name: "Lakers",        seed: 3, edge: 0.64, recovery: 0.71 },
+    away: { abbr: "GSW", name: "Warriors",      seed: 6, edge: 0.71, recovery: 0.78 },
+    winsHome: 1, winsAway: 1, status: "in_progress",
+  },
+  {
+    id: "nba-r1-west-3",
+    league: "NBA", round: 1, conference: "West",
+    home: { abbr: "DAL", name: "Mavericks",     seed: 4, edge: 0.68, recovery: 0.74 },
+    away: { abbr: "MEM", name: "Grizzlies",     seed: 5, edge: 0.57, recovery: 0.69 },
+    winsHome: 2, winsAway: 0, status: "in_progress",
+  },
+  // East First Round
+  {
+    id: "nba-r1-east-0",
+    league: "NBA", round: 1, conference: "East",
+    home: { abbr: "BOS", name: "Celtics",       seed: 1, edge: 0.77, recovery: 0.84 },
+    away: { abbr: "MIA", name: "Heat",          seed: 8, edge: 0.52, recovery: 0.62 },
+    winsHome: 2, winsAway: 0, status: "in_progress",
+  },
+  {
+    id: "nba-r1-east-1",
+    league: "NBA", round: 1, conference: "East",
+    home: { abbr: "CLE", name: "Cavaliers",     seed: 2, edge: 0.66, recovery: 0.73 },
+    away: { abbr: "ORL", name: "Magic",         seed: 7, edge: 0.59, recovery: 0.67 },
+    winsHome: 1, winsAway: 2, status: "in_progress",
+  },
+  {
+    id: "nba-r1-east-2",
+    league: "NBA", round: 1, conference: "East",
+    home: { abbr: "NYK", name: "Knicks",        seed: 3, edge: 0.71, recovery: 0.76 },
+    away: { abbr: "PHI", name: "76ers",         seed: 6, edge: 0.61, recovery: 0.70 },
+    winsHome: 2, winsAway: 0, status: "in_progress",
+  },
+  {
+    id: "nba-r1-east-3",
+    league: "NBA", round: 1, conference: "East",
+    home: { abbr: "MIL", name: "Bucks",         seed: 4, edge: 0.69, recovery: 0.72 },
+    away: { abbr: "IND", name: "Pacers",        seed: 5, edge: 0.62, recovery: 0.68 },
+    winsHome: 1, winsAway: 1, status: "in_progress",
+  },
+]
+
+// ── NHL 2026 Playoff Bracket ───────────────────────────────────
+
+export const NHL_BRACKET_2026: BracketSeries[] = [
+  // East First Round
+  {
+    id: "nhl-r1-east-0",
+    league: "NHL", round: 1, conference: "East",
+    home: { abbr: "BOS", name: "Bruins",        seed: 1, edge: 0.71, recovery: 0.79 },
+    away: { abbr: "OTT", name: "Senators",      seed: 8, edge: 0.51, recovery: 0.64 },
+    winsHome: 1, winsAway: 0, status: "in_progress",
+  },
+  {
+    id: "nhl-r1-east-1",
+    league: "NHL", round: 1, conference: "East",
+    home: { abbr: "FLA", name: "Panthers",      seed: 2, edge: 0.68, recovery: 0.76 },
+    away: { abbr: "TBL", name: "Lightning",     seed: 7, edge: 0.49, recovery: 0.61 },
+    winsHome: 1, winsAway: 1, status: "in_progress",
+  },
+  {
+    id: "nhl-r1-east-2",
+    league: "NHL", round: 1, conference: "East",
+    home: { abbr: "TOR", name: "Maple Leafs",   seed: 3, edge: 0.62, recovery: 0.70 },
+    away: { abbr: "CAR", name: "Hurricanes",    seed: 6, edge: 0.65, recovery: 0.73 },
+    winsHome: 1, winsAway: 2, status: "in_progress",
+  },
+  {
+    id: "nhl-r1-east-3",
+    league: "NHL", round: 1, conference: "East",
+    home: { abbr: "NYR", name: "Rangers",       seed: 4, edge: 0.52, recovery: 0.64 },
+    away: { abbr: "NJD", name: "Devils",        seed: 5, edge: 0.58, recovery: 0.68 },
+    winsHome: 2, winsAway: 1, status: "in_progress",
+  },
+  // West First Round
+  {
+    id: "nhl-r1-west-0",
+    league: "NHL", round: 1, conference: "West",
+    home: { abbr: "WPG", name: "Jets",          seed: 1, edge: 0.74, recovery: 0.80 },
+    away: { abbr: "STL", name: "Blues",         seed: 8, edge: 0.51, recovery: 0.63 },
+    winsHome: 2, winsAway: 0, status: "in_progress",
+  },
+  {
+    id: "nhl-r1-west-1",
+    league: "NHL", round: 1, conference: "West",
+    home: { abbr: "DAL", name: "Stars",         seed: 2, edge: 0.71, recovery: 0.77 },
+    away: { abbr: "NSH", name: "Predators",     seed: 7, edge: 0.55, recovery: 0.67 },
+    winsHome: 2, winsAway: 1, status: "in_progress",
+  },
+  {
+    id: "nhl-r1-west-2",
+    league: "NHL", round: 1, conference: "West",
+    home: { abbr: "EDM", name: "Oilers",        seed: 3, edge: 0.70, recovery: 0.75 },
+    away: { abbr: "LAK", name: "Kings",         seed: 6, edge: 0.57, recovery: 0.66 },
+    winsHome: 2, winsAway: 0, status: "in_progress",
+  },
+  {
+    id: "nhl-r1-west-3",
+    league: "NHL", round: 1, conference: "West",
+    home: { abbr: "VGK", name: "Golden Knights", seed: 4, edge: 0.65, recovery: 0.72 },
+    away: { abbr: "COL", name: "Avalanche",      seed: 5, edge: 0.64, recovery: 0.71 },
+    winsHome: 1, winsAway: 1, status: "in_progress",
+  },
+]

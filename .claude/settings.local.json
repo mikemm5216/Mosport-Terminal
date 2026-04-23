@@ -27,7 +27,11 @@
       "Bash(git rev-list *)",
       "Bash(git cat-file *)",
       "Bash(sort -k3 -rn)",
-      "Bash(git ls-tree *)"
+      "Bash(git ls-tree *)",
+      "Bash(curl -s \"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard\")",
+      "Bash(python3 -c ' *)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s \"https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard\")"
     ]
   }
 }

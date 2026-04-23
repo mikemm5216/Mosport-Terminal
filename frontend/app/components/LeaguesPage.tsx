@@ -75,21 +75,35 @@ function FixtureRow({ m, isLast }: { m: Match; isLast: boolean }) {
         )}
       </div>
 
-      <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 800, color: wpaColor, minWidth: 52, textAlign: "right" }}>
-        {m.wpa >= 0 ? "+" : ""}{(m.wpa * 100).toFixed(1)}%
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, minWidth: 52 }}>
+        <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 800, color: wpaColor }}>
+          {m.wpa >= 0 ? "+" : ""}{(m.wpa * 100).toFixed(1)}%
+        </span>
+        {m.playoff && (
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, color: "#475569", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>
+            {m.playoff.summary}
+          </span>
+        )}
       </div>
 
-      <div style={{
-        fontFamily: "var(--font-mono), monospace", fontSize: 7, fontWeight: 800,
-        color: t.hex, padding: "2px 7px", borderRadius: 2,
-        border: `1px solid ${t.hex}33`, background: t.soft,
-        flexShrink: 0, letterSpacing: "0.2em",
-      }}>{m.perspective}</div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
+        <div style={{
+          fontFamily: "var(--font-mono), monospace", fontSize: 7, fontWeight: 800,
+          color: t.hex, padding: "2px 7px", borderRadius: 2,
+          border: `1px solid ${t.hex}33`, background: t.soft,
+          letterSpacing: "0.2em",
+        }}>{m.perspective}</div>
+        {m.playoff && (
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 6, color: t.hex, letterSpacing: "0.16em", fontWeight: 800 }}>
+            PLAYOFFS
+          </span>
+        )}
+      </div>
     </div>
   )
 }
 
-function LeagueBlock({ league, isMobile, onTeam }: { league: League; isMobile: boolean; onTeam?: (abbr: string, league: League) => void }) {
+function LeagueBlock({ league, isMobile, onTeam, onPlayoffs }: { league: League; isMobile: boolean; onTeam?: (abbr: string, league: League) => void; onPlayoffs?: () => void }) {
   const t = leagueTheme(league)
   const meta = LEAGUE_META[league]
   const standings = LEAGUE_STANDINGS[league]
@@ -120,6 +134,19 @@ function LeagueBlock({ league, isMobile, onTeam }: { league: League; isMobile: b
         </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          {meta.season.includes("Playoffs") && (
+            <button
+              onClick={onPlayoffs}
+              style={{
+                fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 800,
+                color: "#f8fafc", padding: "5px 12px", background: `linear-gradient(90deg, ${t.hex} 0%, ${t.hex}cc 100%)`,
+                border: "none", borderRadius: 2, cursor: "pointer", letterSpacing: "0.1em",
+                boxShadow: `0 0 12px ${t.hex}44`,
+              }}
+            >
+              [ VIEW BRACKET ]
+            </button>
+          )}
           {liveCount > 0 && (
             <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, fontWeight: 800, color: "#ef4444", padding: "3px 8px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 2, letterSpacing: "0.18em" }}>● {liveCount} LIVE</span>
           )}
@@ -226,9 +253,10 @@ function LeagueBlock({ league, isMobile, onTeam }: { league: League; isMobile: b
 
 interface LeaguesPageProps {
   onTeam?: (teamAbbr: string, league: League) => void
+  onPlayoffs?: () => void
 }
 
-export default function LeaguesPage({ onTeam }: LeaguesPageProps = {}) {
+export default function LeaguesPage({ onTeam, onPlayoffs }: LeaguesPageProps = {}) {
   const width = useWindowWidth()
   const isMobile = width < 640
   const liveTotal = TODAY_MATCHES.filter(m => m.status === "LIVE").length
@@ -256,7 +284,7 @@ export default function LeaguesPage({ onTeam }: LeaguesPageProps = {}) {
       </div>
 
       {ALL_LEAGUES.map(league => (
-        <LeagueBlock key={league} league={league} isMobile={isMobile} onTeam={onTeam} />
+        <LeagueBlock key={league} league={league} isMobile={isMobile} onTeam={onTeam} onPlayoffs={onPlayoffs} />
       ))}
     </div>
   )

@@ -117,7 +117,7 @@ function RecoveryTrend({ name }: { name: string }) {
   )
 }
 
-function PlayerCard({ row }: { row: PlayerRow }) {
+function PlayerCard({ row, onPlayer }: { row: PlayerRow; onPlayer?: (player: KeyPlayer, teamAbbr: string, teamName: string, league: League, match: Match) => void }) {
   const { player, league } = row
   const t = leagueTheme(league)
   const f = FLAG_META[player.flag]
@@ -126,13 +126,16 @@ function PlayerCard({ row }: { row: PlayerRow }) {
   const sleepColor = player.sleep > 1.5 ? "#f43f5e" : player.sleep > 0.8 ? "#fbbf24" : "#34d399"
 
   return (
-    <div style={{
-      background: "rgba(15,23,42,0.4)",
-      border: "1px solid rgba(148,163,184,0.07)",
-      borderTop: `2px solid ${f.color}`,
-      borderRadius: "0 0 4px 4px",
-      display: "flex", flexDirection: "column",
-    }}>
+    <div
+      onClick={onPlayer ? () => onPlayer(player, row.teamAbbr, row.teamName, league, row.match) : undefined}
+      style={{
+        background: "rgba(15,23,42,0.4)",
+        border: "1px solid rgba(148,163,184,0.07)",
+        borderTop: `2px solid ${f.color}`,
+        borderRadius: "0 0 4px 4px",
+        display: "flex", flexDirection: "column",
+        cursor: onPlayer ? "pointer" : "default",
+      }}>
       <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid rgba(148,163,184,0.05)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
           <div style={{
@@ -193,9 +196,10 @@ interface TeamSectionProps {
   group: TeamGroup
   cols: number
   onTeam?: (abbr: string, league: League) => void
+  onPlayer?: (player: KeyPlayer, teamAbbr: string, teamName: string, league: League, match: Match) => void
 }
 
-function TeamSection({ group, cols, onTeam }: TeamSectionProps) {
+function TeamSection({ group, cols, onTeam, onPlayer }: TeamSectionProps) {
   const t = leagueTheme(group.league)
   const m = group.match
   const isLive = m.status === "LIVE"
@@ -269,7 +273,7 @@ function TeamSection({ group, cols, onTeam }: TeamSectionProps) {
 
       {/* Player cards */}
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 10 }}>
-        {group.players.map(row => <PlayerCard key={row.key} row={row} />)}
+        {group.players.map(row => <PlayerCard key={row.key} row={row} onPlayer={onPlayer} />)}
       </div>
     </div>
   )
@@ -277,9 +281,10 @@ function TeamSection({ group, cols, onTeam }: TeamSectionProps) {
 
 interface Props {
   onTeam?: (teamAbbr: string, league: League) => void
+  onPlayer?: (player: KeyPlayer, teamAbbr: string, teamName: string, league: League, match: Match) => void
 }
 
-export default function PlayersPage({ onTeam }: Props) {
+export default function PlayersPage({ onTeam, onPlayer }: Props) {
   const width = useWindowWidth()
   const isMobile = width < 640
   const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>("ALL")
@@ -408,7 +413,7 @@ export default function PlayersPage({ onTeam }: Props) {
               )}
 
               {teams.map(group => (
-                <TeamSection key={group.teamAbbr} group={group} cols={cols} onTeam={onTeam} />
+                <TeamSection key={group.teamAbbr} group={group} cols={cols} onTeam={onTeam} onPlayer={onPlayer} />
               ))}
             </div>
           )
