@@ -42,7 +42,9 @@
       "WebFetch(domain:www.footylogos.com)",
       "Bash(curl -sL \"https://cdn.prod.website-files.com/68f550992570ca0322737dc2/68faaf4e6b675831919a2119_stade-de-reims-footballlogos-org.png\" -o sdr.png)",
       "Bash(curl -sL \"https://cdn.prod.website-files.com/68f550992570ca0322737dc2/68f603f82e426084b25d328e_aj-auxerre-footballlogos-org.png\" -o aja.png)",
-      "Bash(curl -sL \"https://cdn.prod.website-files.com/68f550992570ca0322737dc2/68fab0aca60ff7bf564a059f_as-saint-etienne-footballlogos-org.png\" -o ste.png)"
+      "Bash(curl -sL \"https://cdn.prod.website-files.com/68f550992570ca0322737dc2/68fab0aca60ff7bf564a059f_as-saint-etienne-footballlogos-org.png\" -o ste.png)",
+      "Bash(curl -sL \"https://cdn.prod.website-files.com/68f550992570ca0322737dc2/68f58803ee08d836b92831b3_burnley-footballlogos-org.png\" -o epl-bur.png)",
+      "Bash(curl -sL \"https://cdn.prod.website-files.com/68f550992570ca0322737dc2/68f58aa40cc312bb0bdb1587_sunderland-footballlogos-org.png\" -o epl-sun.png)"
     ]
   }
 }

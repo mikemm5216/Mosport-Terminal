@@ -45,9 +45,10 @@ const TEAM_MAP: Record<string, string> = {
   'Crystal Palace': 'CRY', 'Fulham': 'FUL', 'Brentford': 'BRE',
   'Everton': 'EVE', 'Nottingham Forest': 'NFO', 'Bournemouth': 'BOU',
   'Leicester City': 'LEI', 'Southampton': 'SOU', 'Ipswich Town': 'IPS',
+  'Burnley': 'BUR', 'Sunderland': 'SUN',
   // UCL
   'Real Madrid': 'RMA', 'FC Barcelona': 'BAR', 'Barcelona': 'BAR',
-  'Bayern Munich': 'BAY', 'Paris Saint-Germain': 'PSG', 'PSG': 'PSG',
+  'Bayern Munich': 'BAY', 'Paris Saint-Germain': 'PSG', 'PSG': 'PSG', 'Paris SG': 'PSG', 'Paris Saint Germain': 'PSG',
   'Juventus': 'JUV', 'Inter Milan': 'INT', 'AC Milan': 'MIL',
   'Atletico Madrid': 'ATM', 'Borussia Dortmund': 'BVB', 'Porto': 'POR',
   'Benfica': 'BEN', 'Ajax': 'AJX', 'Napoli': 'NAP', 'Sevilla': 'SEV',
@@ -62,7 +63,7 @@ const TEAM_MAP: Record<string, string> = {
   'Philadelphia Flyers': 'PHI', 'Washington Capitals': 'WSH', 'Detroit Red Wings': 'DET',
   'Chicago Blackhawks': 'CHI', 'Anaheim Ducks': 'ANA', 'Los Angeles Kings': 'LAK',
   'San Jose Sharks': 'SJS', 'Columbus Blue Jackets': 'CBJ', 'Arizona Coyotes': 'ARI',
-  'Buffalo Sabres': 'BUF', 'Utah Hockey Club': 'UTA',
+  'Buffalo Sabres': 'BUF', 'Utah Hockey Club': 'UTA', 'Utah Mammoth': 'UTA',
 }
 
 type ArbiterLabel = 'UPSET' | 'STRONG' | 'CHAOS' | 'WEAK'
