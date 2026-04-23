@@ -4,6 +4,9 @@ import { qstashClient, INGEST_WORKER_URL } from "@/lib/ingest/qstash";
 import { TheSportsDBAdapter } from "@/lib/ingest/adapters/thesportsdb";
 import { TheOddsAPIAdapter } from "@/lib/ingest/adapters/theoddsapi";
 import { resolveMatch } from "@/services/matchResolver";
+import { validateInternalApiKey } from "@/lib/security/validateInternalApiKey";
+import { rateLimit } from "@/lib/security/rateLimit";
+import { isSecurityKillSwitchEnabled } from "@/lib/security/killSwitch";
 import crypto from "crypto";
 
 const generateHash = (payload: any) =>
@@ -15,6 +18,16 @@ const generateHash = (payload: any) =>
  * Orchestrates: Fetch -> Raw Storage -> Resolve -> Upsert -> Recurse.
  */
 export async function POST(req: Request) {
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+    if (!rateLimit(ip, 30, 60_000)) {
+      return Response.json({ error: "Too Many Requests" }, { status: 429 });
+    }
+    if (!validateInternalApiKey(req)) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (isSecurityKillSwitchEnabled()) {
+      return Response.json({ error: "Security kill switch enabled" }, { status: 503 });
+    }
     const body = await req.json();
     const { provider, sport, league, page = 1 } = body;
 

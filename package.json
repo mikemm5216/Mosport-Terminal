@@ -7,7 +7,11 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "typecheck": "tsc --noEmit",
+    "security:scan": "tsx scripts/security/scan-secrets.ts",
+    "security:token-age": "tsx scripts/security/check-token-age.ts",
+    "security:agent": "tsx -e \"import('./security/agent').then(m => console.log(m.runSecurityAgent()))\""
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",

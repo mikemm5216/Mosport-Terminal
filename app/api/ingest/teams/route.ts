@@ -1,11 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { validateInternalApiKey } from "@/lib/security/validateInternalApiKey";
+import { rateLimit } from "@/lib/security/rateLimit";
+import { isSecurityKillSwitchEnabled } from "@/lib/security/killSwitch";
 
 export const dynamic = 'force-dynamic';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export async function GET() {
+export async function GET(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+  if (!rateLimit(ip, 30, 60_000)) {
+    return Response.json({ error: "Too Many Requests" }, { status: 429 });
+  }
+  if (!validateInternalApiKey(req)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (isSecurityKillSwitchEnabled()) {
+    return Response.json({ error: "Security kill switch enabled" }, { status: 503 });
+  }
   try {
     const matches = await prisma.matches.findMany({
       include: { home_team: true, away_team: true }

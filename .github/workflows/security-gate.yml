@@ -1,0 +1,30 @@
+name: Security Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Secret scan
+        run: npx tsx scripts/security/scan-secrets.ts
+
+      - name: Build
+        run: npm run build

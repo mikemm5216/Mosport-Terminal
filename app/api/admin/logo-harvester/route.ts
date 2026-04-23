@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateCronAuth } from "@/lib/auth";
+import { validateInternalApiKey } from "@/lib/security/validateInternalApiKey";
+import { rateLimit } from "@/lib/security/rateLimit";
 import fs from "fs";
 import path from "path";
 
@@ -11,6 +13,13 @@ import path from "path";
  * Plan C: Dynamic SVG Placeholder
  */
 export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+  if (!rateLimit(ip, 30, 60_000)) {
+    return Response.json({ error: "Too Many Requests" }, { status: 429 });
+  }
+  if (!validateInternalApiKey(request)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const startTime = Date.now();
   try {
     const error = await validateCronAuth(request.clone());
