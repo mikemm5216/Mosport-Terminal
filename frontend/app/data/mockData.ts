@@ -221,6 +221,131 @@ export const TODAY_MATCHES: Match[] = [
 
 export const FEATURED_MATCH = TODAY_MATCHES.find(m => m.featured)!
 
+// ── APR 22, 2026 — all FINAL ───────────────────────────────────
+export const APR_22_MATCHES: Match[] = [
+  {
+    id: "nba_2026_lal_gsw_apr22",
+    league: "NBA", status: "FINAL", time: "FT",
+    away: { abbr: "LAL", name: "Los Angeles Lakers",    city: "LOS ANGELES"   },
+    home: { abbr: "GSW", name: "Golden State Warriors", city: "SAN FRANCISCO" },
+    score: { away: 109, home: 115 },
+    baseline_win: 0.52, physio_adjusted: 0.56, wpa: 0.041,
+    perspective: "HOME", tactical_label: "HIGH_CONFIDENCE",
+    matchup_complexity: 0.62, recovery_away: 0.74, recovery_home: 0.81,
+    settled: true, settled_accurate: true,
+  },
+  {
+    id: "mlb_2026_min_nym_apr22",
+    league: "MLB", status: "FINAL", time: "FT",
+    away: { abbr: "MIN", name: "Minnesota Twins", city: "MINNEAPOLIS" },
+    home: { abbr: "NYM", name: "New York Mets",   city: "QUEENS, NY"  },
+    score: { away: 3, home: 4 },
+    baseline_win: 0.41, physio_adjusted: 0.39, wpa: -0.028,
+    perspective: "AWAY", tactical_label: "OUTLIER_POTENTIAL",
+    matchup_complexity: 0.74, recovery_away: 0.88, recovery_home: 0.58,
+    settled: true, settled_accurate: false,
+  },
+  {
+    id: "epl_2026_liv_mci_apr22",
+    league: "EPL", status: "FINAL", time: "FT",
+    away: { abbr: "LIV", name: "Liverpool FC",   city: "LIVERPOOL"   },
+    home: { abbr: "MCI", name: "Manchester City", city: "MANCHESTER" },
+    score: { away: 1, home: 2 },
+    baseline_win: 0.44, physio_adjusted: 0.68, wpa: 0.078,
+    perspective: "HOME", tactical_label: "HIGH_CONFIDENCE",
+    matchup_complexity: 0.38, recovery_away: 0.61, recovery_home: 0.86,
+    settled: true, settled_accurate: true,
+  },
+  {
+    id: "ucl_2026_bar_rma_apr22",
+    league: "UCL", status: "FINAL", time: "FT",
+    away: { abbr: "BAR", name: "FC Barcelona", city: "BARCELONA" },
+    home: { abbr: "RMA", name: "Real Madrid",  city: "MADRID"    },
+    score: { away: 0, home: 2 },
+    baseline_win: 0.49, physio_adjusted: 0.58, wpa: 0.091,
+    perspective: "HOME", tactical_label: "HIGH_CONFIDENCE",
+    matchup_complexity: 0.71, recovery_away: 0.71, recovery_home: 0.82,
+    settled: true, settled_accurate: true,
+  },
+  {
+    id: "nhl_2026_bos_nyr_apr22",
+    league: "NHL", status: "FINAL", time: "FT",
+    away: { abbr: "BOS", name: "Boston Bruins",   city: "BOSTON"   },
+    home: { abbr: "NYR", name: "New York Rangers", city: "NEW YORK" },
+    score: { away: 3, home: 2 },
+    baseline_win: 0.54, physio_adjusted: 0.57, wpa: 0.033,
+    perspective: "AWAY", tactical_label: "UNCERTAIN",
+    matchup_complexity: 0.51, recovery_away: 0.77, recovery_home: 0.62,
+    settled: true, settled_accurate: true,
+  },
+]
+
+// ── APR 21, 2026 — all FINAL ───────────────────────────────────
+export const APR_21_MATCHES: Match[] = [
+  {
+    id: "nba_2026_mia_bos_apr21",
+    league: "NBA", status: "FINAL", time: "FT",
+    away: { abbr: "MIA", name: "Miami Heat",      city: "MIAMI"  },
+    home: { abbr: "BOS", name: "Boston Celtics",  city: "BOSTON" },
+    score: { away: 109, home: 124 },
+    baseline_win: 0.34, physio_adjusted: 0.29, wpa: -0.051,
+    perspective: "HOME", tactical_label: "VULNERABILITY",
+    matchup_complexity: 0.81, recovery_away: 0.59, recovery_home: 0.86,
+    settled: true, settled_accurate: true,
+  },
+  {
+    id: "mlb_2026_lad_nyy_apr21",
+    league: "MLB", status: "FINAL", time: "FT",
+    away: { abbr: "LAD", name: "Los Angeles Dodgers", city: "LOS ANGELES" },
+    home: { abbr: "NYY", name: "New York Yankees",    city: "THE BRONX"   },
+    score: { away: 7, home: 4 },
+    baseline_win: 0.52, physio_adjusted: 0.58, wpa: 0.063,
+    perspective: "AWAY", tactical_label: "HIGH_CONFIDENCE",
+    matchup_complexity: 0.44, recovery_away: 0.91, recovery_home: 0.68,
+    settled: true, settled_accurate: true,
+  },
+  {
+    id: "epl_2026_ars_tot_apr21",
+    league: "EPL", status: "FINAL", time: "FT",
+    away: { abbr: "TOT", name: "Tottenham Hotspur", city: "LONDON" },
+    home: { abbr: "ARS", name: "Arsenal FC",         city: "LONDON" },
+    score: { away: 0, home: 3 },
+    baseline_win: 0.61, physio_adjusted: 0.74, wpa: 0.131,
+    perspective: "HOME", tactical_label: "HIGH_CONFIDENCE",
+    matchup_complexity: 0.39, recovery_away: 0.58, recovery_home: 0.84,
+    settled: true, settled_accurate: true,
+  },
+  {
+    id: "ucl_2026_psg_bay_apr21",
+    league: "UCL", status: "FINAL", time: "FT",
+    away: { abbr: "PSG", name: "Paris Saint-Germain", city: "PARIS"  },
+    home: { abbr: "BAY", name: "Bayern Munich",        city: "MUNICH" },
+    score: { away: 1, home: 3 },
+    baseline_win: 0.47, physio_adjusted: 0.62, wpa: 0.074,
+    perspective: "HOME", tactical_label: "HIGH_CONFIDENCE",
+    matchup_complexity: 0.58, recovery_away: 0.66, recovery_home: 0.79,
+    settled: true, settled_accurate: true,
+  },
+  {
+    id: "nhl_2026_nyr_fla_apr21",
+    league: "NHL", status: "FINAL", time: "FT",
+    away: { abbr: "NYR", name: "New York Rangers", city: "NEW YORK" },
+    home: { abbr: "FLA", name: "Florida Panthers", city: "SUNRISE"  },
+    score: { away: 2, home: 4 },
+    baseline_win: 0.46, physio_adjusted: 0.41, wpa: -0.048,
+    perspective: "AWAY", tactical_label: "UNCERTAIN",
+    matchup_complexity: 0.55, recovery_away: 0.63, recovery_home: 0.77,
+    settled: true, settled_accurate: false,
+  },
+]
+
+// ── Date-indexed schedule ──────────────────────────────────────
+export const SCHEDULE_BY_DATE: Record<string, Match[]> = {
+  "2026-04-21": APR_21_MATCHES,
+  "2026-04-22": APR_22_MATCHES,
+  "2026-04-23": TODAY_MATCHES,
+}
+
 // ── Roster mock data ───────────────────────────────────────────
 export const ROSTER_DATA: Record<string, RosterData> = {
   "mlb_2026_min_nym": {

@@ -2,34 +2,80 @@
 
 import { useState, useEffect } from 'react'
 import type { Match, League, KeyPlayer } from '../data/mockData'
-import { TODAY_MATCHES, getKeyPlayers } from '../data/mockData'
+import { TODAY_MATCHES, SCHEDULE_BY_DATE, getKeyPlayers } from '../data/mockData'
 import { leagueTheme, TeamMark, LeagueBadge, wpaColor } from './ui'
 import { useWindowWidth } from '../lib/useWindowWidth'
 
+// ── Date helpers ─────────────────────────────────────────────
+const AVAILABLE_DATES = ["2026-04-21", "2026-04-22", "2026-04-23"]
+const TODAY_DATE = "2026-04-23"
+const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
+const WEEKDAYS = ["SUN","MON","TUE","WED","THU","FRI","SAT"]
+
+function formatDateLabel(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number)
+  const dt = new Date(y, m - 1, d)
+  return `${MONTHS[dt.getMonth()]} ${String(d).padStart(2,"0")}, ${y} · ${WEEKDAYS[dt.getDay()]}`
+}
+
 // ── Date pill ────────────────────────────────────────────────
-function DatePill() {
+function DatePill({ date, onPrev, onNext }: {
+  date: string
+  onPrev: () => void
+  onNext: () => void
+}) {
+  const idx = AVAILABLE_DATES.indexOf(date)
+  const isToday = date === TODAY_DATE
+  const canPrev = idx > 0
+  const canNext = idx < AVAILABLE_DATES.length - 1
+
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-      <button style={{
-        background: "#050b1b", border: "1px solid rgba(148,163,184,0.1)",
-        color: "#64748b", width: 28, height: 28, borderRadius: 4, cursor: "pointer",
-        fontFamily: "var(--font-mono), monospace", fontSize: 12,
-      }}>‹</button>
+      <button
+        onClick={onPrev}
+        disabled={!canPrev}
+        style={{
+          background: "#050b1b",
+          border: `1px solid ${canPrev ? "rgba(148,163,184,0.2)" : "rgba(148,163,184,0.06)"}`,
+          color: canPrev ? "#94a3b8" : "#1e293b",
+          width: 28, height: 28, borderRadius: 4,
+          cursor: canPrev ? "pointer" : "not-allowed",
+          fontFamily: "var(--font-mono), monospace", fontSize: 14,
+          display: "grid", placeItems: "center",
+          transition: "all 150ms",
+        }}
+      >‹</button>
+
       <div style={{
-        padding: "8px 14px",
-        background: "#050b1b", border: "1px solid rgba(34,211,238,0.3)", borderRadius: 4,
+        padding: "8px 16px",
+        background: "#050b1b",
+        border: `1px solid ${isToday ? "rgba(34,211,238,0.35)" : "rgba(148,163,184,0.15)"}`,
+        borderRadius: 4,
         fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 800,
-        color: "#fff", letterSpacing: "0.2em",
+        color: "#fff", letterSpacing: "0.18em",
         display: "flex", alignItems: "center", gap: 10,
       }}>
-        <span style={{ color: "#22d3ee" }}>●</span>
-        APR 23, 2026 &nbsp; THU
+        <span style={{
+          color: isToday ? "#22d3ee" : "#f97316",
+          fontSize: 7, letterSpacing: "0.24em",
+        }}>{isToday ? "● TODAY" : "◈ ARCHIVED"}</span>
+        {formatDateLabel(date)}
       </div>
-      <button style={{
-        background: "#050b1b", border: "1px solid rgba(148,163,184,0.1)",
-        color: "#64748b", width: 28, height: 28, borderRadius: 4, cursor: "pointer",
-        fontFamily: "var(--font-mono), monospace", fontSize: 12,
-      }}>›</button>
+
+      <button
+        onClick={onNext}
+        disabled={!canNext}
+        style={{
+          background: "#050b1b",
+          border: `1px solid ${canNext ? "rgba(148,163,184,0.2)" : "rgba(148,163,184,0.06)"}`,
+          color: canNext ? "#94a3b8" : "#1e293b",
+          width: 28, height: 28, borderRadius: 4,
+          cursor: canNext ? "pointer" : "not-allowed",
+          fontFamily: "var(--font-mono), monospace", fontSize: 14,
+          display: "grid", placeItems: "center",
+          transition: "all 150ms",
+        }}
+      >›</button>
     </div>
   )
 }
@@ -436,20 +482,40 @@ const LEAGUES: Array<"ALL" | League> = ["ALL", "MLB", "NBA", "EPL", "UCL", "NHL"
 export default function SchedulePage({ onOpen }: { onOpen: (m: Match) => void }) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<"ALL" | League>("ALL")
-  const [matches, setMatches] = useState<Match[]>(TODAY_MATCHES)
+  const [selectedDate, setSelectedDate] = useState(TODAY_DATE)
+  const [liveMatches, setLiveMatches] = useState<Match[] | null>(null)
   const w = useWindowWidth()
   const isMobile = w < 640
 
+  // Only attempt live fetch for today
   useEffect(() => {
+    if (selectedDate !== TODAY_DATE) { setLiveMatches(null); return }
     fetch('/api/games')
       .then(r => r.json())
       .then(({ matches: live }: { matches: Match[] }) => {
-        if (live && live.length > 0) setMatches(live)
+        if (live && live.length > 0) setLiveMatches(live)
       })
       .catch(() => {})
-  }, [])
+  }, [selectedDate])
 
-  const filtered = filter === "ALL" ? matches : matches.filter(m => m.league === filter)
+  function handlePrev() {
+    const idx = AVAILABLE_DATES.indexOf(selectedDate)
+    if (idx > 0) { setSelectedDate(AVAILABLE_DATES[idx - 1]); setExpandedId(null) }
+  }
+  function handleNext() {
+    const idx = AVAILABLE_DATES.indexOf(selectedDate)
+    if (idx < AVAILABLE_DATES.length - 1) { setSelectedDate(AVAILABLE_DATES[idx + 1]); setExpandedId(null) }
+  }
+
+  const base = (selectedDate === TODAY_DATE && liveMatches)
+    ? liveMatches
+    : (SCHEDULE_BY_DATE[selectedDate] ?? TODAY_MATCHES)
+
+  const filtered = filter === "ALL" ? base : base.filter(m => m.league === filter)
+
+  const isArchived = selectedDate !== TODAY_DATE
+  const finalCount = base.filter(m => m.status === "FINAL").length
+  const liveCount  = base.filter(m => m.status === "LIVE").length
 
   return (
     <div style={{
@@ -458,7 +524,7 @@ export default function SchedulePage({ onOpen }: { onOpen: (m: Match) => void })
       minHeight: "calc(100vh - 160px)",
     }}>
       {/* Page header */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 auto" }}>
           <h1 style={{
             margin: 0,
@@ -470,7 +536,26 @@ export default function SchedulePage({ onOpen }: { onOpen: (m: Match) => void })
             MOSPORT <span style={{ color: "#22d3ee", fontStyle: "normal" }}>TERMINAL</span>
           </h1>
         </div>
-        {!isMobile && <DatePill />}
+        <DatePill date={selectedDate} onPrev={handlePrev} onNext={handleNext} />
+      </div>
+
+      {/* Summary strip */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 16,
+        marginBottom: 14, flexWrap: "wrap",
+        fontFamily: "var(--font-mono), monospace", fontSize: 9,
+        letterSpacing: "0.22em",
+      }}>
+        <span style={{ color: "#334155" }}>{base.length} MATCHES</span>
+        {liveCount > 0 && <span style={{ color: "#ef4444" }}>● {liveCount} LIVE</span>}
+        {finalCount > 0 && <span style={{ color: "#34d399" }}>✓ {finalCount} FINAL</span>}
+        {isArchived && (
+          <span style={{
+            padding: "2px 10px", borderRadius: 2,
+            background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)",
+            color: "#f97316", fontWeight: 800,
+          }}>ARCHIVED RESULTS</span>
+        )}
       </div>
 
       {/* League filter */}
@@ -508,7 +593,7 @@ export default function SchedulePage({ onOpen }: { onOpen: (m: Match) => void })
           fontFamily: "var(--font-mono), monospace", fontSize: 10,
           color: "#475569", letterSpacing: "0.3em", fontWeight: 800,
         }}>
-          [ NO ACTIVE MATCH INTELLIGENCE SCHEDULED FOR THIS CYCLE ]
+          [ NO MATCH DATA FOR THIS DATE ]
         </div>
       )}
     </div>
