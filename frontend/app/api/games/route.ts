@@ -65,7 +65,9 @@ const TEAM_MAP: Record<string, string> = {
   'Buffalo Sabres': 'BUF', 'Utah Hockey Club': 'UTA',
 }
 
-const LABEL_MAP: Record<string, TacticalLabel> = {
+type ArbiterLabel = 'UPSET' | 'STRONG' | 'CHAOS' | 'WEAK'
+
+const LABEL_MAP: Record<ArbiterLabel, TacticalLabel> = {
   UPSET: 'OUTLIER_POTENTIAL',
   STRONG: 'HIGH_CONFIDENCE',
   CHAOS: 'VULNERABILITY',
@@ -95,7 +97,7 @@ function computeEV(modelProb: number, homeML: number, awayML: number) {
   return { bestEV: Math.round(Math.max(homeEV, awayEV) * 10000) / 10000, bestSide }
 }
 
-function classify(modelProb: number, vegasProb: number, homeML: number, awayML: number, bestEV: number): string {
+function classify(modelProb: number, vegasProb: number, homeML: number, awayML: number, bestEV: number): ArbiterLabel {
   const underdogML = Math.max(homeML, awayML)
   const divergence = Math.abs(modelProb - vegasProb)
   if (Math.abs(modelProb - 0.5) < 0.08 && underdogML >= 120 && bestEV > 0.02) return 'UPSET'

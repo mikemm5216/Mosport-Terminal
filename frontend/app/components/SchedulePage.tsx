@@ -420,8 +420,8 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
 
           {/* Short Decision Sentence */}
           <div style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "#94a3b8", lineHeight: 1.5, fontStyle: "italic" }}>
-            {m.tactical_label === "UPSET" ? "Market favors stability. Mosport detects an outlier condition." : 
-             m.tactical_label === "STRONG" ? "Signals align for high-conviction baseline performance." :
+            {m.tactical_label === "OUTLIER_POTENTIAL" ? "Market favors stability. Mosport detects an outlier condition." :
+             m.tactical_label === "HIGH_CONFIDENCE" ? "Signals align for high-conviction baseline performance." :
              "Decision engine detects high volatility. Tactical caution advised."}
           </div>
 
