@@ -81,6 +81,7 @@ export const TEAM_COLORS: Record<string, string> = {
   BAY: "#DC052D", PSG: "#004170", JUV: "#000000", TOT: "#132257", MUN: "#DA291C",
   KC: "#E31837", SF: "#AA0000", BUF: "#00338D",
   NYR: "#0038A8", CWS: "#27251F", ARI: "#A71930", SFG: "#FD5A1E", CLE: "#E31937",
+  WHU: "#7A263A", SUN: "#EB172B", WAS: "#E31837", UTA: "#6ADEEB",
 }
 
 // ── Today's match slate ────────────────────────────────────────

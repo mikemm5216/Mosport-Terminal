@@ -24,10 +24,12 @@ const NBA_ABBRS = new Set([
   "ATL","BOS","BKN","CHA","CHI","CLE","DAL","DEN","DET","GSW",
   "HOU","IND","LAC","LAL","MEM","MIA","MIL","MIN","NOP","NYK",
   "OKC","ORL","PHI","PHX","POR","SAC","SAS","TOR","UTA","WSH",
+  "WAS",
 ])
 const EPL_ABBRS = new Set([
   "ARS","AVL","BOU","BRE","BHA","CHE","CRY","EVE","FUL","IPS",
   "LEI","LIV","MCI","MUN","NEW","NFO","SOU","TOT","WHM","WOL",
+  "WHU","SUN",
 ])
 const UCL_ABBRS = new Set([
   "BAR","RMA","BAY","PSG","JUV","INT","ATM","MIL","BVB","POR",
@@ -38,12 +40,16 @@ const NHL_ABBRS = new Set([
   "CAR","CBJ","NJD","NYI","NYR","PHI","PIT","WSH",
   "CHI","COL","DAL","MIN","NSH","STL","UTA","WPG",
   "ANA","CGY","EDM","LAK","SEA","SJS","VAN","VGK",
+  "ARI",
 ])
 
 function logoPath(league: League | undefined, abbr: string): string | null {
   let normalizedAbbr = abbr;
   if (abbr === "SDP") normalizedAbbr = "SD";
   if (abbr === "WSN") normalizedAbbr = "WSH";
+  if (abbr === "WHU") normalizedAbbr = "WHM";
+  if (abbr === "WAS") normalizedAbbr = "WSH";
+  if (abbr === "ARI") normalizedAbbr = "UTA";
 
   if (league === "MLB" && MLB_ABBRS.has(abbr)) return `/logos/mlb-${normalizedAbbr.toLowerCase()}.png`
   if (league === "NBA" && NBA_ABBRS.has(abbr)) return `/logos/nba-${abbr.toLowerCase()}.png`
