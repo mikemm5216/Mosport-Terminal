@@ -96,7 +96,7 @@ export default function TopBar({ onHome, activeTab = "SCHEDULE", onTabChange }: 
           <nav style={{ display: "flex", gap: 4, marginLeft: 12 }}>
             {(["SCHEDULE", "LEAGUES", "PLAYERS", "LAB"] as const).map((n) => {
               const isActive = activeTab === n
-              const isAllowed = n === "SCHEDULE" || n === "LAB"
+              const isAllowed = true
               return (
                 <div
                   key={n}
