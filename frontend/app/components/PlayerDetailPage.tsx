@@ -313,7 +313,6 @@ export default function PlayerDetailPage({ player, teamAbbr, teamName, league, m
 
       {/* Recovery Assessment */}
       <div style={{
-        background: "rgba(15,23,42,0.4)",
         border: "1px solid rgba(148,163,184,0.07)",
         borderLeft: `4px solid ${flagColor}`,
         borderRadius: "0 4px 4px 0",
