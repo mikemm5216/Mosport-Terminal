@@ -45,7 +45,14 @@
       "Bash(curl -sL \"https://cdn.prod.website-files.com/68f550992570ca0322737dc2/68fab0aca60ff7bf564a059f_as-saint-etienne-footballlogos-org.png\" -o ste.png)",
       "Bash(curl -sL \"https://cdn.prod.website-files.com/68f550992570ca0322737dc2/68f58803ee08d836b92831b3_burnley-footballlogos-org.png\" -o epl-bur.png)",
       "Bash(curl -sL \"https://cdn.prod.website-files.com/68f550992570ca0322737dc2/68f58aa40cc312bb0bdb1587_sunderland-footballlogos-org.png\" -o epl-sun.png)",
-      "Bash(tree -L 2 -d /d/Mosport/Mosport-Terminal --ignore 'node_modules|.next|.git|__pycache__|v11')"
+      "Bash(tree -L 2 -d /d/Mosport/Mosport-Terminal --ignore 'node_modules|.next|.git|__pycache__|v11')",
+      "Bash(./node_modules/.bin/tsc *)",
+      "Bash(npm install *)",
+      "Bash(node_modules/.bin/tsx *)",
+      "PowerShell(node_modules\\\\.bin\\\\tsx scripts/security/scan-secrets.ts 2>&1)",
+      "PowerShell(& \"node_modules\\\\.bin\\\\tsx.cmd\" scripts/security/scan-secrets.ts 2>&1)",
+      "PowerShell(npm install *)",
+      "PowerShell(npm run *)"
     ]
   }
 }

@@ -24,4 +24,4 @@ async function main() {
     console.log('Current Match Count:', matchCount);
 }
 
-main().finally(() => prisma.\$disconnect());
+main().finally(() => prisma.$disconnect());

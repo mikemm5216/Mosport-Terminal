@@ -133,3 +133,4 @@ export const TEAM_LOGOS: Record<string, string> = {
   TOT: "/logos/epl/tot.png",
   WHU: "/logos/epl/whu.png",
   WOL: "/logos/epl/wol.png",
+};
