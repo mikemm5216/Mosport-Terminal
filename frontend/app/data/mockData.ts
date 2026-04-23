@@ -584,6 +584,73 @@ export const PLAYER_FORM: Record<string, number[]> = {
 
 export type PlayoffConference = 'East' | 'West' | 'Finals'
 
+export interface SeriesProjection {
+  team_a: string
+  team_b: string
+  winner: string
+  winner_probability: number
+  series_score_prediction?: string | null
+}
+
+export interface PlayoffSimulationSummary {
+  season: string
+  league: 'NBA' | 'NHL'
+  simulation_runs: number
+  projected_champion: {
+    team: string
+    probability: number
+  }
+  champion_distribution: Array<{
+    team: string
+    probability: number
+  }>
+  most_likely_finals_matchup: {
+    home_team: string
+    away_team: string
+    probability: number
+  }
+  finals_matchup_distribution: Array<{
+    team_a: string
+    team_b: string
+    probability: number
+  }>
+  round_advancement: Array<{
+    team: string
+    round_1_win_prob: number | null
+    conference_semifinal_prob: number | null
+    conference_final_prob: number | null
+    finals_prob: number | null
+    championship_prob: number | null
+  }>
+  bracket_projection: {
+    west: {
+      round_1: SeriesProjection[]
+      semifinals: SeriesProjection[]
+      conference_finals: SeriesProjection[]
+    }
+    east: {
+      round_1: SeriesProjection[]
+      semifinals: SeriesProjection[]
+      conference_finals: SeriesProjection[]
+    }
+    championship: SeriesProjection[]
+  }
+  validation: {
+    mode: 'historical_backtest' | 'live_projection' | 'unvalidated'
+    round_1_accuracy: number | null
+    semifinal_accuracy: number | null
+    conference_finals_accuracy: number | null
+    finals_accuracy: number | null
+    overall_bracket_accuracy: number | null
+    notes: string | null
+  }
+  metadata: {
+    model_version: string
+    generated_at: string
+    data_cutoff: string
+  }
+}
+
 export interface BracketTeam {
   abbr: string
   name: string
