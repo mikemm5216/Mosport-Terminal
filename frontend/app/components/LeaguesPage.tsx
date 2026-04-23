@@ -2,7 +2,7 @@
 
 import { useWindowWidth } from '../lib/useWindowWidth'
 import { TODAY_MATCHES, LEAGUE_STANDINGS, type League, type Match, type FormResult } from '../data/mockData'
-import { leagueTheme, BioBar, LiveDot } from './ui'
+import { leagueTheme, BioBar, LiveDot, TeamMark } from './ui'
 import TeamLogo from './TeamLogo'
 
 const ALL_LEAGUES: League[] = ["MLB", "NBA", "EPL", "UCL", "NHL"]
@@ -62,12 +62,14 @@ function FixtureRow({ m, isLast }: { m: Match; isLast: boolean }) {
         )}
       </div>
 
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+        <TeamMark abbr={m.away.abbr} league={m.league} size={20} />
         <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: "0.1em" }}>{m.away.abbr}</span>
-        <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, color: "#1e293b", margin: "0 6px" }}>@</span>
+        <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, color: "#1e293b" }}>@</span>
+        <TeamMark abbr={m.home.abbr} league={m.league} size={20} />
         <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 800, color: "#e2e8f0", letterSpacing: "0.1em" }}>{m.home.abbr}</span>
         {m.score && (
-          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, color: "#334155", marginLeft: 8 }}>
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, color: "#334155", marginLeft: 4 }}>
             {m.score.away}–{m.score.home}
           </span>
         )}
