@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import { KEY_PLAYERS, TODAY_MATCHES, PLAYER_FORM, type League, type KeyPlayer, type ReadinessFlag, type Match } from '../data/mockData'
 import { leagueTheme, BioBar, LiveDot } from './ui'
+import TeamLogo from './TeamLogo'
 
 type FilterFlag = "ALL" | ReadinessFlag
 type LeagueFilter = "ALL" | League
@@ -221,7 +222,8 @@ function TeamSection({ group, cols, onTeam }: TeamSectionProps) {
           cursor: onTeam ? "pointer" : "default",
         }}
       >
-        {/* Team abbr */}
+        {/* Team Logo + abbr */}
+        <TeamLogo teamAbbr={group.teamAbbr} league={group.league} size={28} accentColor={t.hex} />
         <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 14, fontWeight: 900, color: t.hex, letterSpacing: "0.18em" }}>
           {group.teamAbbr}
         </span>

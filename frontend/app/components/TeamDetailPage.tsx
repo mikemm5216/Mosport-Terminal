@@ -6,6 +6,7 @@ import {
   type League, type Match, type KeyPlayer,
 } from '../data/mockData'
 import { leagueTheme, BioBar, LiveDot } from './ui'
+import TeamLogo from './TeamLogo'
 
 const FLAG_COLOR: Record<string, string> = {
   CLEAR: "#34d399",
@@ -93,24 +94,29 @@ export default function TeamDetailPage({ teamAbbr, league, onBack }: Props) {
         marginBottom: 20,
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <span style={{
-                fontFamily: "var(--font-mono), monospace", fontSize: 8, fontWeight: 800,
-                letterSpacing: "0.28em", color: t.hex, padding: "2px 9px",
-                border: `1px solid ${t.hex}44`, background: `${t.hex}11`, borderRadius: 2,
-              }}>{league}</span>
-              {position > 0 && (
-                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, color: "#334155", letterSpacing: "0.2em" }}>
-                  #{position} IN STANDINGS
-                </span>
-              )}
-            </div>
-            <div style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontSize: isMobile ? 36 : 52, color: "#f8fafc", letterSpacing: "-0.03em", lineHeight: 1, marginBottom: 6 }}>
-              {teamAbbr}
-            </div>
-            <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, color: "#64748b", letterSpacing: "0.12em" }}>
-              {teamRec.name}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: isMobile ? 14 : 22 }}>
+            {/* Team Logo */}
+            <TeamLogo teamAbbr={teamAbbr} league={league} size={isMobile ? 64 : 88} accentColor={t.hex} />
+
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={{
+                  fontFamily: "var(--font-mono), monospace", fontSize: 8, fontWeight: 800,
+                  letterSpacing: "0.28em", color: t.hex, padding: "2px 9px",
+                  border: `1px solid ${t.hex}44`, background: `${t.hex}11`, borderRadius: 2,
+                }}>{league}</span>
+                {position > 0 && (
+                  <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, color: "#334155", letterSpacing: "0.2em" }}>
+                    #{position} IN STANDINGS
+                  </span>
+                )}
+              </div>
+              <div style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontSize: isMobile ? 36 : 52, color: "#f8fafc", letterSpacing: "-0.03em", lineHeight: 1, marginBottom: 6 }}>
+                {teamAbbr}
+              </div>
+              <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, color: "#64748b", letterSpacing: "0.12em" }}>
+                {teamRec.name}
+              </div>
             </div>
           </div>
 
@@ -209,9 +215,12 @@ export default function TeamDetailPage({ teamAbbr, league, onBack }: Props) {
                   border: `1px solid ${isHome ? t.hex + "44" : "rgba(100,116,139,0.2)"}`,
                   background: isHome ? `${t.hex}10` : "transparent",
                 }}>{isHome ? "HOME" : "AWAY"}</span>
-                <div style={{ flex: 1, minWidth: 120 }}>
-                  <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 13, fontWeight: 800, color: "#e2e8f0" }}>vs {opponent.abbr}</span>
-                  <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", marginLeft: 10, letterSpacing: "0.1em" }}>{opponent.name}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 120 }}>
+                  <TeamLogo teamAbbr={opponent.abbr} league={m.league} size={36} accentColor="#64748b" />
+                  <div>
+                    <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 13, fontWeight: 800, color: "#e2e8f0" }}>vs {opponent.abbr}</span>
+                    <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#475569", letterSpacing: "0.1em" }}>{opponent.name}</div>
+                  </div>
                 </div>
                 {m.score && (
                   <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 14, fontWeight: 800, color: "#94a3b8", letterSpacing: "0.08em" }}>
