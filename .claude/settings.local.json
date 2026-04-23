@@ -31,7 +31,8 @@
       "Bash(curl -s \"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard\")",
       "Bash(python3 -c ' *)",
       "Bash(node -e ' *)",
-      "Bash(curl -s \"https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard\")"
+      "Bash(curl -s \"https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard\")",
+      "Bash(git check-ignore *)"
     ]
   }
 }
