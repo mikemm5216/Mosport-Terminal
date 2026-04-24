@@ -9,7 +9,7 @@ const ABBR_OVERRIDES: Record<string, string> = {
 
 function logoSrc(teamAbbr: string, league: League): string {
   const abbr = (ABBR_OVERRIDES[teamAbbr] || teamAbbr).toLowerCase()
-  return `/logos/${league.toLowerCase()}-${abbr}.png`
+  return `/logos/${league.toLowerCase()}/${abbr}.png`
 }
 
 interface Props {
