@@ -44,7 +44,16 @@ export default function TeamLogo({ teamAbbr, league, size, accentColor }: Props)
       <img
         src={src}
         alt={teamAbbr}
-        onError={() => setError(true)}
+        onError={() => {
+          console.warn('[logo-missing]', {
+            league,
+            rawCode: teamAbbr,
+            normalizedCode: teamAbbr,
+            canonicalKey: `${league}_${teamAbbr}`,
+            expectedPath: src,
+          })
+          setError(true)
+        }}
         style={{
           width: '100%', height: '100%',
           objectFit: 'contain',

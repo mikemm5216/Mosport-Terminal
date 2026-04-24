@@ -32,7 +32,26 @@ export function getTeamLogo(league: string, rawCode: string | null | undefined):
   }
 
   if (!safeLeague || !safeRawCode) {
+    const expectedPath = normalizedCode ? `/logos/${safeLeague?.toLowerCase() ?? "unknown"}/${normalizedCode.toLowerCase()}.png` : TEAM_LOGO_FALLBACK
+    console.warn('[logo-missing]', {
+      league: safeLeague ?? league ?? '',
+      rawCode: safeRawCode ?? rawCode ?? '',
+      normalizedCode,
+      canonicalKey,
+      expectedPath,
+    })
     return TEAM_LOGO_FALLBACK
+  }
+
+  if (resolvedPath === TEAM_LOGO_FALLBACK) {
+    const expectedPath = `/logos/${safeLeague.toLowerCase()}/${normalizedCode.toLowerCase()}.png`
+    console.warn('[logo-missing]', {
+      league: safeLeague,
+      rawCode: safeRawCode,
+      normalizedCode,
+      canonicalKey,
+      expectedPath,
+    })
   }
 
   return resolvedPath

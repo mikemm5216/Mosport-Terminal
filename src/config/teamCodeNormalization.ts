@@ -86,15 +86,46 @@ const NBA_TEAM_CODE_NORMALIZATION: Record<string, string> = {
 const TEAM_CODE_NORMALIZATION: Partial<Record<TeamLogoLeague, Record<string, string>>> = {
   MLB: MLB_TEAM_CODE_NORMALIZATION,
   NBA: NBA_TEAM_CODE_NORMALIZATION,
+  NHL: {
+    LA: "LAK",
+    LAK: "LAK",
+    TB: "TBL",
+    TBL: "TBL",
+    NJ: "NJD",
+    NJD: "NJD",
+    VGK: "VGK",
+    UTA: "UTA",
+  },
+  EPL: {
+    NFO: "NFO",
+    NOT: "NFO",
+    NOTTINGHAM_FOREST: "NFO",
+    SUN: "SUN",
+    MUN: "MUN",
+    MAN_UNITED: "MUN",
+    MANCHESTER_UNITED: "MUN",
+    MCI: "MCI",
+    MAN_CITY: "MCI",
+    MANCHESTER_CITY: "MCI",
+    TOT: "TOT",
+    TOTTENHAM: "TOT",
+    ARS: "ARS",
+    LIV: "LIV",
+    CHE: "CHE",
+  },
+  UCL: {
+    PSG: "PSG",
+    RMA: "RMA",
+    BAR: "BAR",
+    MUN: "MUN",
+    MCI: "MCI",
+    ARS: "ARS",
+    LIV: "LIV",
+  },
 };
 
 function cleanRawCode(rawCode: string): string {
   const cleaned = rawCode.trim().toUpperCase();
-
-  if (cleaned.includes("_")) {
-    const parts = cleaned.split("_").filter(Boolean);
-    return parts[parts.length - 1] ?? cleaned;
-  }
 
   return cleaned;
 }

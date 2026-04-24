@@ -36,7 +36,7 @@ export const TEAM_LOGOS: Record<string, string> = {
   MLB_PIT: "/logos/mlb/pit.png",
   MLB_SDP: "/logos/mlb/sd.png",
   MLB_SEA: "/logos/mlb/sea.png",
-  MLB_SFG: "/logos/mlb/sf.png",
+  MLB_SFG: "/logos/mlb/sfg.png",
   MLB_STL: "/logos/mlb/stl.png",
   MLB_TBR: "/logos/mlb/tb.png",
   MLB_TEX: "/logos/mlb/tex.png",
@@ -74,6 +74,17 @@ export const TEAM_LOGOS: Record<string, string> = {
   NBA_UTA: "/logos/nba/uta.png",
   NBA_WAS: "/logos/nba/was.png",
 
+  NHL_BOS: "/logos/nhl/bos.png",
+  NHL_BUF: "/logos/nhl/buf.png",
+  NHL_CAR: "/logos/nhl/car.png",
+  NHL_COL: "/logos/nhl/col.png",
+  NHL_LAK: "/logos/nhl/lak.png",
+  NHL_OTT: "/logos/nhl/ott.png",
+  NHL_TBL: "/logos/nhl/tbl.png",
+  NHL_NJD: "/logos/nhl/njd.png",
+  NHL_VGK: "/logos/nhl/vgk.png",
+  NHL_UTA: "/logos/nhl/uta.png",
+
   EPL_ARS: "/logos/epl/ars.png",
   EPL_AVL: "/logos/epl/avl.png",
   EPL_BHA: "/logos/epl/bha.png",
@@ -93,9 +104,18 @@ export const TEAM_LOGOS: Record<string, string> = {
   EPL_NEW: "/logos/epl/new.png",
   EPL_NFO: "/logos/epl/nfo.png",
   EPL_SOU: "/logos/epl/sou.png",
+  EPL_SUN: "/logos/epl/sun.png",
   EPL_TOT: "/logos/epl/tot.png",
   EPL_WHU: "/logos/epl/whu.png",
   EPL_WOL: "/logos/epl/wol.png",
+
+  UCL_PSG: "/logos/ucl/psg.png",
+  UCL_RMA: "/logos/ucl/rma.png",
+  UCL_BAR: "/logos/ucl/bar.png",
+  UCL_MUN: "/logos/epl/mun.png",
+  UCL_ARS: "/logos/epl/ars.png",
+  UCL_LIV: "/logos/epl/liv.png",
+  UCL_MCI: "/logos/epl/mci.png",
 };
 
 export function getTeamLogo(league: string, rawCode: string | null | undefined): string {
@@ -105,11 +125,13 @@ export function getTeamLogo(league: string, rawCode: string | null | undefined):
   if (!safeLeague || !safeRawCode) {
     const normalizedCode = safeRawCode ? normalizeTeamCode(safeLeague ?? "UNKNOWN", safeRawCode) : "";
     const canonicalKey = safeLeague && safeRawCode ? getCanonicalTeamLogoKey(safeLeague, safeRawCode) : "";
+    const expectedPath = canonicalKey ? TEAM_LOGOS[canonicalKey] ?? TEAM_LOGO_FALLBACK : TEAM_LOGO_FALLBACK;
     console.warn("[logo-missing]", {
       league: safeLeague ?? league ?? "",
       rawCode: safeRawCode ?? rawCode ?? "",
       normalizedCode,
       canonicalKey,
+      expectedPath,
     });
     return TEAM_LOGO_FALLBACK;
   }
@@ -122,7 +144,8 @@ export function getTeamLogo(league: string, rawCode: string | null | undefined):
     return logoPath;
   }
 
-  console.warn("[logo-missing]", { league: safeLeague, rawCode: safeRawCode, normalizedCode, canonicalKey });
+  const expectedPath = `/logos/${safeLeague.toLowerCase()}/${normalizedCode.toLowerCase()}.png`;
+  console.warn("[logo-missing]", { league: safeLeague, rawCode: safeRawCode, normalizedCode, canonicalKey, expectedPath });
   return TEAM_LOGO_FALLBACK;
 }
 

@@ -1,0 +1,7 @@
+- MLB_CHW -> expected /logos/mlb/chw.png
+- MLB_SFG -> expected /logos/mlb/sfg.png
+- NHL_LAK -> expected /logos/nhl/lak.png
+- EPL_NFO -> expected /logos/epl/nfo.png
+- EPL_SUN -> expected /logos/epl/sun.png
+- UCL_PSG -> expected /logos/ucl/psg.png
+- UCL_MUN -> expected /logos/epl/mun.png

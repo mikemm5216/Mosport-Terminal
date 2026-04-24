@@ -24,5 +24,15 @@ export function getTeamLogo(league: League, rawCode: string): string {
     return resolvedPath
   }
 
+  const expectedPath = `/logos/${league.toLowerCase()}/${normalizedCode.toLowerCase()}.png`
+
+  console.warn('[logo-missing]', {
+    league,
+    rawCode,
+    normalizedCode,
+    canonicalKey,
+    expectedPath,
+  })
+
   return TEAM_LOGO_FALLBACK
 }
