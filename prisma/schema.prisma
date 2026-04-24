@@ -69,9 +69,12 @@ model Match {
   away_score      Int?
   venue           String?
   season          String?
-  sourceUpdatedAt DateTime?
-  created_at      DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  sourceUpdatedAt  DateTime?
+  sourceProvider   String?
+  sourceConfidence Float?
+  rawRefs          String[]
+  created_at       DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   home_team   Team?   @relation("HomeTeam", fields: [home_team_id], references: [team_id])
   away_team   Team?   @relation("AwayTeam", fields: [away_team_id], references: [team_id])
@@ -192,6 +195,8 @@ model RawEvent {
   payload    Json
   hash       String?
   processed  Boolean  @default(false)
+  fetchedAt  DateTime @default(now())
+  status     String   @default("raw")
   created_at DateTime @default(now())
 
   @@unique([extId, provider], name: "extId_provider")
@@ -312,6 +317,33 @@ model TeamWorldState {
   createdAt  DateTime @default(now())
 
   team       Team     @relation(fields: [teamId], references: [team_id])
+}
+
+// ─── Data Lifecycle Pipeline ─────────────────────────────────────────────────────
+
+model ProviderHealth {
+  id            String    @id @default(cuid())
+  provider      String
+  league        String
+  status        String    @default("healthy")
+  lastSuccessAt DateTime?
+  lastFailureAt DateTime?
+  failureCount  Int       @default(0)
+  latencyMs     Int?
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([provider, league])
+}
+
+model DataConflictLog {
+  id            String   @id @default(cuid())
+  league        String
+  matchKey      String
+  primaryRawRef String?
+  backupRawRef  String?
+  conflictType  String
+  resolution    String
+  createdAt     DateTime @default(now())
 }
 
 // ─── Legacy V1 (used via prisma as any in signals/match routes) ──────────────────

@@ -13,6 +13,9 @@ export interface NormalizedEvent {
     homeTeam: string;
     awayTeam: string;
     startTime: Date;
+    status?: "scheduled" | "live" | "closed" | "postponed" | "cancelled";
+    homeScore?: number;
+    awayScore?: number;
     rawData: any;
 }
 

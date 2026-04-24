@@ -19,14 +19,15 @@ export async function POST(request: Request) {
         console.log("DATABASE_URL presence:", !!process.env.DATABASE_URL);
         console.log("DATABASE_URL prefix:", process.env.DATABASE_URL?.substring(0, 15));
 
-        const providers = ["thesportsdb", "theoddsapi"];
-        const leagues = [
+        // Legacy providers
+        const legacyProviders = ["thesportsdb", "theoddsapi"];
+        const legacyLeagues = [
             { sport: "Football", league: "English Premier League" },
             { sport: "Football", league: "La Liga" }
         ];
 
-        for (const provider of providers) {
-            for (const { sport, league } of leagues) {
+        for (const provider of legacyProviders) {
+            for (const { sport, league } of legacyLeagues) {
                 await prisma.ingestionState.upsert({
                     where: { provider_sport_league: { provider, sport, league } },
                     update: { currentPage: 1, status: "pending" },
@@ -35,7 +36,22 @@ export async function POST(request: Request) {
             }
         }
 
-        return NextResponse.json({ status: "ok", message: "IngestionState initialized for Cold Start" });
+        // Unified pipeline providers (ESPN primary / Sportradar backup)
+        const pipelineLeagues = [
+            { sport: "football", league: "EPL" },
+            { sport: "basketball", league: "NBA" },
+            { sport: "baseball", league: "MLB" },
+        ];
+
+        for (const { sport, league } of pipelineLeagues) {
+            await prisma.ingestionState.upsert({
+                where: { provider_sport_league: { provider: "espn", sport, league } },
+                update: { currentPage: 1, status: "pending" },
+                create: { provider: "espn", sport, league, currentPage: 1, status: "pending" }
+            });
+        }
+
+        return NextResponse.json({ status: "ok", message: "IngestionState initialized for Cold Start (legacy + pipeline)" });
     } catch (e: any) {
         return NextResponse.json({ status: "error", message: e.message }, { status: 500 });
     }
