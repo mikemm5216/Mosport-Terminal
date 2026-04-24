@@ -41,9 +41,34 @@ export type DecisionPipelineReport = {
     matchupConfidence: number | null;
   };
 
-  finalConfidence: number;
+  worldState: {
+    teamState: "stable" | "under_pressure" | "collapsing";
+    currentWinChance: number;
+    ifNoChangeWinChance: number;
+    ifAdjustedWinChance: number;
+    primaryRisk: string;
+  };
 
-  recommendation: "ACT" | "WATCH" | "AVOID" | "NO_ACTION";
+  // Coach Mode v1 infers player decisions from team and rotation context.
+  // True player-level actions require PlayerState / LineupState inputs in v2.
+  playerDecisions: Array<{
+    playerId: string;
+    playerName: string;
+    state: "hot" | "neutral" | "fatigued" | "collapse_risk";
+    coachAction: "KEEP_ON" | "FEATURE_MORE" | "REDUCE_MINUTES" | "BENCH";
+    reason: string;
+  }>;
+
+  lineupAction:
+    | "KEEP_LINEUP"
+    | "ADJUST_ROTATION"
+    | "BENCH_PLAYER"
+    | "ATTACK_MISMATCH";
+
+  finalConfidence: number;
+  decisionMode: "ATTACK" | "ADJUST" | "KEEP" | "BENCH";
+  reason: string[];
+  coachInsight: string;
 
   diagnostics: {
     confidenceBeforeAdjustment: number;

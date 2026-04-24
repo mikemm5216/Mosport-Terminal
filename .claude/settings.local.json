@@ -59,7 +59,10 @@
       "Bash(DATABASE_URL=\"postgresql://dummy:dummy@localhost:5432/dummy\" npx prisma generate)",
       "Bash(railway *)",
       "Bash(DATABASE_URL=\"postgresql://postgres:QHQSOtgzgDgQooXenYOARtYVPOlfRNoV@shuttle.proxy.rlwy.net:41052/railway\" npx prisma *.)",
-      "Bash(DATABASE_URL=\"postgresql://postgres:QHQSOtgzgDgQooXenYOARtYVPOlfRNoV@shuttle.proxy.rlwy.net:41052/railway\" npx prisma *)"
+      "Bash(DATABASE_URL=\"postgresql://postgres:QHQSOtgzgDgQooXenYOARtYVPOlfRNoV@shuttle.proxy.rlwy.net:41052/railway\" npx prisma *)",
+      "Bash(npx tsx *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)"
     ]
   }
 }
