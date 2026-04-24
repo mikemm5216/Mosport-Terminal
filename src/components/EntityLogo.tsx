@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { ENTITY_REGISTRY } from "../config/entityRegistry";
-import { getTeamLogo, TEAM_LOGO_FALLBACK } from "../config/teamLogos";
+import { getTeamLogo, TEAM_LOGO_FALLBACK } from "../../lib/teamLogoResolver";
 
 function resolveLeague(entityHash: string, internalCode: string): string {
     if (entityHash.includes("MLB")) return "MLB";

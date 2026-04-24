@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { prisma } from '@/lib/prisma';
 import Image from 'next/image';
-import { getTeamLogo } from '@/src/config/teamLogos';
+import { getTeamLogo } from '@/lib/teamLogoResolver';
 
 export default async function WarRoomPage({ params }: { params: Promise<{ id: string }> }) {
    const { id } = await params;

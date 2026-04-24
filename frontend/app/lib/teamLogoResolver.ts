@@ -1,10 +1,10 @@
-import type { LeagueCode } from '../contracts/product'
+import type { League } from '../data/mockData'
 import { toCanonicalTeamKey } from '../config/teamCodeNormalization'
 import { TEAM_LOGOS } from '../config/teamLogos'
 
-const FALLBACK_LOGO = '/logos/fallback.png'
+export const TEAM_LOGO_FALLBACK = '/logos/fallback.png'
 
-export function getTeamLogo(league: LeagueCode, rawCode: string): string {
+export function getTeamLogo(league: League, rawCode: string): string {
   const key = toCanonicalTeamKey(league, rawCode)
   const direct = TEAM_LOGOS[key]
   if (direct) return direct
@@ -13,5 +13,5 @@ export function getTeamLogo(league: LeagueCode, rawCode: string): string {
     console.warn(`[logos] Missing canonical logo map for ${key}; using fallback logo.`)
   }
 
-  return FALLBACK_LOGO
+  return TEAM_LOGO_FALLBACK
 }

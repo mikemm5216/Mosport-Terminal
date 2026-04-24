@@ -2,7 +2,7 @@
 
 import type { League, TacticalLabel } from '../data/mockData'
 import { LEAGUE_THEMES, TEAM_COLORS } from '../data/mockData'
-import { getTeamLogo, TEAM_LOGO_FALLBACK } from '@/src/config/teamLogos'
+import { getTeamLogo, TEAM_LOGO_FALLBACK } from '../lib/teamLogoResolver'
 
 // ── League theme helper ────────────────────────────────────────
 export function leagueTheme(league: League) {

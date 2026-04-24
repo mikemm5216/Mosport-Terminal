@@ -2,11 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { League } from '../data/mockData'
-<<<<<<< HEAD
-import { getTeamLogo } from '@/src/config/teamLogos'
-=======
-import { getTeamLogo } from '../lib/teamLogoResolver'
->>>>>>> 9a1b421308fb6ace776dc2a75798030b64d33037
+import { getTeamLogo, TEAM_LOGO_FALLBACK } from '../lib/teamLogoResolver'
 
 interface Props {
   teamAbbr: string
@@ -17,12 +13,13 @@ interface Props {
 
 export default function TeamLogo({ teamAbbr, league, size, accentColor }: Props) {
   const [error, setError] = useState(false)
+  const src = getTeamLogo(league, teamAbbr)
 
   useEffect(() => {
     setError(false)
   }, [teamAbbr, league])
 
-  if (error) {
+  if (error || src === TEAM_LOGO_FALLBACK) {
     return (
       <div style={{
         width: size, height: size, borderRadius: 6,
@@ -45,7 +42,7 @@ export default function TeamLogo({ teamAbbr, league, size, accentColor }: Props)
   return (
     <div style={{ width: size, height: size, flexShrink: 0, position: 'relative' }}>
       <img
-        src={getTeamLogo(league, teamAbbr)}
+        src={src}
         alt={teamAbbr}
         onError={() => setError(true)}
         style={{

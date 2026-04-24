@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 import { ENTITY_REGISTRY } from "@/src/config/entityRegistry";
-import { getTeamLogo, normalizeTeamCode } from "@/src/config/teamLogos";
+import { getTeamLogo, normalizeTeamCode } from "@/lib/teamLogoResolver";
 
 function getHashByCode(internalCode: string) {
   for (const [hash, entity] of Object.entries(ENTITY_REGISTRY)) {
