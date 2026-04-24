@@ -1,31 +1,51 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
+function timingSafeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    // Pad to same length so timingSafeEqual runs, then return false
+    crypto.timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
 export async function POST(req: Request) {
+  const secret = req.headers.get("x-ingest-secret") ?? "";
+
+  if (!process.env.INGEST_SECRET) {
+    return NextResponse.json({ error: "INGEST_SECRET is not configured" }, { status: 500 });
+  }
+
+  if (!timingSafeEqual(secret, process.env.INGEST_SECRET)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const secret = req.headers.get("x-ingest-secret");
+    const { DataIngestionAgent } = await import(
+      "@/lib/agents/data-ingestion/DataIngestionAgent"
+    );
 
-    if (!process.env.INGEST_SECRET) {
-      return NextResponse.json({ error: "INGEST_SECRET is not configured" }, { status: 500 });
-    }
+    const agent = new DataIngestionAgent();
 
-    if (!secret || secret !== process.env.INGEST_SECRET) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const report = await agent.run({
+      mode: "hot",
+      leagues: ["MLB", "NBA", "EPL"],
+      date: new Date().toISOString().slice(0, 10),
+    });
 
-    // Dynamic import to prevent Prisma initialization during build phase
-    const { ingestHotData } = await import("@/lib/ingest/hotIngest");
-    const result = await ingestHotData();
-
-    return NextResponse.json(result);
-  } catch (err: any) {
-    console.error("[hot ingest] failed", err);
-    return NextResponse.json({ 
-      status: "error", 
-      message: err instanceof Error ? err.message : "Unknown error" 
-    }, { status: 500 });
+    return NextResponse.json(report);
+  } catch (err) {
+    console.error("[DataIngestionAgent] hot run failed", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unknown error" },
+      { status: 500 },
+    );
   }
 }
