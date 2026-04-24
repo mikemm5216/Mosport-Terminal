@@ -5,15 +5,24 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
+function getFreshness(lastUpdatedAt: string | null): "live" | "recent" | "stale" | "offline" {
+  if (!lastUpdatedAt) return "offline";
+
+  const ageMs = Date.now() - new Date(lastUpdatedAt).getTime();
+  const ageMin = ageMs / 1000 / 60;
+
+  if (ageMin <= 5) return "live";
+  if (ageMin <= 30) return "recent";
+  if (ageMin <= 180) return "stale";
+  return "offline";
+}
+
 export async function GET(req: Request) {
   try {
     const prismaRead = getPrismaRead();
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "100", 10);
 
-    // Fetch matches directly using the read-only client
-    // We use raw query or findMany based on the actual schema requirements
-    // For V2 decision flow, we prioritize recent matches (+/- 24h)
     const matches = await prismaRead.match.findMany({
       where: {
         match_date: {
@@ -30,23 +39,43 @@ export async function GET(req: Request) {
       },
     });
 
+    const latestUpdatedAt = matches
+      .map((m) => m.sourceUpdatedAt || m.updatedAt)
+      .filter(Boolean)
+      .sort((a, b) => b!.getTime() - a!.getTime())[0] ?? null;
+
+    const freshness = getFreshness(latestUpdatedAt?.toISOString() ?? null);
+
     return NextResponse.json({
       success: true,
       status: "ok",
-      upcoming: matches || [],
-      matches: matches || []
+      data: matches,
+      upcoming: matches, // Keep for legacy compatibility
+      matches: matches,  // Keep for legacy compatibility
+      meta: {
+        lastUpdatedAt: latestUpdatedAt?.toISOString() ?? null,
+        dataFreshness: freshness,
+        sourceProvider: matches[0]?.sourceProvider || "unknown",
+        fallbackUsed: matches.some(m => m.sourceProvider === "sportradar"),
+        matchCount: matches.length
+      }
     });
 
   } catch (error: any) {
-    console.error("[api/matches] build-time or runtime failure:", error);
+    console.error("[api/matches] failed", error);
 
-    // Fallback response to prevent build crash
     return NextResponse.json({
       success: false,
       status: "error",
       message: "Failed to load matches",
-      upcoming: [],
-      matches: []
+      data: [],
+      meta: {
+          lastUpdatedAt: null,
+          dataFreshness: "offline",
+          sourceProvider: "unknown",
+          fallbackUsed: false,
+          matchCount: 0
+      }
     }, { status: 500 });
   }
 }

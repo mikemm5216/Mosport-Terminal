@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Menu, X, Shield, Activity, TrendingUp, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { StatusHeader } from './StatusHeader';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -30,7 +31,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     </div>
                 </div>
                 <div className="hidden md:flex items-center gap-6 text-[10px] font-black uppercase tracking-widest">
-                    <span className="text-primary-container glow-text animate-pulse">System Active</span>
+                    <StatusHeader />
                     <span className="text-slate-600">Secure Node: 0x4A2B</span>
                 </div>
             </nav>
