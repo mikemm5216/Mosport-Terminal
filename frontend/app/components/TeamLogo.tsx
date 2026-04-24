@@ -2,15 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { League } from '../data/mockData'
-
-const ABBR_OVERRIDES: Record<string, string> = {
-  SF: "sfg",   // MLB San Francisco Giants
-}
-
-function logoSrc(teamAbbr: string, league: League): string {
-  const abbr = (ABBR_OVERRIDES[teamAbbr] || teamAbbr).toLowerCase()
-  return `/logos/${league.toLowerCase()}/${abbr}.png`
-}
+import { getTeamLogo } from '@/src/config/teamLogos'
 
 interface Props {
   teamAbbr: string
@@ -49,7 +41,7 @@ export default function TeamLogo({ teamAbbr, league, size, accentColor }: Props)
   return (
     <div style={{ width: size, height: size, flexShrink: 0, position: "relative" }}>
       <img
-        src={logoSrc(teamAbbr, league)}
+        src={getTeamLogo(league, teamAbbr)}
         alt={teamAbbr}
         onError={() => setError(true)}
         style={{

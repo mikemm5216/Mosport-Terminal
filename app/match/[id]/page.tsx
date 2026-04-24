@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { prisma } from '@/lib/prisma';
 import Image from 'next/image';
+import { getTeamLogo } from '@/src/config/teamLogos';
 
 export default async function WarRoomPage({ params }: { params: Promise<{ id: string }> }) {
    const { id } = await params;
@@ -26,6 +27,8 @@ export default async function WarRoomPage({ params }: { params: Promise<{ id: st
 
    const homeLeague = homeTeam?.sport_code?.toUpperCase() || 'NBA';
    const awayLeague = awayTeam?.sport_code?.toUpperCase() || 'NBA';
+   const homeLogo = getTeamLogo(homeLeague, homeTeam?.team_code);
+   const awayLogo = getTeamLogo(awayLeague, awayTeam?.team_code);
 
    // Retrieve Quant Data
    const [homeLogs, awayLogs] = await Promise.all([
@@ -62,10 +65,9 @@ export default async function WarRoomPage({ params }: { params: Promise<{ id: st
             <div className="flex flex-col items-center flex-1 max-w-[30%]">
                <div className="relative w-32 h-32 md:w-48 md:h-48 mb-4 flex items-center justify-center">
                   <img
-                     src={`/logos/${homeLeague}_${homeTeam?.team_code?.toLowerCase()}.png`}
+                     src={homeLogo}
                      alt={match.homeTeamName}
                      className="max-w-full max-h-full object-contain"
-                     onError={(e) => { e.currentTarget.src = '/logos/placeholder.png' }}
                   />
                </div>
                <div className="text-2xl md:text-3xl font-black text-white text-center">{match.homeTeamName}</div>
@@ -80,10 +82,9 @@ export default async function WarRoomPage({ params }: { params: Promise<{ id: st
             <div className="flex flex-col items-center flex-1 max-w-[30%]">
                <div className="relative w-32 h-32 md:w-48 md:h-48 mb-4 flex items-center justify-center">
                   <img
-                     src={`/logos/${awayLeague}_${awayTeam?.team_code?.toLowerCase()}.png`}
+                     src={awayLogo}
                      alt={match.awayTeamName}
                      className="max-w-full max-h-full object-contain"
-                     onError={(e) => { e.currentTarget.src = '/logos/placeholder.png' }}
                   />
                </div>
                <div className="text-2xl md:text-3xl font-black text-white text-center">{match.awayTeamName}</div>

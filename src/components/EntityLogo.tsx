@@ -1,9 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ENTITY_REGISTRY } from "../config/entityRegistry";
+import { useEffect, useState } from "react";
 
-export default function EntityLogo({ entityHash, className = "" }: { entityHash: string, className?: string }) {
+import { ENTITY_REGISTRY } from "../config/entityRegistry";
+import { getTeamLogo, TEAM_LOGO_FALLBACK } from "../config/teamLogos";
+
+function resolveLeague(entityHash: string, internalCode: string): string {
+    if (entityHash.includes("MLB")) return "MLB";
+    if (entityHash.includes("NBA")) return "NBA";
+    if (entityHash.includes("EPL")) return "EPL";
+    if (entityHash.includes("UCL")) return "UCL";
+    if (entityHash.includes("NHL")) return "NHL";
+
+    const sportCode = internalCode.split("_")[0];
+    if (sportCode === "01") return "MLB";
+    if (sportCode === "02") return "EPL";
+    if (sportCode === "03") return "NBA";
+
+    return "UNKNOWN";
+}
+
+export default function EntityLogo({ entityHash, className = "" }: { entityHash: string; className?: string }) {
     const [imgError, setImgError] = useState(false);
 
     useEffect(() => {
@@ -12,10 +29,10 @@ export default function EntityLogo({ entityHash, className = "" }: { entityHash:
 
     const entity = ENTITY_REGISTRY[entityHash];
 
-    // 1. 字典裡沒有這隊：顯示低調方塊
-    if (!entity) return <div className={`flex items-center justify-center bg-[#020617] text-[#00eefc] border border-[#00eefc]/30 rounded ${className}`}>N/A</div>;
+    if (!entity) {
+        return <div className={`flex items-center justify-center bg-[#020617] text-[#00eefc] border border-[#00eefc]/30 rounded ${className}`}>N/A</div>;
+    }
 
-    // 2. 圖片讀取失敗 (404)：物理移除 <img>，啟動賽博龐克發光文字裝甲
     if (imgError) {
         return (
             <div className={`flex items-center justify-center font-black text-[#00eefc] drop-shadow-[0_0_8px_rgba(0,238,252,0.8)] border border-[#00eefc]/20 bg-[#0f172a] rounded overflow-hidden ${className}`}>
@@ -24,35 +41,16 @@ export default function EntityLogo({ entityHash, className = "" }: { entityHash:
         );
     }
 
-    // 3. 全球賽事智慧路由 (Global Matrix Routing)
-    const sportCode = entity.internalCode.split("_")[0];
-    const shortNameLower = entity.shortName.toLowerCase();
-    let folder = "fallback";
+    const imgSrc = getTeamLogo(resolveLeague(entityHash, entity.internalCode), entity.shortName);
 
-    if (sportCode === "01") {
-        if (entityHash.includes("MLB")) folder = "mlb";
-        else if (entityHash.includes("NPB")) folder = "npb";
-        else if (entityHash.includes("CPB")) folder = "cpbl";
-        else folder = "mlb";
-    } else if (sportCode === "02") {
-        if (entityHash.includes("EPL")) folder = "epl";
-        else if (entityHash.includes("ESP")) folder = "esp";
-        else if (entityHash.includes("ITA")) folder = "ita";
-        else if (entityHash.includes("GER")) folder = "ger";
-        else if (entityHash.includes("FRA")) folder = "fra";
-        else folder = "epl";
-    } else if (sportCode === "03") {
-        if (entityHash.includes("NBA")) folder = "nba";
-        else if (entityHash.includes("TPB")) folder = "tpbl";
-        else if (entityHash.includes("BLG")) folder = "bleague";
-        else folder = "nba";
+    if (imgSrc === TEAM_LOGO_FALLBACK) {
+        return (
+            <div className={`flex items-center justify-center font-black text-[#00eefc] drop-shadow-[0_0_8px_rgba(0,238,252,0.8)] border border-[#00eefc]/20 bg-[#0f172a] rounded overflow-hidden ${className}`}>
+                <span className="text-[10px] md:text-sm font-black px-1">{entity.shortName}</span>
+            </div>
+        );
     }
 
-    // 🔥 關鍵修復：從字典裡抓真正的檔名
-    const fileName = entity?.shortName?.toLowerCase() || entityHash?.toLowerCase();
-    const imgSrc = `/logos/${folder}/${fileName}.png`;
-
-    /// 4. 正常渲染 (加入純白微光陰影，拯救黑色 Logo)
     return (
         <img
             src={imgSrc}

@@ -1,40 +1,51 @@
+import { getCanonicalTeamLogoKey, normalizeTeamCode } from "./teamCodeNormalization";
+
+export const TEAM_LOGO_FALLBACK =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">' +
+      '<rect width="96" height="96" rx="14" fill="#0f172a"/>' +
+      '<rect x="4" y="4" width="88" height="88" rx="10" fill="none" stroke="#334155"/>' +
+      '<text x="48" y="56" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="18" text-anchor="middle">N/A</text>' +
+    "</svg>",
+  );
+
 export const TEAM_LOGOS: Record<string, string> = {
-  // MLB
-  MLB_NYY: "/logos/mlb/nyy.png",
-  MLB_BOS: "/logos/mlb/bos.png",
-  MLB_LAD: "/logos/mlb/lad.png",
-  MLB_PHI: "/logos/mlb/phi.png",
-  MLB_STL: "/logos/mlb/stl.png",
-  MLB_TEX: "/logos/mlb/tex.png",
-  MLB_MIA: "/logos/mlb/mia.png",
-  MLB_MIL: "/logos/mlb/mil.png",
-  MLB_MIN: "/logos/mlb/min.png",
-  MLB_NYM: "/logos/mlb/nym.png",
-  MLB_PIT: "/logos/mlb/pit.png",
-  MLB_SD:  "/logos/mlb/sd.png",
-  MLB_SF:  "/logos/mlb/sf.png",
-  MLB_SEA: "/logos/mlb/sea.png",
   MLB_ARI: "/logos/mlb/ari.png",
+  MLB_ATH: "/logos/mlb/ath.png",
   MLB_ATL: "/logos/mlb/atl.png",
   MLB_BAL: "/logos/mlb/bal.png",
+  MLB_BOS: "/logos/mlb/bos.png",
   MLB_CHC: "/logos/mlb/chc.png",
-  MLB_CWS: "/logos/mlb/cws.png",
+  MLB_CHW: "/logos/mlb/chw.png",
   MLB_CIN: "/logos/mlb/cin.png",
   MLB_CLE: "/logos/mlb/cle.png",
   MLB_COL: "/logos/mlb/col.png",
   MLB_DET: "/logos/mlb/det.png",
   MLB_HOU: "/logos/mlb/hou.png",
-  MLB_KC:  "/logos/mlb/kc.png",
+  MLB_KCR: "/logos/mlb/kc.png",
   MLB_LAA: "/logos/mlb/laa.png",
+  MLB_LAD: "/logos/mlb/lad.png",
+  MLB_MIA: "/logos/mlb/mia.png",
+  MLB_MIL: "/logos/mlb/mil.png",
+  MLB_MIN: "/logos/mlb/min.png",
+  MLB_NYM: "/logos/mlb/nym.png",
+  MLB_NYY: "/logos/mlb/nyy.png",
   MLB_OAK: "/logos/mlb/oak.png",
-  MLB_TB:  "/logos/mlb/tb.png",
+  MLB_PHI: "/logos/mlb/phi.png",
+  MLB_PIT: "/logos/mlb/pit.png",
+  MLB_SDP: "/logos/mlb/sd.png",
+  MLB_SEA: "/logos/mlb/sea.png",
+  MLB_SFG: "/logos/mlb/sf.png",
+  MLB_STL: "/logos/mlb/stl.png",
+  MLB_TBR: "/logos/mlb/tb.png",
+  MLB_TEX: "/logos/mlb/tex.png",
   MLB_TOR: "/logos/mlb/tor.png",
-  MLB_WAS: "/logos/mlb/was.png",
+  MLB_WSH: "/logos/mlb/wsh.png",
 
-  // NBA
   NBA_ATL: "/logos/nba/atl.png",
-  NBA_BOS: "/logos/nba/bos.png",
   NBA_BKN: "/logos/nba/bkn.png",
+  NBA_BOS: "/logos/nba/bos.png",
   NBA_CHA: "/logos/nba/cha.png",
   NBA_CHI: "/logos/nba/chi.png",
   NBA_CLE: "/logos/nba/cle.png",
@@ -63,7 +74,6 @@ export const TEAM_LOGOS: Record<string, string> = {
   NBA_UTA: "/logos/nba/uta.png",
   NBA_WAS: "/logos/nba/was.png",
 
-  // EPL
   EPL_ARS: "/logos/epl/ars.png",
   EPL_AVL: "/logos/epl/avl.png",
   EPL_BHA: "/logos/epl/bha.png",
@@ -83,8 +93,37 @@ export const TEAM_LOGOS: Record<string, string> = {
   EPL_NEW: "/logos/epl/new.png",
   EPL_NFO: "/logos/epl/nfo.png",
   EPL_SOU: "/logos/epl/sou.png",
-  EPL_SUN: "/logos/epl/sun.png",
   EPL_TOT: "/logos/epl/tot.png",
   EPL_WHU: "/logos/epl/whu.png",
   EPL_WOL: "/logos/epl/wol.png",
 };
+
+export function getTeamLogo(league: string, rawCode: string | null | undefined): string {
+  const safeLeague = league?.trim().toUpperCase();
+  const safeRawCode = rawCode?.trim();
+
+  if (!safeLeague || !safeRawCode) {
+    const normalizedCode = safeRawCode ? normalizeTeamCode(safeLeague ?? "UNKNOWN", safeRawCode) : "";
+    const canonicalKey = safeLeague && safeRawCode ? getCanonicalTeamLogoKey(safeLeague, safeRawCode) : "";
+    console.warn("[logo-missing]", {
+      league: safeLeague ?? league ?? "",
+      rawCode: safeRawCode ?? rawCode ?? "",
+      normalizedCode,
+      canonicalKey,
+    });
+    return TEAM_LOGO_FALLBACK;
+  }
+
+  const normalizedCode = normalizeTeamCode(safeLeague, safeRawCode);
+  const canonicalKey = getCanonicalTeamLogoKey(safeLeague, safeRawCode);
+  const logoPath = TEAM_LOGOS[canonicalKey];
+
+  if (logoPath) {
+    return logoPath;
+  }
+
+  console.warn("[logo-missing]", { league: safeLeague, rawCode: safeRawCode, normalizedCode, canonicalKey });
+  return TEAM_LOGO_FALLBACK;
+}
+
+export { getCanonicalTeamLogoKey, normalizeTeamCode };

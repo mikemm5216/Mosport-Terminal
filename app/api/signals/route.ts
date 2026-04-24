@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 import { ENTITY_REGISTRY } from "@/src/config/entityRegistry";
+import { getTeamLogo, normalizeTeamCode } from "@/src/config/teamLogos";
 
 function getHashByCode(internalCode: string) {
   for (const [hash, entity] of Object.entries(ENTITY_REGISTRY)) {
@@ -13,15 +14,6 @@ function getHashByCode(internalCode: string) {
 }
 
 export const dynamic = 'force-dynamic';
-
-function normalizeTeamId(raw: string, leaguePrefix: string): string {
-  if (raw === "NY") return leaguePrefix === "NBA" ? "NYK" : "NYY";
-  const map: Record<string, string> = {
-    NO: "NOP", GS: "GSW", SA: "SAS",
-    WSH: "WAS", UTAH: "UTA", PHX: "PHX", CLE: "CLE", KC: "KC",
-  };
-  return map[raw] ?? raw;
-}
 
 const LEAGUES = [
   { sport: "basketball", league: "nba", prefix: "NBA", espnUrl: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard" },
@@ -42,14 +34,6 @@ async function processLeague(
   const espnData = await res.json();
   const events: any[] = espnData.events || [];
 
-  // Fetch context nodes to build a local lookup dictionary for logo stability
-  const contexts = await (prisma as any).context.findMany({
-    where: { weight_level: 'TEAM' },
-    select: { internal_code: true, team_code: true }
-  });
-  const localContextDict: Record<string, string> = {};
-  contexts.forEach((c: any) => { localContextDict[c.internal_code] = c.team_code; });
-
   const results = await Promise.all(events.map(async (event: any) => {
     try {
       const matchId = `${leagueDef.prefix}-${event.id}`;
@@ -61,8 +45,8 @@ async function processLeague(
       const hComp = comp?.competitors?.find((c: any) => c.homeAway === "home");
       const aComp = comp?.competitors?.find((c: any) => c.homeAway === "away");
 
-      const hRaw = normalizeTeamId(hComp?.team?.abbreviation || "TBD", leagueDef.prefix);
-      const aRaw = normalizeTeamId(aComp?.team?.abbreviation || "TBD", leagueDef.prefix);
+      const hRaw = normalizeTeamCode(leagueDef.prefix, hComp?.team?.abbreviation || "TBD");
+      const aRaw = normalizeTeamCode(leagueDef.prefix, aComp?.team?.abbreviation || "TBD");
       const hTeamId = `${leagueDef.prefix}_${hRaw}`;
       const aTeamId = `${leagueDef.prefix}_${aRaw}`;
 
@@ -102,8 +86,8 @@ async function processLeague(
       return {
         match_id: matchId, sport: leagueDef.sport, league: leagueDef.prefix,
         start_time: event.date, status: systemStatus,
-        home_team: { short_name: hTeamId, logo_url: `/logos/${leagueDef.league}_${(localContextDict[hTeamId] || hRaw).toLowerCase()}.png` },
-        away_team: { short_name: aTeamId, logo_url: `/logos/${leagueDef.league}_${(localContextDict[aTeamId] || aRaw).toLowerCase()}.png` },
+        home_team: { short_name: hTeamId, logo_url: getTeamLogo(leagueDef.prefix, hRaw) },
+        away_team: { short_name: aTeamId, logo_url: getTeamLogo(leagueDef.prefix, aRaw) },
         home_score: parseInt(hComp?.score || "0", 10),
         away_score: parseInt(aComp?.score || "0", 10),
         win_probabilities: { home_win_prob: homeWinProb, away_win_prob: awayWinProb },
@@ -147,7 +131,7 @@ export async function GET() {
         league: c.sport_code === 'NBA' ? 'NBA' : c.sport_code === 'MLB' ? 'MLB' : 'EPL',
         start_time: latestLog?.timestamp || new Date(),
         status: 'LIVE_FEED',
-        home_team: { short_name: c.team_code, logo_url: '' },
+        home_team: { short_name: c.team_code, logo_url: getTeamLogo(c.sport_code, c.team_code) },
         away_team: { short_name: 'OPPONENT', logo_url: '' },
         home_team_hash: entityHash,
         away_team_hash: 'UNKNOWN',

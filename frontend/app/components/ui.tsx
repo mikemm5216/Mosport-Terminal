@@ -2,6 +2,7 @@
 
 import type { League, TacticalLabel } from '../data/mockData'
 import { LEAGUE_THEMES, TEAM_COLORS } from '../data/mockData'
+import { getTeamLogo, TEAM_LOGO_FALLBACK } from '@/src/config/teamLogos'
 
 // ── League theme helper ────────────────────────────────────────
 export function leagueTheme(league: League) {
@@ -60,9 +61,9 @@ function logoPath(league: League | undefined, abbr: string): string | null {
 // ── Team mark (real logo or monogram tile) ─────────────────────
 export function TeamMark({ abbr, league, size = 48 }: { abbr: string; league?: League; size?: number }) {
   const color = teamColor(abbr)
-  const src = logoPath(league, abbr)
+  const src = league ? getTeamLogo(league, abbr) : null
 
-  if (src) {
+  if (src && src !== TEAM_LOGO_FALLBACK) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img

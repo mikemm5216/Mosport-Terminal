@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 import { ENTITY_REGISTRY } from "@/src/config/entityRegistry";
+import { getTeamLogo, normalizeTeamCode } from "@/src/config/teamLogos";
 
 function getHashByCode(internalCode: string) {
     for (const [hash, entity] of Object.entries(ENTITY_REGISTRY)) {
@@ -38,10 +39,12 @@ function resolveRouter(id: string) {
 }
 
 // ─── Team ID normalization ─────────────────────────────────────────────────────
-const ESPN_MAP: Record<string, string> = {
-    NO: "NOP", GS: "GSW", NY: "NYK", SA: "SAS", WSH: "WAS", UTAH: "UTA",
-};
-function normalizeId(raw: string) { return ESPN_MAP[raw] ?? raw; }
+function resolveLeaguePrefix(id: string): string {
+    if (id.startsWith("MLB-")) return "MLB";
+    if (id.startsWith("EPL-")) return "EPL";
+    if (id.startsWith("UCL-")) return "UCL";
+    return "NBA";
+}
 
 // ─── Sport-aware key player extraction ────────────────────────────────────────
 function extractKeyPlayer(espnData: any, teamAbbr: string, sport: string) {
@@ -49,7 +52,7 @@ function extractKeyPlayer(espnData: any, teamAbbr: string, sport: string) {
         // NBA: boxscore.players → statistics[0].athletes[0]
         const boxscore = espnData.boxscore?.players;
         const box = boxscore?.find((b: any) =>
-            b.team?.abbreviation === teamAbbr || b.team?.abbreviation === ESPN_MAP[teamAbbr]
+            normalizeTeamCode("NBA", b.team?.abbreviation || "") === normalizeTeamCode("NBA", teamAbbr || "")
         );
         return box?.statistics?.[0]?.athletes?.[0]?.athlete ?? null;
     }
@@ -58,7 +61,7 @@ function extractKeyPlayer(espnData: any, teamAbbr: string, sport: string) {
         // Soccer: rosters array with team.abbreviation
         const rosters = espnData.rosters;
         const roster = rosters?.find((r: any) =>
-            r.team?.abbreviation === teamAbbr || r.team?.abbreviation === ESPN_MAP[teamAbbr]
+            normalizeTeamCode("EPL", r.team?.abbreviation || "") === normalizeTeamCode("EPL", teamAbbr || "")
         );
         // Pick first starter (formation position 1)
         const starters = roster?.roster?.filter((p: any) => p.starter) ?? [];
@@ -69,7 +72,7 @@ function extractKeyPlayer(espnData: any, teamAbbr: string, sport: string) {
         // MLB: boxscore.teams → team.abbreviation → batting leaders
         const teams = espnData.boxscore?.teams;
         const team = teams?.find((t: any) =>
-            t.team?.abbreviation === teamAbbr || t.team?.abbreviation === ESPN_MAP[teamAbbr]
+            normalizeTeamCode("MLB", t.team?.abbreviation || "") === normalizeTeamCode("MLB", teamAbbr || "")
         );
         return team?.statistics?.[0]?.athletes?.[0]?.athlete ?? null;
     }
@@ -105,8 +108,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
         const homeScore = parseInt(homeCompetitor?.score || "0", 10);
         const awayScore = parseInt(awayCompetitor?.score || "0", 10);
 
-        const hTeamId = normalizeId(homeTeam?.abbreviation || "TBD");
-        const aTeamId = normalizeId(awayTeam?.abbreviation || "TBD");
+        const leaguePrefix = resolveLeaguePrefix(id);
+        const hTeamId = normalizeTeamCode(leaguePrefix, homeTeam?.abbreviation || "TBD");
+        const aTeamId = normalizeTeamCode(leaguePrefix, awayTeam?.abbreviation || "TBD");
 
         const contexts = await (prisma as any).context.findMany({
             where: { team_code: { in: [hTeamId, aTeamId] } }
@@ -170,8 +174,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
                 league: route.espnLeague,
                 start_time: event.date,
                 status: systemStatus,
-                home_team: { short_name: hTeamId, logo_url: validate(homeTeam?.logos?.[0]?.href || homeTeam?.logo) },
-                away_team: { short_name: aTeamId, logo_url: validate(awayTeam?.logos?.[0]?.href || awayTeam?.logo) },
+                home_team: { short_name: hTeamId, logo_url: getTeamLogo(leaguePrefix, hTeamId) },
+                away_team: { short_name: aTeamId, logo_url: getTeamLogo(leaguePrefix, aTeamId) },
                 home_team_hash,
                 away_team_hash,
                 home_score: homeScore,
