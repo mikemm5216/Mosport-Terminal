@@ -1,19 +1,23 @@
 import { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = globalThis as unknown as {
-  prismaWrite?: PrismaClient;
-};
+let prismaWrite: PrismaClient | null = null;
 
-export const prismaWrite =
-  globalForPrisma.prismaWrite ??
-  new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_WRITE_URL,
+export function getPrismaWrite() {
+  if (!process.env.DATABASE_WRITE_URL && !process.env.DATABASE_URL) {
+    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+        throw new Error("Missing DATABASE_WRITE_URL or DATABASE_URL");
+    }
+  }
+
+  if (!prismaWrite) {
+    prismaWrite = new PrismaClient({
+      datasources: {
+        db: {
+          url: process.env.DATABASE_WRITE_URL ?? process.env.DATABASE_URL,
+        },
       },
-    },
-  });
+    });
+  }
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prismaWrite = prismaWrite;
+  return prismaWrite;
 }

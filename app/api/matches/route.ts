@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prismaRead } from '@/lib/db/read';
+import { getPrismaRead } from '@/lib/db/read';
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -7,6 +7,7 @@ export const runtime = "nodejs";
 
 export async function GET(req: Request) {
   try {
+    const prismaRead = getPrismaRead();
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "100", 10);
 

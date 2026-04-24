@@ -1,19 +1,24 @@
 import { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = globalThis as unknown as {
-  prismaRead?: PrismaClient;
-};
+let prismaRead: PrismaClient | null = null;
 
-export const prismaRead =
-  globalForPrisma.prismaRead ??
-  new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_READ_URL,
+export function getPrismaRead() {
+  if (!process.env.DATABASE_READ_URL && !process.env.DATABASE_URL) {
+    // We only throw if NOT in build time, or handle it gracefully
+    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+        throw new Error("Missing DATABASE_READ_URL or DATABASE_URL");
+    }
+  }
+
+  if (!prismaRead) {
+    prismaRead = new PrismaClient({
+      datasources: {
+        db: {
+          url: process.env.DATABASE_READ_URL ?? process.env.DATABASE_URL,
+        },
       },
-    },
-  });
+    });
+  }
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prismaRead = prismaRead;
+  return prismaRead;
 }

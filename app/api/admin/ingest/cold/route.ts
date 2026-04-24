@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
-import { ingestColdData } from "@/lib/ingest/coldIngest";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const runtime = "nodejs";
 
 export async function GET(req: Request) {
-  // Vercel Cron sends a secret header we can check if needed
-  // CRON_SECRET is automatically injected by Vercel if configured
   const authHeader = req.headers.get('authorization');
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
+    const { ingestColdData } = await import("@/lib/ingest/coldIngest");
     const result = await ingestColdData();
     return NextResponse.json({
       status: "ok",
@@ -17,8 +19,7 @@ export async function GET(req: Request) {
       ...result,
     });
   } catch (err: any) {
+    console.error("[cold ingest] failed", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-
-export const dynamic = "force-dynamic";

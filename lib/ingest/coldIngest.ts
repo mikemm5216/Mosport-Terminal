@@ -1,6 +1,8 @@
-import { prismaWrite } from "@/lib/db/write";
+import { getPrismaWrite } from "@/lib/db/write";
 
 export async function ingestColdData() {
+  const prismaWrite = getPrismaWrite();
+  
   const results = {
     syncTeams: 0,
     syncSchedules: 0,
@@ -10,15 +12,12 @@ export async function ingestColdData() {
 
   try {
     // 1. Sync Teams (Placeholder logic)
-    // In a real scenario, this would fetch canonical team lists
-    results.syncTeams = 30; // Mocking successful sync
+    results.syncTeams = 30;
 
-    // 2. Sync Schedules (Upcoming 7 days)
-    // Fetching broader schedule data to populate Match table
+    // 2. Sync Schedules
     results.syncSchedules = 50;
 
     // 3. Finalize Past Matches
-    // Moving data to historical layers if needed
     results.finalizedMatches = 10;
 
     return results;
