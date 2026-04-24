@@ -2,11 +2,12 @@
 
 import { useWindowWidth } from '../lib/useWindowWidth'
 import {
-  LEAGUE_STANDINGS, TODAY_MATCHES, getKeyPlayers, PLAYER_FORM,
+  LEAGUE_STANDINGS, getKeyPlayers, PLAYER_FORM,
   type League, type Match, type KeyPlayer,
 } from '../data/mockData'
 import { leagueTheme, BioBar, LiveDot } from './ui'
 import TeamLogo from './TeamLogo'
+import { useMatchesContext } from '../context/MatchesContext'
 
 const FLAG_COLOR: Record<string, string> = {
   CLEAR: "#34d399",
@@ -46,13 +47,14 @@ export default function TeamDetailPage({ teamAbbr, league, onBack }: Props) {
   const width = useWindowWidth()
   const isMobile = width < 640
   const t = leagueTheme(league)
+  const { matches: allMatches } = useMatchesContext()
 
   const standings = LEAGUE_STANDINGS[league]
   const teamRec = standings.find(r => r.abbr === teamAbbr)
   const position = standings.findIndex(r => r.abbr === teamAbbr) + 1
   const isPts = league === "EPL"
 
-  const matches = TODAY_MATCHES.filter(m => m.away.abbr === teamAbbr || m.home.abbr === teamAbbr)
+  const matches = allMatches.filter(m => m.away.abbr === teamAbbr || m.home.abbr === teamAbbr)
 
   const playerEntries: { player: KeyPlayer; match: Match }[] = []
   for (const m of matches) {

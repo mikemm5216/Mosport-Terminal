@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useWindowWidth } from '../lib/useWindowWidth'
-import { KEY_PLAYERS, TODAY_MATCHES, PLAYER_FORM, type League, type KeyPlayer, type ReadinessFlag, type Match } from '../data/mockData'
+import { KEY_PLAYERS, PLAYER_FORM, type League, type KeyPlayer, type ReadinessFlag, type Match } from '../data/mockData'
 import { leagueTheme, BioBar, LiveDot } from './ui'
 import TeamLogo from './TeamLogo'
+import { useMatchesContext } from '../context/MatchesContext'
 
 type FilterFlag = "ALL" | ReadinessFlag
 type LeagueFilter = "ALL" | League
@@ -35,7 +36,7 @@ interface TeamGroup {
   players: PlayerRow[]
 }
 
-function buildPlayerRows(): PlayerRow[] {
+function buildPlayerRows(matches: Match[]): PlayerRow[] {
   const rows: PlayerRow[] = []
   for (const [rawKey, players] of Object.entries(KEY_PLAYERS)) {
     const isAway = rawKey.endsWith("_away")
@@ -43,7 +44,7 @@ function buildPlayerRows(): PlayerRow[] {
     if (!isAway && !isHome) continue
     const side = isAway ? "away" : "home"
     const matchId = rawKey.slice(0, -(side.length + 1))
-    const match = TODAY_MATCHES.find(m => m.id === matchId)
+    const match = matches.find(m => m.id === matchId)
     if (!match) continue
     for (const p of players) {
       rows.push({
@@ -60,7 +61,7 @@ function buildPlayerRows(): PlayerRow[] {
   return rows
 }
 
-const ALL_ROWS = buildPlayerRows()
+// ALL_ROWS is now computed inside PlayersPage using live context matches
 
 function groupByLeagueAndTeam(rows: PlayerRow[]): { league: League; teams: TeamGroup[] }[] {
   const leagueOrder = ALL_LEAGUES.filter(l => rows.some(r => r.league === l))
@@ -289,6 +290,8 @@ export default function PlayersPage({ onTeam, onPlayer }: Props) {
   const isMobile = width < 640
   const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>("ALL")
   const [flagFilter, setFlagFilter] = useState<FilterFlag>("ALL")
+  const { matches } = useMatchesContext()
+  const ALL_ROWS = buildPlayerRows(matches)
 
   const filteredRows = ALL_ROWS.filter(r => {
     const leagueOk = leagueFilter === "ALL" || r.league === leagueFilter

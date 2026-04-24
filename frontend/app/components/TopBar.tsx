@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { TODAY_MATCHES } from '../data/mockData'
 import { leagueTheme, LiveDot } from './ui'
 import { useWindowWidth } from '../lib/useWindowWidth'
+import { useMatchesContext } from '../context/MatchesContext'
 
 function GameStatusTicker() {
-  const matches = TODAY_MATCHES
+  const { matches } = useMatchesContext()
   const renderItem = (m: typeof matches[0], key: string | number) => {
     const t = leagueTheme(m.league)
     const isLive = m.status === "LIVE"

@@ -2,13 +2,21 @@
 
 import { useState, useEffect } from 'react'
 import type { Match, League, KeyPlayer } from '../data/mockData'
-import { TODAY_MATCHES, SCHEDULE_BY_DATE, getKeyPlayers } from '../data/mockData'
+import { getKeyPlayers } from '../data/mockData'
 import { leagueTheme, TeamMark, LeagueBadge, wpaColor } from './ui'
 import { useWindowWidth } from '../lib/useWindowWidth'
+import { useMatchesContext } from '../context/MatchesContext'
 
 // ── Date helpers ─────────────────────────────────────────────
-const AVAILABLE_DATES = ["2026-04-21", "2026-04-22", "2026-04-23"]
-const TODAY_DATE = "2026-04-23"
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function getMatchDate(m: Match): string {
+  const parts = m.id.split('_')
+  const last = parts[parts.length - 1]
+  return /^\d{4}-\d{2}-\d{2}$/.test(last) ? last : todayISO()
+}
 const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
 const WEEKDAYS = ["SUN","MON","TUE","WED","THU","FRI","SAT"]
 
@@ -19,15 +27,17 @@ function formatDateLabel(iso: string) {
 }
 
 // ── Date pill ────────────────────────────────────────────────
-function DatePill({ date, onPrev, onNext }: {
+function DatePill({ date, dates, todayDate, onPrev, onNext }: {
   date: string
+  dates: string[]
+  todayDate: string
   onPrev: () => void
   onNext: () => void
 }) {
-  const idx = AVAILABLE_DATES.indexOf(date)
-  const isToday = date === TODAY_DATE
+  const idx = dates.indexOf(date)
+  const isToday = date === todayDate
   const canPrev = idx > 0
-  const canNext = idx < AVAILABLE_DATES.length - 1
+  const canNext = idx < dates.length - 1
 
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -527,34 +537,27 @@ const LEAGUES: Array<"ALL" | League> = ["ALL", "MLB", "NBA", "EPL", "UCL", "NHL"
 export default function SchedulePage({ onOpen, onOpenLab }: { onOpen: (m: Match) => void; onOpenLab?: () => void }) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<"ALL" | League>("ALL")
-  const [selectedDate, setSelectedDate] = useState(TODAY_DATE)
-  const [liveMatches, setLiveMatches] = useState<Match[] | null>(null)
+  const [selectedDate, setSelectedDate] = useState(todayISO())
+  const { matches: allMatches, loading } = useMatchesContext()
   const w = useWindowWidth()
   const isMobile = w < 640
 
-  // Only attempt live fetch for today
-  useEffect(() => {
-    if (selectedDate !== TODAY_DATE) { setLiveMatches(null); return }
-    fetch('/api/games')
-      .then(r => r.json())
-      .then(({ matches: live }: { matches: Match[] }) => {
-        if (live && live.length > 0) setLiveMatches(live)
-      })
-      .catch(() => {})
-  }, [selectedDate])
+  const availableDates = [...new Set(allMatches.map(getMatchDate))].sort()
+  const TODAY_DATE = todayISO()
+  if (availableDates.length && !availableDates.includes(selectedDate)) {
+    // ensure selectedDate is valid when matches load
+  }
 
   function handlePrev() {
-    const idx = AVAILABLE_DATES.indexOf(selectedDate)
-    if (idx > 0) { setSelectedDate(AVAILABLE_DATES[idx - 1]); setExpandedId(null) }
+    const idx = availableDates.indexOf(selectedDate)
+    if (idx > 0) { setSelectedDate(availableDates[idx - 1]); setExpandedId(null) }
   }
   function handleNext() {
-    const idx = AVAILABLE_DATES.indexOf(selectedDate)
-    if (idx < AVAILABLE_DATES.length - 1) { setSelectedDate(AVAILABLE_DATES[idx + 1]); setExpandedId(null) }
+    const idx = availableDates.indexOf(selectedDate)
+    if (idx < availableDates.length - 1) { setSelectedDate(availableDates[idx + 1]); setExpandedId(null) }
   }
 
-  const base = (selectedDate === TODAY_DATE && liveMatches)
-    ? liveMatches
-    : (SCHEDULE_BY_DATE[selectedDate] ?? TODAY_MATCHES)
+  const base = allMatches.filter(m => getMatchDate(m) === selectedDate)
 
   const filtered = filter === "ALL" ? base : base.filter(m => m.league === filter)
 
@@ -581,7 +584,7 @@ export default function SchedulePage({ onOpen, onOpenLab }: { onOpen: (m: Match)
             MOSPORT <span style={{ color: "#22d3ee", fontStyle: "normal" }}>TERMINAL</span>
           </h1>
         </div>
-        <DatePill date={selectedDate} onPrev={handlePrev} onNext={handleNext} />
+        <DatePill date={selectedDate} dates={availableDates} todayDate={TODAY_DATE} onPrev={handlePrev} onNext={handleNext} />
       </div>
 
       {/* Summary strip */}

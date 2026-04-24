@@ -1,8 +1,9 @@
 'use client'
 
 import { useWindowWidth } from '../lib/useWindowWidth'
-import { TODAY_MATCHES, LEAGUE_STANDINGS, type League, type Match, type FormResult } from '../data/mockData'
+import { LEAGUE_STANDINGS, type League, type Match, type FormResult } from '../data/mockData'
 import { leagueTheme, BioBar, LiveDot, TeamMark } from './ui'
+import { useMatchesContext } from '../context/MatchesContext'
 import TeamLogo from './TeamLogo'
 
 const ALL_LEAGUES: League[] = ["MLB", "NBA", "EPL", "UCL", "NHL"]
@@ -103,11 +104,11 @@ function FixtureRow({ m, isLast }: { m: Match; isLast: boolean }) {
   )
 }
 
-function LeagueBlock({ league, isMobile, onTeam, onPlayoffs }: { league: League; isMobile: boolean; onTeam?: (abbr: string, league: League) => void; onPlayoffs?: () => void }) {
+function LeagueBlock({ league, isMobile, matches, onTeam, onPlayoffs }: { league: League; isMobile: boolean; matches: Match[]; onTeam?: (abbr: string, league: League) => void; onPlayoffs?: () => void }) {
   const t = leagueTheme(league)
   const meta = LEAGUE_META[league]
   const standings = LEAGUE_STANDINGS[league]
-  const fixtures = TODAY_MATCHES.filter(m => m.league === league)
+  const fixtures = matches.filter(m => m.league === league)
   const liveCount = fixtures.filter(m => m.status === "LIVE").length
   const isPts = meta.format === "Pts"
 
@@ -245,7 +246,8 @@ interface LeaguesPageProps {
 export default function LeaguesPage({ onTeam }: LeaguesPageProps = {}) {
   const width = useWindowWidth()
   const isMobile = width < 640
-  const liveTotal = TODAY_MATCHES.filter(m => m.status === "LIVE").length
+  const { matches } = useMatchesContext()
+  const liveTotal = matches.filter(m => m.status === "LIVE").length
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "28px 16px 60px" : "44px 28px 80px" }}>
@@ -264,13 +266,13 @@ export default function LeaguesPage({ onTeam }: LeaguesPageProps = {}) {
           </h1>
           <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, color: "#334155", letterSpacing: "0.2em" }}>
             {liveTotal > 0 && <span style={{ color: "#ef4444" }}>● {liveTotal} LIVE · </span>}
-            {TODAY_MATCHES.length} FIXTURES TODAY
+            {matches.length} FIXTURES TODAY
           </div>
         </div>
       </div>
 
       {ALL_LEAGUES.map(league => (
-        <LeagueBlock key={league} league={league} isMobile={isMobile} onTeam={onTeam} />
+        <LeagueBlock key={league} league={league} isMobile={isMobile} matches={matches} onTeam={onTeam} />
       ))}
     </div>
   )

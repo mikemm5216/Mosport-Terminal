@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { Match, League, KeyPlayer } from './data/mockData'
+import { MatchesProvider } from './context/MatchesContext'
 import TopBar from './components/TopBar'
 import SchedulePage from './components/SchedulePage'
 import DetailPage from './components/DetailPage'
@@ -81,6 +82,7 @@ export default function Home() {
     page.screen
 
   return (
+    <MatchesProvider>
     <div style={{ minHeight: "100vh", background: "#020617" }}>
       <TopBar onHome={handleBack} activeTab={activeTab} onTabChange={handleTabChange} />
 
@@ -115,5 +117,6 @@ export default function Home() {
         )}
       </div>
     </div>
+    </MatchesProvider>
   )
 }
