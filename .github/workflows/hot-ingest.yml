@@ -1,0 +1,17 @@
+name: Hot Data Ingestion
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ingest-hot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Mosport ingestion
+        run: |
+          curl -X POST "${{ secrets.MOSPORT_INGEST_URL }}" \
+            -H "x-ingest-secret: ${{ secrets.MOSPORT_INGEST_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail
