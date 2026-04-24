@@ -39,12 +39,14 @@ function main(): void {
     { league: "NBA", rawCode: "LA", expected: "NBA_LAL" },
     { league: "NBA", rawCode: "GS", expected: "NBA_GSW" },
     { league: "MLB", rawCode: "CWS", expected: "MLB_CHW" },
+    { league: "MLB", rawCode: "CHICAGO_WHITE_SOX", expected: "MLB_CHW" },
     { league: "MLB", rawCode: "TB", expected: "MLB_TBR" },
     { league: "MLB", rawCode: "KC", expected: "MLB_KCR" },
     { league: "NHL", rawCode: "LA", expected: "NHL_LAK" },
     { league: "EPL", rawCode: "NOT", expected: "EPL_NFO" },
     { league: "EPL", rawCode: "MAN_UNITED", expected: "EPL_MUN" },
     { league: "UCL", rawCode: "PSG", expected: "UCL_PSG" },
+    { league: "UCL", rawCode: "BAYERN_MUNICH", expected: "UCL_BAY" },
   ];
 
   for (const sample of samples) {
@@ -59,6 +61,7 @@ function main(): void {
 
   const knownRealTeams: Array<{ key: string; league: "MLB" | "NBA" | "EPL" | "NHL" | "UCL"; rawCode: string }> = [
     { key: "MLB_CHW", league: "MLB", rawCode: "CHW" },
+    { key: "MLB_CHW", league: "MLB", rawCode: "CWS" },
     { key: "MLB_SFG", league: "MLB", rawCode: "SF" },
     { key: "MLB_PIT", league: "MLB", rawCode: "PIT" },
     { key: "MLB_TEX", league: "MLB", rawCode: "TEX" },
@@ -74,10 +77,14 @@ function main(): void {
     { key: "EPL_LIV", league: "EPL", rawCode: "LIV" },
     { key: "EPL_MCI", league: "EPL", rawCode: "MCI" },
     { key: "NHL_LAK", league: "NHL", rawCode: "LA" },
+    { key: "NHL_FLA", league: "NHL", rawCode: "FLA" },
+    { key: "NHL_NYR", league: "NHL", rawCode: "NYR" },
     { key: "NHL_COL", league: "NHL", rawCode: "COL" },
     { key: "NHL_BUF", league: "NHL", rawCode: "BUF" },
     { key: "NHL_BOS", league: "NHL", rawCode: "BOS" },
+    { key: "NHL_TBL", league: "NHL", rawCode: "TBL" },
     { key: "UCL_PSG", league: "UCL", rawCode: "PSG" },
+    { key: "UCL_BAY", league: "UCL", rawCode: "BAY" },
     { key: "UCL_MUN", league: "UCL", rawCode: "MUN" },
   ];
 

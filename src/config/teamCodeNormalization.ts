@@ -10,6 +10,7 @@ const MLB_TEAM_CODE_NORMALIZATION: Record<string, string> = {
   CIN: "CIN",
   CLE: "CLE",
   COL: "COL",
+  CHICAGO_WHITE_SOX: "CHW",
   CWS: "CHW",
   DET: "DET",
   HOU: "HOU",
@@ -121,6 +122,11 @@ const TEAM_CODE_NORMALIZATION: Partial<Record<TeamLogoLeague, Record<string, str
     MCI: "MCI",
     ARS: "ARS",
     LIV: "LIV",
+    BAY: "BAY",
+    FCB: "BAY",
+    BAYERN: "BAY",
+    BAYERN_MUNICH: "BAY",
+    "BAYERN_MÜNCHEN": "BAY",
   },
 };
 
