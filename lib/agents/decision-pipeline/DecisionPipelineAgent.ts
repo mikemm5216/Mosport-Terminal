@@ -328,6 +328,59 @@ function deriveTeamState(
   return "STABLE";
 }
 
+function deriveGameNarrative(
+  playerDecisions: DecisionPipelineReport["playerDecisions"],
+  teamState: DecisionPipelineReport["teamState"],
+): NonNullable<DecisionPipelineReport["gameNarrative"]> {
+  let hotCount = 0;
+  let fatiguedCount = 0;
+  let collapseRiskCount = 0;
+
+  for (const player of playerDecisions) {
+    if (player.state === "HOT") hotCount += 1;
+    if (player.state === "FATIGUED") fatiguedCount += 1;
+    if (player.state === "COLLAPSE_RISK") collapseRiskCount += 1;
+  }
+
+  if (teamState === "COLLAPSING") {
+    return {
+      primaryCause: "collapse_chain",
+      secondaryCause: collapseRiskCount > 0 ? "pressure" : "fatigue",
+      description: "Multiple breakdowns are compounding into a full lineup collapse.",
+    };
+  }
+
+  if (fatiguedCount >= 2) {
+    return {
+      primaryCause: "fatigue",
+      secondaryCause: teamState === "UNDER_PRESSURE" ? "pressure" : "rhythm",
+      description: "Backcourt fatigue is slowing the offense and increasing turnover risk.",
+    };
+  }
+
+  if (collapseRiskCount > 0) {
+    return {
+      primaryCause: "pressure",
+      secondaryCause: "rhythm",
+      description: "Defensive pressure is forcing mistakes and disrupting rhythm.",
+    };
+  }
+
+  if (hotCount >= 2) {
+    return {
+      primaryCause: "matchup",
+      secondaryCause: "rhythm",
+      description: "Current matchup advantage is creating consistent scoring chances.",
+    };
+  }
+
+  return {
+    primaryCause: "rhythm",
+    secondaryCause: hotCount > 0 ? "matchup" : undefined,
+    description: "The group is settled into a playable rhythm without needing a major rotation change.",
+  };
+}
+
 export class DecisionPipelineAgent {
   run(input: DecisionPipelineInput): DecisionPipelineReport {
     // 1. Run LiveDecisionAgent
@@ -380,6 +433,7 @@ export class DecisionPipelineAgent {
       playerContext: input.playerContext ?? null,
     });
     const teamState = deriveTeamState(playerDecisions);
+    const gameNarrative = deriveGameNarrative(playerDecisions, teamState);
     const worldState = buildWorldState({
       teamState,
       finalConfidence,
@@ -451,6 +505,7 @@ export class DecisionPipelineAgent {
       decisionMode,
       reason: coachMessage.reason,
       coachInsight: coachMessage.coachInsight,
+      gameNarrative,
 
       diagnostics: {
         confidenceBeforeAdjustment: baseConfidence,

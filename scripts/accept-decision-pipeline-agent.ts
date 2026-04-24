@@ -77,8 +77,10 @@ console.log("DecisionPipelineAgent coach-mode acceptance\n");
   assertEqual("C1: lineupAction", report.lineupAction, "ATTACK_MISMATCH");
   assertEqual("C1: worldState.teamState", report.worldState.teamState, "ADVANTAGE");
   assertEqual("C1: first player state", report.playerDecisions[0]?.state, "HOT");
+  assertEqual("C1: gameNarrative.primaryCause", report.gameNarrative?.primaryCause, "matchup");
   assertNotNull("C1: reason", report.reason);
   assertNotNull("C1: coachInsight", report.coachInsight);
+  assertNotNull("C1: gameNarrative", report.gameNarrative);
   assertIncludes("C1: coachInsight mentions attack mismatch", report.coachInsight, "attack the mismatch");
 }
 
@@ -109,6 +111,7 @@ console.log("DecisionPipelineAgent coach-mode acceptance\n");
   assertEqual("C2: lineupAction", report.lineupAction, "ADJUST_ROTATION");
   assertEqual("C2: worldState.teamState", report.worldState.teamState, "UNDER_PRESSURE");
   assertEqual("C2: first player coachAction", report.playerDecisions[0]?.coachAction, "REDUCE_MINUTES");
+  assertEqual("C2: gameNarrative.primaryCause", report.gameNarrative?.primaryCause, "fatigue");
 }
 
 {
@@ -138,6 +141,7 @@ console.log("DecisionPipelineAgent coach-mode acceptance\n");
   assertEqual("C2b: lineupAction", report.lineupAction, "BENCH_PLAYER");
   assertEqual("C2b: worldState.teamState", report.worldState.teamState, "COLLAPSING");
   assertEqual("C2b: first player state", report.playerDecisions[0]?.state, "COLLAPSE_RISK");
+  assertEqual("C2b: gameNarrative.primaryCause", report.gameNarrative?.primaryCause, "collapse_chain");
 }
 
 {
@@ -316,6 +320,7 @@ console.log("DecisionPipelineAgent coach-mode acceptance\n");
   assertEqual("C3: teamState", report.teamState, "STABLE");
   assertEqual("C3: lineupAction", report.lineupAction, "KEEP_LINEUP");
   assertEqual("C3: worldState.teamState", report.worldState.teamState, "STABLE");
+  assertEqual("C3: gameNarrative.primaryCause", report.gameNarrative?.primaryCause, "rhythm");
 }
 
 {
@@ -383,6 +388,7 @@ console.log("DecisionPipelineAgent coach-mode acceptance\n");
   assertEqual("T1: 2 FATIGUED -> lineupAction", report.lineupAction, "ADJUST_ROTATION");
   assertEqual("T1: player1 state", report.playerDecisions[0]?.state, "FATIGUED");
   assertEqual("T1: player2 state", report.playerDecisions[1]?.state, "FATIGUED");
+  assertEqual("T1: gameNarrative.primaryCause", report.gameNarrative?.primaryCause, "fatigue");
 }
 
 {
@@ -410,6 +416,7 @@ console.log("DecisionPipelineAgent coach-mode acceptance\n");
   assertEqual("T2: 1 COLLAPSE_RISK -> teamState", report.teamState, "UNDER_PRESSURE");
   assertEqual("T2: 1 COLLAPSE_RISK -> lineupAction", report.lineupAction, "ADJUST_ROTATION");
   assertEqual("T2: player1 state", report.playerDecisions[0]?.state, "COLLAPSE_RISK");
+  assertEqual("T2: gameNarrative.primaryCause", report.gameNarrative?.primaryCause, "pressure");
 }
 
 {
@@ -438,6 +445,7 @@ console.log("DecisionPipelineAgent coach-mode acceptance\n");
   assertEqual("T3: 2 COLLAPSE_RISK -> lineupAction", report.lineupAction, "BENCH_PLAYER");
   assertEqual("T3: player1 state", report.playerDecisions[0]?.state, "COLLAPSE_RISK");
   assertEqual("T3: player2 state", report.playerDecisions[1]?.state, "COLLAPSE_RISK");
+  assertEqual("T3: gameNarrative.primaryCause", report.gameNarrative?.primaryCause, "collapse_chain");
   assertIncludes("T3: coachInsight mentions bench", report.coachInsight, "bench");
 }
 
@@ -551,6 +559,7 @@ console.log("DecisionPipelineAgent coach-mode acceptance\n");
   assertNotNull("D: notes array", d.notes);
   assertNotNull("D: reason array", report.reason);
   assertNotNull("D: coachInsight", report.coachInsight);
+  assertNotNull("D: gameNarrative", report.gameNarrative);
   assertEqual("D: agent field", report.agent, "DecisionPipelineAgent");
 }
 

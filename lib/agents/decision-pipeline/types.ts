@@ -4,6 +4,12 @@ import type { SimulationReport } from "../simulation/types";
 import type { PlayerCoachAction, PlayerState } from "./player-state";
 
 export type TeamState = "STABLE" | "UNDER_PRESSURE" | "COLLAPSING" | "ADVANTAGE";
+export type GameNarrativeCause =
+  | "fatigue"
+  | "pressure"
+  | "matchup"
+  | "rhythm"
+  | "collapse_chain";
 
 export type DecisionPipelineInput = {
   match: LiveDecisionAgentInput;
@@ -83,6 +89,11 @@ export type DecisionPipelineReport = {
   decisionMode: "ATTACK" | "ADJUST" | "KEEP" | "BENCH";
   reason: string[];
   coachInsight: string;
+  gameNarrative?: {
+    primaryCause: GameNarrativeCause;
+    secondaryCause?: "fatigue" | "pressure" | "matchup" | "rhythm";
+    description: string;
+  };
 
   diagnostics: {
     confidenceBeforeAdjustment: number;
