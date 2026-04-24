@@ -8,10 +8,9 @@ const ESPN_URLS = [
   "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard",
 ];
 
-// Simple team mapping for ESPN to Canonical
 const TEAM_MAP: Record<string, string> = {
   "GS": "GSW", "NY": "NYK", "NO": "NOP", "SA": "SAS", "UTAH": "UTA", "WSH": "WAS",
-  "LA": "LAD", // Defaulting LA to Dodgers for MLB if ambiguous, logic below handles specific cases
+  "LA": "LAD",
 };
 
 function mapAbbr(abbr: string): string {
@@ -21,21 +20,16 @@ function mapAbbr(abbr: string): string {
 export async function ingestHotData() {
   const prismaWrite = getPrismaWrite();
   
-  // 1. Freshness Guard
   const lastUpdate = await prismaWrite.ingestionState.findFirst({
     where: { sport: "HOT_INGEST", league: "ALL" },
   });
 
   if (lastUpdate && Date.now() - new Date(lastUpdate.lastRunAt).getTime() < MIN_INTERVAL_MS) {
+    console.log("[hot-ingest] skipped due to freshness guard", { lastRun: lastUpdate.lastRunAt });
     return { status: "ok", skipped: true, reason: "freshness_guard", lastRun: lastUpdate.lastRunAt };
   }
 
-  const results = {
-    updated: 0,
-    created: 0,
-    errors: [] as string[],
-    provider: "espn",
-  };
+  const results = { updated: 0, created: 0, errors: [] as string[], provider: "espn" };
 
   try {
     for (const url of ESPN_URLS) {
@@ -56,11 +50,10 @@ export async function ingestHotData() {
           const homeAbbr = mapAbbr(homeTeamData.team?.abbreviation);
           const awayAbbr = mapAbbr(awayTeamData.team?.abbreviation);
           const matchDate = new Date(event.date);
-          const status = event.status?.type?.name; // e.g., STATUS_SCHEDULED, STATUS_IN_PROGRESS, STATUS_FINAL
+          const status = event.status?.type?.name;
           const homeScore = parseInt(homeTeamData.score || "0");
           const awayScore = parseInt(awayTeamData.score || "0");
 
-          // Find existing match or create one (Canonical matching)
           const startTime = new Date(matchDate.getTime() - 12 * 60 * 60 * 1000);
           const endTime = new Date(matchDate.getTime() + 12 * 60 * 60 * 1000);
 
@@ -120,6 +113,13 @@ export async function ingestHotData() {
       create: { provider: "HOT", sport: "HOT_INGEST", league: "ALL", lastRunAt: new Date(), status: "success" },
     });
 
+    console.log("[hot-ingest] result", { 
+      source: results.provider, 
+      fallbackUsed: results.provider !== "espn", 
+      updatedCount: results.updated, 
+      lastUpdatedAt: new Date().toISOString() 
+    });
+
     return {
       status: "ok",
       skipped: false,
@@ -130,6 +130,7 @@ export async function ingestHotData() {
     };
 
   } catch (globalErr: any) {
+    console.error("[hot-ingest] FATAL ERROR:", globalErr);
     return { status: "error", error: globalErr.message };
   }
 }

@@ -12,7 +12,12 @@ export default function MatchExplorer() {
     fetch('/api/matches')
       .then(res => res.json())
       .then(data => {
-        if (data.success) setMatches(data.upcoming);
+        if (data.success && data.data) {
+          setMatches(data.data);
+        } else if (data.success && data.upcoming) {
+          // Backward compatibility for temporary legacy keys
+          setMatches(data.upcoming);
+        }
         setLoading(false);
       });
   }, []);

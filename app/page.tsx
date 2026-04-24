@@ -17,8 +17,8 @@ export default function Home() {
     fetch('/api/matches')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.matches) {
-          setMatches(data.matches);
+        if (data.success) {
+          setMatches(data.data || data.matches || []);
         }
         setLoading(false);
       })
