@@ -18,6 +18,7 @@ function isCanonicalKey(key: string): boolean {
 
 function main(): void {
   const publicDir = path.join(process.cwd(), "public");
+  const frontendPublicDir = path.join(process.cwd(), "frontend", "public");
   const keys = Object.keys(TEAM_LOGOS);
   const bareKeys = keys.filter((key) => !key.includes("_"));
 
@@ -30,6 +31,17 @@ function main(): void {
     const normalizedPath = logoPath.startsWith("/") ? logoPath.slice(1) : logoPath;
     const absolutePath = path.join(publicDir, normalizedPath);
     assert(fs.existsSync(absolutePath), `Missing logo asset for ${canonicalKey}: ${logoPath}`);
+  }
+
+  const frontendMapText = fs.readFileSync(path.join(process.cwd(), "frontend", "app", "config", "teamLogos.ts"), "utf8");
+  const frontendLogoPaths = [...frontendMapText.matchAll(/'([^']+)'/g)]
+    .map((match) => match[1])
+    .filter((value) => value.startsWith("/logos/"));
+
+  for (const logoPath of frontendLogoPaths) {
+    const normalizedPath = logoPath.startsWith("/") ? logoPath.slice(1) : logoPath;
+    const absolutePath = path.join(frontendPublicDir, normalizedPath);
+    assert(fs.existsSync(absolutePath), `Missing frontend logo asset: ${logoPath}`);
   }
 
   const samples: Array<{ league: string; rawCode: string; expected: string }> = [
