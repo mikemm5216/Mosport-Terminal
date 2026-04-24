@@ -1,34 +1,24 @@
-# Python
-.venv/
-__pycache__/
-*.pyc
+# ENV
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.*.local
 
-# Node / Next
+# Keys
+*.pem
+*.key
+*.p12
+*.crt
+
+# DB dumps
+*.sql
+*.sqlite
+*.sqlite3
+
+# Build
 node_modules/
 .next/
 dist/
 build/
-
-# Data / artifacts
-data/
-*.parquet
-*.csv
-*.tsv
-*.pkl
-*.pickle
-*.joblib
-*.onnx
-*.db
-*.sqlite
-*.sqlite3
-
-# Environment secrets — NEVER commit these
-.env
-.env.local
-.env.production
-.env.production.local
-.env.development.local
-
-# Logs / misc
-*.log
-.DS_Store

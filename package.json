@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "security:scan": "tsx scripts/security/scan-secrets.ts",
     "security:token-age": "tsx scripts/security/check-token-age.ts",
-    "security:agent": "tsx -e \"import('./security/agent').then(m => console.log(m.runSecurityAgent()))\""
+    "security:agent": "tsx -e \"import('./security/agent').then(m => console.log(m.runSecurityAgent()))\"",
+    "check:secrets": "tsx scripts/check-no-env-secrets.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",
