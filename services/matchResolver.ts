@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import { computeTeamSimilarity } from "@/utils/stringSimilarity";
 import { computeTimeScore } from "@/utils/timeScore";
 import crypto from "crypto";
@@ -50,14 +50,14 @@ export async function resolveMatch(input: ResolutionInput): Promise<ResolutionOu
     }
 
     // STEP 2: Candidate Search with DYNAMIC Time Proximity
-    // Baseball: ±45 mins (to avoid merging doubleheaders)
-    // Others (Football/Basketball): ±2 hours
+    // Baseball: 簣45 mins (to avoid merging doubleheaders)
+    // Others (Football/Basketball): 簣2 hours
     const windowMs = sport.toLowerCase() === "baseball" ? 45 * 60 * 1000 : 2 * 60 * 60 * 1000;
 
     const timeLower = new Date(startTime.getTime() - windowMs);
     const timeUpper = new Date(startTime.getTime() + windowMs);
 
-    const candidates = await prisma.matches.findMany({
+    const candidates = await prisma.match.findMany({
         where: {
             sport,
             match_date: {
@@ -78,8 +78,8 @@ export async function resolveMatch(input: ResolutionInput): Promise<ResolutionOu
     // STEP 3: Scoring System
     for (const candidate of candidates) {
         const teamSim = (
-            computeTeamSimilarity(homeTeam, candidate.home_team.full_name) +
-            computeTeamSimilarity(awayTeam, candidate.away_team.full_name)
+            computeTeamSimilarity(homeTeam, candidate.home_team?.full_name ?? "") +
+            computeTeamSimilarity(awayTeam, candidate.away_team?.full_name ?? "")
         ) / 2;
 
         const timeScore = computeTimeScore(startTime, candidate.match_date, windowMs);
@@ -122,7 +122,7 @@ export async function resolveMatch(input: ResolutionInput): Promise<ResolutionOu
         const internalHomeTeam = await resolveInternalTeam(homeTeam, sport);
         const internalAwayTeam = await resolveInternalTeam(awayTeam, sport);
 
-        const newMatch = await prisma.matches.create({
+        const newMatch = await prisma.match.create({
             data: {
                 sport,
                 league,
@@ -194,13 +194,13 @@ async function resolveInternalTeam(name: string, sport: string) {
     };
     const leagueType = leagueTypeMap[sport.toLowerCase()] || "SOCCER";
 
-    const team = await prisma.teams.findFirst({
+    const team = await prisma.team.findFirst({
         where: { full_name: { contains: name, mode: "insensitive" } },
     });
 
     if (team) return team;
 
-    return await prisma.teams.create({
+    return await prisma.team.create({
         data: {
             team_id: `ext-${crypto.randomUUID()}`,
             full_name: name,

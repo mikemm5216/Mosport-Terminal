@@ -11,7 +11,8 @@ const FEATURE_ORDER = [
   "bio_battery_away",
 ];
 
-// Bio-Battery 三�?层�?�?const BIO_LOW_EDGE    = 12;  // ??輕微?�勢
+// Bio-Battery 三層對齊
+const BIO_LOW_EDGE    = 12;  // 輕微優勢
 const BIO_MEDIUM_EDGE = 18;  // ?�⚡ 顯�??�勢
 const BIO_HIGH_EDGE   = 25;  // ?�� 絕�??�勢
 const PREDICT_API = process.env.PREDICT_API_URL || "http://localhost:8000/predict";
@@ -21,7 +22,7 @@ export async function GET() {
     const now = new Date();
     const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    const matches = await prisma.matches.findMany({
+    const matches = await prisma.match.findMany({
       where: {
         match_date: { gt: now, lt: next24h }
       },
@@ -73,7 +74,8 @@ export async function GET() {
 
       if (probability <= 0) continue;
 
-      const odds = 2.0; // TODO: ?��??�即?��???      const implied = QuantEngine.getImpliedProbability(odds);
+      const odds = 2.0; // TODO: 接入即時賠率
+      const implied = QuantEngine.getImpliedProbability(odds);
       const edge = QuantEngine.getEdge(probability, implied);
       const kelly = QuantEngine.getKellySuggest(probability, odds);
 

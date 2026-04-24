@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateInternalApiKey } from "@/lib/security/validateInternalApiKey";
 import { rateLimit } from "@/lib/security/rateLimit";
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     return Response.json({ error: "Security kill switch enabled" }, { status: 503 });
   }
   try {
-    const matches = await prisma.matches.findMany({
+    const matches = await prisma.match.findMany({
       include: { home_team: true, away_team: true }
     });
 
@@ -60,7 +60,7 @@ export async function GET(req: Request) {
           leagueName = teamDetails.strLeague || leagueName;
         }
 
-        const upsertedTeam = await prisma.teams.upsert({
+        const upsertedTeam = await prisma.team.upsert({
           where: { full_name: teamName },
           create: {
             full_name: teamName,

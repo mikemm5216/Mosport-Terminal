@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { qstashClient, INGEST_WORKER_URL } from "@/lib/ingest/qstash";
 import { TheSportsDBAdapter } from "@/lib/ingest/adapters/thesportsdb";
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
                 const hash = generateHash(normalized.rawData);
 
                 // a. Raw Storage & Hash Check
-                const existingRaw = await prisma.rawEvents.findUnique({
+                const existingRaw = await prisma.rawEvent.findUnique({
                     where: { extId_provider: { extId: normalized.extId, provider } }
                 });
 
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
                     continue;
                 }
 
-                await prisma.rawEvents.upsert({
+                await prisma.rawEvent.upsert({
                     where: { extId_provider: { extId: normalized.extId, provider } },
                     update: { payload: normalized.rawData, hash, processed: true },
                     create: {
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
                 // c. Provider-Specific Upsert
                 if (provider === "thesportsdb") {
                     // Priority source for metadata
-                    await prisma.matches.update({
+                    await prisma.match.update({
                         where: { match_id: resolution.matchId },
                         data: {
                             sourceUpdatedAt: new Date(),
@@ -123,7 +123,7 @@ export async function POST(req: Request) {
                 metrics.failed++;
 
                 // Push to DLQ
-                await prisma.ingestionErrors.create({
+                await prisma.ingestionError.create({
                     data: {
                         provider,
                         extId: item.id || null,

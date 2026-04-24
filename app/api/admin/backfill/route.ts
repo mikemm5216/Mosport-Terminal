@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildFeatureVector } from "@/lib/feature";
 import { validateCronAuth } from "@/lib/auth";
@@ -18,13 +18,13 @@ export async function POST(req: Request) {
     const error = await validateCronAuth(req.clone());
     if (error) return error;
     // 1. Get current match counts
-    const total_matches_in_db = await prisma.matches.count();
-    const completed_matches_in_db = await prisma.matches.count({
+    const total_matches_in_db = await prisma.match.count();
+    const completed_matches_in_db = await prisma.match.count({
       where: { home_score: { not: null } }
     });
 
     // 2. Find matches that are completed but lack T-10min snapshots
-    const matchesWithoutSnapshot = await prisma.matches.findMany({
+    const matchesWithoutSnapshot = await prisma.match.findMany({
       where: {
         home_score: { not: null },
         snapshots: {

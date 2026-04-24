@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateCronAuth } from "@/lib/auth";
 import { validateInternalApiKey } from "@/lib/security/validateInternalApiKey";
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
         if (error) return error;
 
         // 1. Total matches inserted (last hour)
-        const matches = await prisma.matches.findMany({
+        const matches = await prisma.match.findMany({
             where: { created_at: { gte: new Date(Date.now() - 3600000) } },
             include: {
                 mappings: true,
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
         }));
 
         // 4. Failed alignments
-        const failedAlignments = await prisma.ingestionErrors.count({
+        const failedAlignments = await prisma.ingestionError.count({
             where: { createdAt: { gte: new Date(Date.now() - 3600000) } }
         });
 

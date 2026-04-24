@@ -84,7 +84,7 @@ export class MultinomialModel {
                 }
 
                 const dW = error.transpose().mmul(Xi).mul(1 / m); // (K x D)
-                const db = new Matrix(K, 1, error.sum("column").map(v => v / m));
+                const db = Matrix.from1DArray(K, 1, error.sum("column").map(v => v / m));
 
                 this.W.sub(dW.mul(lr));
                 this.b.sub(db.mul(lr));

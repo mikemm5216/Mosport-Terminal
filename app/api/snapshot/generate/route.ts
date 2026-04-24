@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 // Force rebuild: 2026-03-24T14:58:00Z
 import { prisma } from "@/lib/prisma";
 import { buildFeatureVector } from "@/lib/feature";
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
           latency: `${Date.now() - startTime}ms`
         }, { status: 400 });
       }
-      const match = await prisma.matches.findUnique({
+      const match = await prisma.match.findUnique({
         where: { match_id },
         include: { home_team: true }
       });
@@ -112,13 +112,13 @@ export async function POST(request: Request) {
 
     // Restoration: Proper destructuring for Promise.all
     const [total_matches, matches_without_any_snapshot] = await Promise.all([
-      prisma.matches.count(),
-      prisma.matches.count({ where: { snapshots: { none: {} } } }),
+      prisma.match.count(),
+      prisma.match.count({ where: { snapshots: { none: {} } } }),
     ]);
 
     const whereClause = rebuild ? {} : { snapshots: { none: {} } };
 
-    const matches = await prisma.matches.findMany({
+    const matches = await prisma.match.findMany({
       where: whereClause,
       include: { home_team: true },
       take: 200,

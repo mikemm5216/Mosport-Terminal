@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import { PhysicsEngine } from "@/lib/physics";
 
 export const FEATURE_ORDER = [
@@ -17,8 +17,8 @@ export async function buildFeatureVector(
   current_match_date: Date,
   current_venue: string
 ): Promise<number[]> {
-  const homeTeam = await prisma.teams.findUnique({ where: { team_id: home_team_id } }).catch(() => null);
-  const awayTeam = await prisma.teams.findUnique({ where: { team_id: away_team_id } }).catch(() => null);
+  const homeTeam = await prisma.team.findUnique({ where: { team_id: home_team_id } }).catch(() => null);
+  const awayTeam = await prisma.team.findUnique({ where: { team_id: away_team_id } }).catch(() => null);
 
   const homeCity = homeTeam?.home_city || "Unknown";
   const awayCity = awayTeam?.home_city || "Unknown";

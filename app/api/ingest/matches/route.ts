@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+﻿export const dynamic = 'force-dynamic';
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -49,11 +49,11 @@ async function resolveProfessionalPositions(sport: string, apiPositions: string[
   let validated = (apiPositions || []).filter(p => dictionary.includes(p));
 
   if (validated.length === 0) {
-    const existing = await prisma.players.findFirst({
-      where: { player_name: name }
+    const existing = await prisma.player.findFirst({
+      where: { fullName: name }
     });
-    if (existing && existing.positions.length > 0) {
-      validated = existing.positions;
+    if (existing?.position) {
+      validated = [existing.position];
     }
   }
 
@@ -285,13 +285,13 @@ export async function GET(req: Request) {
 
     for (const t of teamsMap.values()) {
       if (!t.logo_url) {
-        const existing = await prisma.teams.findUnique({ where: { team_id: t.team_id } });
+        const existing = await prisma.team.findUnique({ where: { team_id: t.team_id } });
         if (existing?.logo_url) t.logo_url = existing.logo_url;
       }
     }
 
-    await Promise.all(Array.from(leaguesMap.values()).map(l => prisma.leagues.upsert({ where: { league_id: l.league_id }, update: {}, create: l })));
-    await Promise.all(Array.from(teamsMap.values()).map(t => prisma.teams.upsert({ 
+    await Promise.all(Array.from(leaguesMap.values()).map(l => prisma.league.upsert({ where: { league_id: l.league_id }, update: {}, create: l })));
+    await Promise.all(Array.from(teamsMap.values()).map(t => prisma.team.upsert({ 
       where: { team_id: t.team_id }, 
       update: { logo_url: t.logo_url || undefined }, 
       create: { team_id: t.team_id, league_id: t.league_id, team_name: t.team_name, home_city: t.home_city, logo_url: t.logo_url } 
@@ -299,7 +299,7 @@ export async function GET(req: Request) {
 
     for (const match of matchRows) {
       try {
-        await prisma.matches.upsert({
+        await prisma.match.upsert({
           where: { match_id: match.match_id },
           update: { home_score: match.home_score, away_score: match.away_score, status: match.status },
           create: {
@@ -315,12 +315,11 @@ export async function GET(req: Request) {
         });
 
         for (const p of match.players) {
-          const finalPositions = await resolveProfessionalPositions(match.sport, p.positions, p.name);
-          const finalStats = getProfessionalStats(match.sport, finalPositions);
-          await prisma.players.upsert({
-            where: { player_id: p.player_id },
-            update: { stats: finalStats, positions: finalPositions, number: p.number },
-            create: { player_id: p.player_id, team_id: match.home_team_id, player_name: p.name, number: p.number, positions: finalPositions, stats: finalStats }
+          await resolveProfessionalPositions(match.sport, p.positions, p.name);
+          await prisma.player.upsert({
+            where: { externalId: p.player_id },
+            update: { fullName: p.name, teamId: match.home_team_id },
+            create: { externalId: p.player_id, fullName: p.name, teamId: match.home_team_id },
           });
         }
       } catch (e) {

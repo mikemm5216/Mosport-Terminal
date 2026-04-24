@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateCronAuth } from "@/lib/auth";
 
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
 
     // Process single match
     if (match_id) {
-      const match = await prisma.matches.findUnique({
+      const match = await prisma.match.findUnique({
         where: { match_id },
         include: { snapshots: true }
       });
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
     }
 
     // Auto-discovery
-    const completedMatches = await prisma.matches.findMany({
+    const completedMatches = await prisma.match.findMany({
       where: {
         home_score: { not: null },
         experiences: { none: {} }

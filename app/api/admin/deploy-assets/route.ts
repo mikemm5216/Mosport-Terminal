@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateCronAuth } from "@/lib/auth";
 import { validateInternalApiKey } from "@/lib/security/validateInternalApiKey";
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     for (const asset of assets) {
       const res = await fetch(asset.url);
       if (!res.ok) throw new Error(`Failed to fetch ${asset.name}`);
-      // 🛡️ BINARY INJECTION (ENSURE NON-ZERO SIZE)
+      // ?儭?BINARY INJECTION (ENSURE NON-ZERO SIZE)
       const buffer = Buffer.from(await res.arrayBuffer()); 
       const filePath = path.join(publicDir, asset.name);
       fs.writeFileSync(filePath, buffer);
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     ];
 
     for (const mapping of teamMappings) {
-      await prisma.teams.updateMany({
+      await prisma.team.updateMany({
         where: { short_name: mapping.short },
         data: { logo_url: mapping.path }
       });

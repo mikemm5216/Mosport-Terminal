@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateCronAuth } from "@/lib/auth";
 import { validateInternalApiKey } from "@/lib/security/validateInternalApiKey";
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const error = await validateCronAuth(request.clone());
     if (error) return error;
 
-    const teams = await prisma.teams.findMany();
+    const teams = await prisma.team.findMany();
     const results = [];
 
     const publicLogosDir = path.join(process.cwd(), "public", "logos");
@@ -77,13 +77,13 @@ export async function POST(request: Request) {
 
       // Plan C: SVG Generator (Fallback)
       if (!success) {
-        const svg = generateSVG(team.short_name || "??", team.league_type);
+        const svg = generateSVG(team.short_name || "??", team.league_type || "");
         fs.writeFileSync(fullLocalPath.replace(".png", ".svg"), svg);
         source = "SVG_GENERATOR";
       }
 
       // Update DB
-      await prisma.teams.update({
+      await prisma.team.update({
         where: { team_id: team.team_id },
         data: { logo_url: success ? localPath : localPath.replace(".png", ".svg") }
       });

@@ -123,7 +123,7 @@ async function getTeamAdvancedStats(teamId: string, beforeDate: Date, isHomeTeam
         else break;
     }
 
-    const gamesLast4 = history.filter(m => (beforeDate.getTime() - new Date(m.date).getTime()) < (4 * 24 * 3600 * 1000));
+    const gamesLast4 = history.filter((m: any) => (beforeDate.getTime() - new Date(m.date).getTime()) < (4 * 24 * 3600 * 1000));
     const is3in4 = gamesLast4.length >= 2; // Including current game = 3
 
     // Timezone Shift

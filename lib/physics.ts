@@ -1,4 +1,4 @@
-import { VENUE_COORDS } from './venues';
+﻿import { VENUE_COORDS } from './venues';
 import { prisma } from './prisma';
 
 /**
@@ -68,7 +68,7 @@ export const PhysicsEngine = {
     try {
       const sevenDaysAgo = new Date(current_match_date.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-      const recentMatches = await prisma.matches.findMany({
+      const recentMatches = await prisma.match.findMany({
         where: {
           OR: [{ home_team_id: team_id }, { away_team_id: team_id }],
           match_date: { gte: sevenDaysAgo, lt: current_match_date },

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { IngestionJob, IngestionMetrics, RawEventPayload } from "./types";
 
@@ -55,7 +55,7 @@ export async function processRawEvent(
     const hash = generatePayloadHash(data);
 
     // 1. Check if RawEvent already exists and has the same hash
-    const existingRaw = await prisma.rawEvents.findUnique({
+    const existingRaw = await prisma.rawEvent.findUnique({
         where: { extId_provider: { extId, provider } },
     });
 
@@ -65,24 +65,23 @@ export async function processRawEvent(
     }
 
     // 2. Upsert RawEvent
-    await prisma.rawEvents.upsert({
+    await prisma.rawEvent.upsert({
         where: { extId_provider: { extId, provider } },
         update: { payload: data, hash, processed: false },
         create: { extId, provider, sport, league, payload: data, hash },
     });
 
     try {
-        // 3. Upsert Canonical Match
-        // Note: This is an example, actual parsing depends on the provider's schema
-        await prisma.matches.upsert({
-            where: { extId },
+        // 3. Create Canonical Match (keyed by extId used as match_id for provider records)
+        const matchId = `${provider}_${extId}`;
+        await prisma.match.upsert({
+            where: { match_id: matchId },
             update: {
-                sourceUpdatedAt: new Date(), // Or from payload if available
-                // Update other fields as needed
+                sourceUpdatedAt: new Date(),
             },
             create: {
-                extId,
-                home_team_id: data.home_team_id || "unknown", // Map to internal team IDs
+                match_id: matchId,
+                home_team_id: data.home_team_id || "unknown",
                 away_team_id: data.away_team_id || "unknown",
                 match_date: new Date(data.commence_time || data.date),
                 status: "scheduled",
@@ -94,14 +93,14 @@ export async function processRawEvent(
         // 4. Save Odds (Time-series)
         await prisma.odds.create({
             data: {
-                matchId: (await prisma.matches.findUnique({ where: { extId }, select: { match_id: true } }))?.match_id || "",
+                matchId,
                 provider,
                 odds_json: data.odds || {},
             },
         });
 
         // Mark as processed
-        await prisma.rawEvents.update({
+        await prisma.rawEvent.update({
             where: { extId_provider: { extId, provider } },
             data: { processed: true },
         });
@@ -109,15 +108,12 @@ export async function processRawEvent(
         metrics.successCount++;
     } catch (error: any) {
         metrics.failureCount++;
-        // log to DLQ
-        await prisma.ingestionErrors.create({
+        await prisma.ingestionError.create({
             data: {
                 extId,
                 provider,
                 payload: data,
-                error: error.message,
-                stack: error.stack,
-                severity: "CRITICAL",
+                errorMessage: error.message,
             },
         });
         throw error;

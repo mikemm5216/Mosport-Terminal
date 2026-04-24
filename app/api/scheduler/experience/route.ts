@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateCronAuth } from "@/lib/auth";
 
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const now = new Date();
     const past24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    const finishedMatches = await prisma.matches.findMany({
+    const finishedMatches = await prisma.match.findMany({
       where: {
         match_date: {
           gt: past24h,

@@ -9,7 +9,7 @@ const MAX_RETRIES = 2;
 // �?DB ?��??�實?�徵?��?
 async function getFeatureVectorFromDB(match_id: string, snapshot_type: string): Promise<number[] | null> {
   try {
-    const match = await prisma.matches.findUnique({
+    const match = await prisma.match.findUnique({
       where: { match_id },
       include: {
         home_team: true,
@@ -106,7 +106,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // ?? 建�? feature vector（�??�實 DB snapshot ?��?�?    const feature_vector = await getFeatureVectorFromDB(match_id, snapshot_type);
+    // 建立 feature vector（從實際 DB snapshot 取得）
+    const feature_vector = await getFeatureVectorFromDB(match_id, snapshot_type);
 
     if (!feature_vector) {
       return NextResponse.json({

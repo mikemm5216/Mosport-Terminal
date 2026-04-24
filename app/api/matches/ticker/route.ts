@@ -11,7 +11,7 @@ export async function GET() {
 
     const matches = await prisma.match.findMany({
       where: {
-        date: {
+        match_date: {
           gte: past12h,
           lte: future48h,
         },
@@ -21,7 +21,7 @@ export async function GET() {
         away_team: true,
       },
       orderBy: {
-        date: 'asc',
+        match_date: 'asc',
       },
     });
 

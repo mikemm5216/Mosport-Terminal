@@ -66,9 +66,8 @@ export async function recordSignalOutcome(
         await prisma.signalOutcome.create({
             data: {
                 signalId,
-                result,
-                payout,
-                closingOdds
+                outcome: result,
+                payload: { payout, closingOdds }
             }
         });
     } catch (e) {
@@ -83,7 +82,7 @@ export async function recordStrategySnapshot(
     try {
         await prisma.strategyPerformanceSnapshot.create({
             data: {
-                strategyName,
+                strategy: strategyName,
                 metrics
             }
         });

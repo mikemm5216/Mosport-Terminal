@@ -6,7 +6,6 @@ async function main() {
   console.log('--- Wiping Teams for Clean Ingestion ---');
   // Only wiping Team (singular) and Teams (plural) to force re-ingest with dictionary
   await prisma.team.deleteMany({});
-  await prisma.teams.deleteMany({});
   console.log('--- Wipe Complete ---');
 }
 

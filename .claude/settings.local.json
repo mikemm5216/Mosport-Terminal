@@ -52,7 +52,11 @@
       "PowerShell(node_modules\\\\.bin\\\\tsx scripts/security/scan-secrets.ts 2>&1)",
       "PowerShell(& \"node_modules\\\\.bin\\\\tsx.cmd\" scripts/security/scan-secrets.ts 2>&1)",
       "PowerShell(npm install *)",
-      "PowerShell(npm run *)"
+      "PowerShell(npm run *)",
+      "PowerShell(node_modules\\\\.bin\\\\prisma.cmd validate 2>&1)",
+      "Bash(npx prisma *)",
+      "Bash(DATABASE_URL=\"postgresql://dummy:dummy@localhost:5432/dummy\" npx prisma validate)",
+      "Bash(DATABASE_URL=\"postgresql://dummy:dummy@localhost:5432/dummy\" npx prisma generate)"
     ]
   }
 }

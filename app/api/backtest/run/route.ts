@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     const limit = body.limit || 500;
 
     // 1. ?��?近�?完賽紀?��?對�?快照 (?�含 home_team 資�?以�?得場�?
-    const pastMatches = await prisma.matches.findMany({
+    const pastMatches = await prisma.match.findMany({
       where: {
         home_score: { not: null },
         away_score: { not: null },
@@ -39,7 +39,8 @@ export async function POST(req: Request) {
       take: limit,
     });
 
-    // ?�� ?��?資�??�風?�追�?    let bankroll = 10000;
+    // 資金風險追蹤
+    let bankroll = 10000;
     let peak = bankroll;
     let maxDrawdown = 0;
     let totalBets = 0;
@@ -47,7 +48,8 @@ export async function POST(req: Request) {
     const equityCurve: number[] = [bankroll];
     const returns: number[] = [];
 
-    // Bio-Battery 三�?層�?�????edge/route.ts ?�步�?    const BIO_LOW_EDGE    = 12;
+    // Bio-Battery 三層對齊
+    const BIO_LOW_EDGE    = 12;
     const BIO_MEDIUM_EDGE = 18;
     const BIO_HIGH_EDGE   = 25;
 
@@ -73,7 +75,8 @@ export async function POST(req: Request) {
         const rawImplied = 1 / odds;
         const impliedProb = rawImplied * 1.05; 
 
-        // ?��?統�?使用 buildFeatureVector ?�建 6 位特徵�??��??�疲??        const current_venue = match.home_team?.home_city || "Unknown";
+        // 使用 buildFeatureVector 建 6 位特徵向量
+        const current_venue = match.home_team?.home_city || "Unknown";
         const feature_vector = await buildFeatureVector(
           snapshot.feature_json as Record<string, any> | number[],
           match.home_team_id,
@@ -116,12 +119,14 @@ export async function POST(req: Request) {
         // STEP 3: ?�格 Edge ?�濾??(?��??�值以?��??��?)
         if (edge <= 0.03) continue;
 
-        // STEP 4: ?�利準�? (Kelly Criterion) 計�??�注??        const kelly = QuantEngine.getKellySuggest(modelProb, odds);
+        // STEP 4: Kelly Criterion 計算注碼
+        const kelly = QuantEngine.getKellySuggest(modelProb, odds);
         const betSize = bankroll * kelly;
 
         if (betSize <= 0) continue;
 
-        // Bio-Battery 三�?層統�?        const fJson = snapshot.feature_json as Record<string, any>;
+        // Bio-Battery 三層統計
+        const fJson = snapshot.feature_json as Record<string, any>;
         const bbHome = typeof fJson?.bio_battery_home === 'number' ? fJson.bio_battery_home : null;
         const bbAway = typeof fJson?.bio_battery_away === 'number' ? fJson.bio_battery_away : null;
         if (bbHome !== null && bbAway !== null) {
