@@ -3,8 +3,11 @@ import { validateInternalApiKey } from "@/lib/security/validateInternalApiKey";
 import { DataFreshnessAgent } from "@/lib/agents/data-freshness/DataFreshnessAgent";
 import { LiveDecisionAgent } from "@/lib/agents/live-decision/LiveDecisionAgent";
 import { ValidationAgent } from "@/lib/agents/validation/ValidationAgent";
+import { SimulationAgent } from "@/lib/agents/simulation/SimulationAgent";
+import { DecisionPipelineAgent } from "@/lib/agents/decision-pipeline/DecisionPipelineAgent";
 import type { LiveDecisionAgentInput } from "@/lib/agents/live-decision/types";
-import type { ValidationInput } from "@/lib/agents/validation/types";
+import type { ValidationInput, ValidationReport } from "@/lib/agents/validation/types";
+import type { SimulationInput, SimulationReport } from "@/lib/agents/simulation/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -18,12 +21,14 @@ type AgentDebugDashboardResponse = {
   liveDecision: unknown;
   validation: unknown;
   simulation?: unknown;
+  pipeline?: unknown;
   diagnostics: {
     agentsAvailable: {
       dataFreshness: boolean;
       liveDecision: boolean;
       validation: boolean;
       simulation: boolean;
+      pipeline: boolean;
     };
     errors: Array<{
       agent: string;
@@ -41,6 +46,21 @@ const liveDecisionFixture: LiveDecisionAgentInput = {
   awayScore: 110,
   startsAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
   marketHomeProb: 0.62,
+};
+
+const simulationFixture: SimulationInput = {
+  league: "NBA",
+  mode: "single_matchup",
+  seed: 42,
+  runCount: 1_000,
+  generatedFrom: "manual_seed",
+  matchups: [
+    {
+      id: "m-lal-den",
+      home: { id: "lal", code: "LAL", name: "Lakers", rating: 0.72 },
+      away: { id: "den", code: "DEN", name: "Nuggets", rating: 0.68 },
+    },
+  ],
 };
 
 const validationFixture: ValidationInput = {
@@ -75,10 +95,6 @@ function getStatus(errors: AgentDebugDashboardResponse["diagnostics"]["errors"])
   return "partial";
 }
 
-async function importSimulationAgentModule(): Promise<unknown> {
-  return Function('return import("@/lib/agents/simulation/SimulationAgent")')() as Promise<unknown>;
-}
-
 export async function GET(req: Request) {
   try {
     if (!validateInternalApiKey(withInternalKeyAlias(req))) {
@@ -90,7 +106,8 @@ export async function GET(req: Request) {
         dataFreshness: true,
         liveDecision: true,
         validation: true,
-        simulation: false,
+        simulation: true,
+        pipeline: true,
       },
       errors: [],
     };
@@ -99,6 +116,10 @@ export async function GET(req: Request) {
     let liveDecision: unknown = null;
     let validation: unknown = null;
     let simulation: unknown = null;
+    let pipeline: unknown = null;
+
+    let validationReport: ValidationReport | null = null;
+    let simulationReport: SimulationReport | null = null;
 
     try {
       const agent = new DataFreshnessAgent();
@@ -124,7 +145,8 @@ export async function GET(req: Request) {
 
     try {
       const agent = new ValidationAgent();
-      validation = agent.run(validationFixture);
+      validationReport = agent.run(validationFixture);
+      validation = validationReport;
     } catch (error) {
       diagnostics.errors.push({
         agent: "ValidationAgent",
@@ -134,37 +156,43 @@ export async function GET(req: Request) {
     }
 
     try {
-      const mod = await importSimulationAgentModule();
-      diagnostics.agentsAvailable.simulation = true;
+      const agent = new SimulationAgent();
+      simulationReport = agent.run(simulationFixture);
+      simulation = simulationReport;
+    } catch (error) {
+      diagnostics.errors.push({
+        agent: "SimulationAgent",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+      simulation = { status: "error", message: "SimulationAgent failed" };
+    }
 
-      if (
-        typeof mod === "object" &&
-        mod !== null &&
-        "SimulationAgent" in mod &&
-        typeof (mod as { SimulationAgent?: unknown }).SimulationAgent === "function"
-      ) {
-        const SimulationAgentCtor = (mod as {
-          SimulationAgent: new () => { run?: (input: Record<string, unknown>) => unknown | Promise<unknown> };
-        }).SimulationAgent;
-        const agent = new SimulationAgentCtor();
-        simulation =
-          typeof agent.run === "function"
-            ? await agent.run({
-                league: "NBA",
-                homeTeam: "LAL",
-                awayTeam: "DEN",
-                status: "scheduled",
-                startsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-              })
-            : { status: "not_available", message: "SimulationAgent run() is not available." };
-      } else {
-        simulation = { status: "not_available", message: "SimulationAgent export not found." };
-      }
-    } catch {
-      simulation = {
-        status: "not_available",
-        message: "SimulationAgent not implemented yet",
-      };
+    try {
+      const agent = new DecisionPipelineAgent();
+      pipeline = agent.run({
+        match: liveDecisionFixture,
+        validationContext: validationReport
+          ? {
+              overallAccuracy: validationReport.overallAccuracy,
+              upsetLift: validationReport.upsetLift,
+              decisionCoverage: validationReport.decisionCoverage,
+              calibrationScore: validationReport.calibrationScore,
+            }
+          : null,
+        simulationContext: simulationReport
+          ? {
+              projectedChampion: simulationReport.projectedChampion,
+              matchupResults: simulationReport.matchupResults,
+              titleDistribution: simulationReport.titleDistribution,
+            }
+          : null,
+      });
+    } catch (error) {
+      diagnostics.errors.push({
+        agent: "DecisionPipelineAgent",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+      pipeline = { status: "error", message: "DecisionPipelineAgent failed" };
     }
 
     const response: AgentDebugDashboardResponse = {
@@ -175,6 +203,7 @@ export async function GET(req: Request) {
       liveDecision,
       validation,
       simulation,
+      pipeline,
       diagnostics,
     };
 
@@ -190,12 +219,14 @@ export async function GET(req: Request) {
         liveDecision: null,
         validation: null,
         simulation: null,
+        pipeline: null,
         diagnostics: {
           agentsAvailable: {
             dataFreshness: true,
             liveDecision: true,
             validation: true,
-            simulation: false,
+            simulation: true,
+            pipeline: true,
           },
           errors: [
             {
