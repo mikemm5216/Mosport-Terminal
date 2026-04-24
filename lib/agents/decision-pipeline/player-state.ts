@@ -29,10 +29,10 @@ export function evaluatePlayerState(input: EvaluatePlayerStateInput): PlayerStat
   const load = normalizedLoad(normalized);
 
   if (
-    normalized.fatigue >= 0.82 ||
-    normalized.pressure >= 0.85 ||
-    (normalized.fatigue >= 0.72 && normalized.pressure >= 0.72) ||
-    load >= 0.62
+    normalized.fatigue >= 0.78 ||
+    normalized.pressure >= 0.8 ||
+    (normalized.fatigue >= 0.68 && normalized.pressure >= 0.68) ||
+    load >= 0.56
   ) {
     return "COLLAPSE_RISK";
   }
@@ -47,9 +47,9 @@ export function evaluatePlayerState(input: EvaluatePlayerStateInput): PlayerStat
   }
 
   if (
-    normalized.fatigue >= 0.62 ||
-    normalized.pressure >= 0.68 ||
-    load >= 0.38
+    normalized.fatigue >= 0.54 ||
+    normalized.pressure >= 0.58 ||
+    load >= 0.3
   ) {
     return "FATIGUED";
   }

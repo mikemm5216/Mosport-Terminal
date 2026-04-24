@@ -99,10 +99,12 @@ function buildCoachMessage(params: {
   overallAccuracy: number | null;
   decisionCoverage: number | null;
   decisionMode: DecisionPipelineReport["decisionMode"];
+  teamState: DecisionPipelineReport["teamState"];
+  lineupAction: DecisionPipelineReport["lineupAction"];
 }): Pick<DecisionPipelineReport, "reason" | "coachInsight"> {
   const reason: string[] = [];
 
-  if (params.decisionMode === "ATTACK") {
+  if (params.teamState === "ADVANTAGE") {
     reason.push("team rhythm is stable and the matchup is tilting your way");
     reason.push(`current pressure profile supports an attack call at ${params.finalConfidence.toFixed(2)} win chance`);
     if (params.trustMultiplier > 1) {
@@ -110,11 +112,11 @@ function buildCoachMessage(params: {
     }
     return {
       reason,
-      coachInsight: "Team state is stable, the matchup is favorable, and the coach should attack the tactical mismatch before rhythm flips.",
+      coachInsight: "Player State is creating a team advantage, so Coach Mode should attack the mismatch before the lineup loses rhythm.",
     };
   }
 
-  if (params.decisionMode === "ADJUST") {
+  if (params.teamState === "UNDER_PRESSURE") {
     reason.push("team state is moving under pressure and the current rotation is leaking rhythm");
     reason.push(`the public consensus baseline is lagging the live matchup pressure at ${params.upsetLift?.toFixed(2) ?? "n/a"}`);
     if (params.action === "UPSET_WATCH") {
@@ -122,11 +124,11 @@ function buildCoachMessage(params: {
     }
     return {
       reason,
-      coachInsight: "Pressure is rising and the lineup needs an adjustment now or collapse risk will keep climbing.",
+      coachInsight: "Player State is pushing the team under pressure, so Coach Mode should adjust the rotation before the group slides toward collapse.",
     };
   }
 
-  if (params.decisionMode === "KEEP") {
+  if (params.teamState === "STABLE") {
     if (params.label === "STRONG") {
       reason.push("lineup stability is holding and the matchup still supports the current rotation");
       reason.push(`team rhythm remains playable at ${params.finalConfidence.toFixed(2)} win chance without forcing a change`);
@@ -142,12 +144,7 @@ function buildCoachMessage(params: {
     }
     return {
       reason,
-      coachInsight:
-        params.label === "STRONG"
-          ? "Keep the current lineup on the floor, monitor fatigue and rhythm, and wait for a cleaner mismatch before changing the rotation."
-          : params.label === "NONE"
-            ? "Keep the current shape and read the next possession before making a rotation adjustment."
-            : "Hold the rotation steady and let the pressure settle before forcing a tactical change.",
+      coachInsight: "Player State is stable enough to keep the lineup on the floor and wait for a cleaner rotation decision.",
     };
   }
 
@@ -176,39 +173,45 @@ function buildCoachMessage(params: {
   }
   return {
     reason,
-    coachInsight: "Bench the current look, reduce the unstable role impact, and protect against a lineup collapse before the game state worsens.",
+    coachInsight: "Multiple player states point to collapse risk, so Coach Mode should bench the current look and protect the lineup from breaking further.",
   };
 }
 
 function buildWorldState(params: {
-  label: string;
+  teamState: DecisionPipelineReport["teamState"];
   finalConfidence: number;
-  decisionMode: DecisionPipelineReport["decisionMode"];
   decisionCoverage: number | null;
 }): DecisionPipelineReport["worldState"] {
-  const teamState =
-    params.decisionMode === "BENCH" || params.finalConfidence < 0.5
-      ? "collapsing"
-      : params.decisionMode === "ADJUST" || params.label === "UPSET"
-        ? "under_pressure"
-        : "stable";
-
   const ifNoChangeDelta =
-    teamState === "collapsing" ? -0.08 : teamState === "under_pressure" ? -0.05 : -0.02;
+    params.teamState === "COLLAPSING"
+      ? -0.08
+      : params.teamState === "UNDER_PRESSURE"
+        ? -0.05
+        : params.teamState === "ADVANTAGE"
+          ? -0.01
+          : -0.02;
   const ifAdjustedDelta =
-    params.decisionMode === "ATTACK" ? 0.06 : params.decisionMode === "ADJUST" ? 0.08 : params.decisionMode === "BENCH" ? 0.05 : 0.03;
+    params.teamState === "ADVANTAGE"
+      ? 0.06
+      : params.teamState === "UNDER_PRESSURE"
+        ? 0.08
+        : params.teamState === "COLLAPSING"
+          ? 0.05
+          : 0.03;
 
   let primaryRisk = "lineup stability is soft and the current matchup could erode rhythm";
-  if (teamState === "collapsing") {
+  if (params.teamState === "COLLAPSING") {
     primaryRisk = "collapse risk is rising because fatigue, pressure, and role impact are pulling the lineup out of rhythm";
-  } else if (teamState === "under_pressure") {
+  } else if (params.teamState === "UNDER_PRESSURE") {
     primaryRisk = "pressure is building through a tactical mismatch and the current rotation may lose lineup stability";
+  } else if (params.teamState === "ADVANTAGE") {
+    primaryRisk = "the lineup has rhythm and leverage right now, but the coach still needs to press the clean mismatch before momentum swings back";
   } else if (params.decisionCoverage !== null && params.decisionCoverage >= 0.7) {
     primaryRisk = "high coverage suggests the rotation is seeing too many similar looks and could drift into fatigue";
   }
 
   return {
-    teamState,
+    teamState: params.teamState,
     currentWinChance: params.finalConfidence,
     ifNoChangeWinChance: shiftChance(params.finalConfidence, ifNoChangeDelta),
     ifAdjustedWinChance: shiftChance(params.finalConfidence, ifAdjustedDelta),
@@ -225,21 +228,35 @@ function buildSyntheticPlayerInputs(params: {
   const focusTeam = params.action === "LEAN_AWAY" ? params.awayTeam : params.homeTeam;
   const syntheticMetrics =
     params.decisionMode === "ATTACK"
-      ? { momentum: 0.82, fatigue: 0.24, pressure: 0.36 }
+      ? [
+          { momentum: 0.84, fatigue: 0.2, pressure: 0.28 },
+          { momentum: 0.8, fatigue: 0.2, pressure: 0.3 },
+          { momentum: 0.55, fatigue: 0.41, pressure: 0.45 },
+        ]
       : params.decisionMode === "ADJUST"
-        ? { momentum: 0.46, fatigue: 0.67, pressure: 0.64 }
+        ? [
+            { momentum: 0.46, fatigue: 0.67, pressure: 0.64 },
+            { momentum: 0.42, fatigue: 0.71, pressure: 0.6 },
+            { momentum: 0.54, fatigue: 0.39, pressure: 0.46 },
+          ]
         : params.decisionMode === "BENCH"
-          ? { momentum: 0.22, fatigue: 0.86, pressure: 0.82 }
-          : { momentum: 0.55, fatigue: 0.42, pressure: 0.4 };
+          ? [
+              { momentum: 0.22, fatigue: 0.86, pressure: 0.82 },
+              { momentum: 0.28, fatigue: 0.78, pressure: 0.85 },
+              { momentum: 0.41, fatigue: 0.63, pressure: 0.7 },
+            ]
+          : [
+              { momentum: 0.55, fatigue: 0.42, pressure: 0.4 },
+              { momentum: 0.51, fatigue: 0.45, pressure: 0.43 },
+              { momentum: 0.48, fatigue: 0.47, pressure: 0.44 },
+            ];
 
-  return [
-    {
-      playerId: `${focusTeam.toLowerCase()}-rotation-anchor`,
-      playerName: `${focusTeam} Rotation Anchor`,
+  return syntheticMetrics.map((metrics, index) => ({
+      playerId: `${focusTeam.toLowerCase()}-rotation-${index + 1}`,
+      playerName: `${focusTeam} Rotation ${index + 1}`,
       teamCode: focusTeam,
-      ...syntheticMetrics,
-    },
-  ];
+      ...metrics,
+    }));
 }
 
 function buildPlayerDecisions(params: {
@@ -284,12 +301,31 @@ function buildPlayerDecisions(params: {
 }
 
 function mapLineupAction(
-  decisionMode: DecisionPipelineReport["decisionMode"],
+  teamState: DecisionPipelineReport["teamState"],
 ): DecisionPipelineReport["lineupAction"] {
-  if (decisionMode === "ATTACK") return "ATTACK_MISMATCH";
-  if (decisionMode === "ADJUST") return "ADJUST_ROTATION";
-  if (decisionMode === "BENCH") return "BENCH_PLAYER";
+  if (teamState === "ADVANTAGE") return "ATTACK_MISMATCH";
+  if (teamState === "UNDER_PRESSURE") return "ADJUST_ROTATION";
+  if (teamState === "COLLAPSING") return "BENCH_PLAYER";
   return "KEEP_LINEUP";
+}
+
+function deriveTeamState(
+  playerDecisions: DecisionPipelineReport["playerDecisions"],
+): DecisionPipelineReport["teamState"] {
+  let hotCount = 0;
+  let fatiguedCount = 0;
+  let collapseRiskCount = 0;
+
+  for (const player of playerDecisions) {
+    if (player.state === "HOT") hotCount += 1;
+    if (player.state === "FATIGUED") fatiguedCount += 1;
+    if (player.state === "COLLAPSE_RISK") collapseRiskCount += 1;
+  }
+
+  if (collapseRiskCount >= 2) return "COLLAPSING";
+  if (collapseRiskCount >= 1 || fatiguedCount >= 2) return "UNDER_PRESSURE";
+  if (hotCount >= 2 && collapseRiskCount === 0) return "ADVANTAGE";
+  return "STABLE";
 }
 
 export class DecisionPipelineAgent {
@@ -336,6 +372,20 @@ export class DecisionPipelineAgent {
       valCtx?.upsetLift ?? null,
       valCtx,
     );
+    const playerDecisions = buildPlayerDecisions({
+      homeTeam: input.match.homeTeam,
+      awayTeam: input.match.awayTeam,
+      action: liveDecision.action,
+      decisionMode,
+      playerContext: input.playerContext ?? null,
+    });
+    const teamState = deriveTeamState(playerDecisions);
+    const worldState = buildWorldState({
+      teamState,
+      finalConfidence,
+      decisionCoverage: valCtx?.decisionCoverage ?? null,
+    });
+    const lineupAction = mapLineupAction(teamState);
     const coachMessage = buildCoachMessage({
       label: liveDecision.label,
       action: liveDecision.action,
@@ -346,21 +396,9 @@ export class DecisionPipelineAgent {
       overallAccuracy: valCtx?.overallAccuracy ?? null,
       decisionCoverage: valCtx?.decisionCoverage ?? null,
       decisionMode,
+      teamState,
+      lineupAction,
     });
-    const worldState = buildWorldState({
-      label: liveDecision.label,
-      finalConfidence,
-      decisionMode,
-      decisionCoverage: valCtx?.decisionCoverage ?? null,
-    });
-    const playerDecisions = buildPlayerDecisions({
-      homeTeam: input.match.homeTeam,
-      awayTeam: input.match.awayTeam,
-      action: liveDecision.action,
-      decisionMode,
-      playerContext: input.playerContext ?? null,
-    });
-    const lineupAction = mapLineupAction(decisionMode);
 
     // Resolve simulation context output fields
     const champion = simCtx?.projectedChampion ?? null;
@@ -404,6 +442,7 @@ export class DecisionPipelineAgent {
         matchupConfidence,
       },
 
+      teamState,
       worldState,
       playerDecisions,
       lineupAction,

@@ -3,6 +3,8 @@ import type { ValidationReport } from "../validation/types";
 import type { SimulationReport } from "../simulation/types";
 import type { PlayerCoachAction, PlayerState } from "./player-state";
 
+export type TeamState = "STABLE" | "UNDER_PRESSURE" | "COLLAPSING" | "ADVANTAGE";
+
 export type DecisionPipelineInput = {
   match: LiveDecisionAgentInput;
 
@@ -53,8 +55,10 @@ export type DecisionPipelineReport = {
     matchupConfidence: number | null;
   };
 
+  teamState: TeamState;
+
   worldState: {
-    teamState: "stable" | "under_pressure" | "collapsing";
+    teamState: TeamState;
     currentWinChance: number;
     ifNoChangeWinChance: number;
     ifAdjustedWinChance: number;
