@@ -218,12 +218,18 @@ async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
   return unifiedData;
 }
 
+function isVercelCron(req: Request): boolean {
+  const authHeader = req.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+  return !!cronSecret && authHeader === `Bearer ${cronSecret}`;
+}
+
 export async function GET(req: Request) {
   const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
   if (!rateLimit(ip, 30, 60_000)) {
     return Response.json({ error: "Too Many Requests" }, { status: 429 });
   }
-  if (!validateInternalApiKey(req)) {
+  if (!isVercelCron(req) && !validateInternalApiKey(req)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   if (isSecurityKillSwitchEnabled()) {
