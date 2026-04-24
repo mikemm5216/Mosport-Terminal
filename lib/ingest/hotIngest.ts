@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prismaWrite } from "@/lib/db/write";
 
 const MIN_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes freshness guard
 const ESPN_URLS = [
@@ -20,7 +20,7 @@ function mapAbbr(abbr: string): string {
 
 export async function ingestHotData() {
   // 1. Freshness Guard
-  const lastUpdate = await prisma.ingestionState.findFirst({
+  const lastUpdate = await prismaWrite.ingestionState.findFirst({
     where: { sport: "HOT_INGEST", league: "ALL" },
   });
 
@@ -63,7 +63,7 @@ export async function ingestHotData() {
           const startTime = new Date(matchDate.getTime() - 12 * 60 * 60 * 1000);
           const endTime = new Date(matchDate.getTime() + 12 * 60 * 60 * 1000);
 
-          const existingMatch = await prisma.match.findFirst({
+          const existingMatch = await prismaWrite.match.findFirst({
             where: {
               match_date: { gte: startTime, lte: endTime },
               OR: [
@@ -74,7 +74,7 @@ export async function ingestHotData() {
           });
 
           if (existingMatch) {
-            await prisma.match.update({
+            await prismaWrite.match.update({
               where: { match_id: existingMatch.match_id },
               data: {
                 home_score: homeScore,
@@ -89,7 +89,7 @@ export async function ingestHotData() {
             // In our schema, this is represented by MatchPrediction
             // We only update if the match is LIVE or FINAL to reflect reality
             if (status !== "STATUS_SCHEDULED") {
-                await prisma.matchPrediction.upsert({
+                await prismaWrite.matchPrediction.upsert({
                     where: { id: `pred_${existingMatch.match_id}` }, // Fixed ID for current decision
                     create: {
                         id: `pred_${existingMatch.match_id}`,
@@ -119,7 +119,7 @@ export async function ingestHotData() {
     }
 
     // Update Ingestion State
-    await prisma.ingestionState.upsert({
+    await prismaWrite.ingestionState.upsert({
       where: { provider_sport_league: { provider: "HOT", sport: "HOT_INGEST", league: "ALL" } },
       update: { lastRunAt: new Date(), status: "success" },
       create: { provider: "HOT", sport: "HOT_INGEST", league: "ALL", lastRunAt: new Date(), status: "success" },
