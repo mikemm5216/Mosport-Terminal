@@ -11,11 +11,7 @@ export async function POST(req: Request) {
 
     const result = await ingestHotData();
 
-    return NextResponse.json({
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      ...result,
-    });
+    return NextResponse.json(result);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

@@ -25,7 +25,7 @@ export async function ingestHotData() {
   });
 
   if (lastUpdate && Date.now() - new Date(lastUpdate.lastRunAt).getTime() < MIN_INTERVAL_MS) {
-    return { skipped: true, reason: "Recently updated", lastRun: lastUpdate.lastRunAt };
+    return { status: "ok", skipped: true, reason: "freshness_guard", lastRun: lastUpdate.lastRunAt };
   }
 
   const results = {
@@ -125,9 +125,16 @@ export async function ingestHotData() {
       create: { provider: "HOT", sport: "HOT_INGEST", league: "ALL", lastRunAt: new Date(), status: "success" },
     });
 
-    return results;
+    return {
+      status: "ok",
+      skipped: false,
+      source: results.provider,
+      fallbackUsed: results.provider !== "espn",
+      updatedCount: results.updated,
+      lastUpdatedAt: new Date().toISOString()
+    };
 
   } catch (globalErr: any) {
-    return { error: globalErr.message };
+    return { status: "error", error: globalErr.message };
   }
 }
