@@ -37,8 +37,8 @@ function computeFreshness(
   if (error || matches.length === 0) return 'offline'
   if (!lastSuccessAt) return 'offline'
   const ageMs = Date.now() - lastSuccessAt
-  if (ageMs < 3 * 60 * 1000) return 'live'
-  if (ageMs < 10 * 60 * 1000) return 'recent'
+  if (ageMs < 5 * 60 * 1000) return 'live'
+  if (ageMs < 30 * 60 * 1000) return 'recent'
   return 'stale'
 }
 
@@ -69,8 +69,14 @@ export function MatchesProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     fetchMatches()
-    const id = setInterval(fetchMatches, 2 * 60 * 1000)
-    return () => clearInterval(id)
+    const onFocus = () => fetchMatches()
+    const onVisibility = () => { if (!document.hidden) fetchMatches() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [fetchMatches])
 
   const dataFreshness = computeFreshness(matches, loading, error, lastSuccessAt)
