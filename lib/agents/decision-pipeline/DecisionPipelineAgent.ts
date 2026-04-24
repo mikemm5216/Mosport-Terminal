@@ -1,5 +1,10 @@
 import { LiveDecisionAgent } from "../live-decision/LiveDecisionAgent";
 import type { DecisionPipelineInput, DecisionPipelineReport } from "./types";
+import {
+  buildPlayerStateReason,
+  evaluatePlayerState,
+  mapPlayerStateToCoachAction,
+} from "./player-state";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -211,49 +216,71 @@ function buildWorldState(params: {
   };
 }
 
-function buildPlayerDecisions(params: {
+function buildSyntheticPlayerInputs(params: {
   homeTeam: string;
   awayTeam: string;
   action: string;
   decisionMode: DecisionPipelineReport["decisionMode"];
-  label: string;
-  finalConfidence: number;
-}): DecisionPipelineReport["playerDecisions"] {
+}): NonNullable<DecisionPipelineInput["playerContext"]>["players"] {
   const focusTeam = params.action === "LEAN_AWAY" ? params.awayTeam : params.homeTeam;
-  const state =
-    params.decisionMode === "BENCH"
-      ? "collapse_risk"
-      : params.decisionMode === "ADJUST"
-        ? "fatigued"
-        : params.decisionMode === "ATTACK"
-          ? "hot"
-          : "neutral";
-  const coachAction =
-    params.decisionMode === "BENCH"
-      ? "BENCH"
-      : params.decisionMode === "ADJUST"
-        ? "REDUCE_MINUTES"
-        : params.decisionMode === "ATTACK"
-          ? "FEATURE_MORE"
-          : "KEEP_ON";
-  const reason =
+  const syntheticMetrics =
     params.decisionMode === "ATTACK"
-      ? `${focusTeam} has the better matchup, cleaner rhythm, and stronger role impact right now.`
+      ? { momentum: 0.82, fatigue: 0.24, pressure: 0.36 }
       : params.decisionMode === "ADJUST"
-        ? `${focusTeam} is carrying fatigue and pressure, so a rotation adjustment should protect lineup stability.`
+        ? { momentum: 0.46, fatigue: 0.67, pressure: 0.64 }
         : params.decisionMode === "BENCH"
-          ? `${focusTeam} is showing collapse risk through unstable rhythm, weak role impact, and a tactical mismatch.`
-          : `${focusTeam} is holding neutral rhythm and acceptable lineup stability, so no sharp player change is needed yet.`;
+          ? { momentum: 0.22, fatigue: 0.86, pressure: 0.82 }
+          : { momentum: 0.55, fatigue: 0.42, pressure: 0.4 };
 
   return [
     {
       playerId: `${focusTeam.toLowerCase()}-rotation-anchor`,
       playerName: `${focusTeam} Rotation Anchor`,
-      state,
-      coachAction,
-      reason,
+      teamCode: focusTeam,
+      ...syntheticMetrics,
     },
   ];
+}
+
+function buildPlayerDecisions(params: {
+  homeTeam: string;
+  awayTeam: string;
+  action: string;
+  decisionMode: DecisionPipelineReport["decisionMode"];
+  playerContext: DecisionPipelineInput["playerContext"];
+}): DecisionPipelineReport["playerDecisions"] {
+  const players =
+    params.playerContext?.players.length
+      ? params.playerContext.players
+      : buildSyntheticPlayerInputs({
+          homeTeam: params.homeTeam,
+          awayTeam: params.awayTeam,
+          action: params.action,
+          decisionMode: params.decisionMode,
+        });
+
+  return players.map((player) => {
+    const state = evaluatePlayerState({
+      momentum: player.momentum,
+      fatigue: player.fatigue,
+      pressure: player.pressure,
+    });
+    const coachAction = mapPlayerStateToCoachAction(state);
+
+    return {
+      playerId: player.playerId,
+      playerName: player.playerName,
+      state,
+      coachAction,
+      reason: buildPlayerStateReason({
+        playerName: player.playerName,
+        state,
+        momentum: player.momentum,
+        fatigue: player.fatigue,
+        pressure: player.pressure,
+      }),
+    };
+  });
 }
 
 function mapLineupAction(
@@ -331,8 +358,7 @@ export class DecisionPipelineAgent {
       awayTeam: input.match.awayTeam,
       action: liveDecision.action,
       decisionMode,
-      label: liveDecision.label,
-      finalConfidence,
+      playerContext: input.playerContext ?? null,
     });
     const lineupAction = mapLineupAction(decisionMode);
 

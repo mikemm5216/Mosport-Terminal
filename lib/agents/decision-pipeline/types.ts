@@ -1,6 +1,7 @@
 import type { LiveDecisionAgentInput } from "../live-decision/types";
 import type { ValidationReport } from "../validation/types";
 import type { SimulationReport } from "../simulation/types";
+import type { PlayerCoachAction, PlayerState } from "./player-state";
 
 export type DecisionPipelineInput = {
   match: LiveDecisionAgentInput;
@@ -14,6 +15,17 @@ export type DecisionPipelineInput = {
     SimulationReport,
     "projectedChampion" | "matchupResults" | "titleDistribution"
   > | null;
+
+  playerContext?: {
+    players: Array<{
+      playerId: string;
+      playerName: string;
+      teamCode: string;
+      momentum: number;
+      fatigue: number;
+      pressure: number;
+    }>;
+  } | null;
 };
 
 export type DecisionPipelineReport = {
@@ -49,13 +61,11 @@ export type DecisionPipelineReport = {
     primaryRisk: string;
   };
 
-  // Coach Mode v1 infers player decisions from team and rotation context.
-  // True player-level actions require PlayerState / LineupState inputs in v2.
   playerDecisions: Array<{
     playerId: string;
     playerName: string;
-    state: "hot" | "neutral" | "fatigued" | "collapse_risk";
-    coachAction: "KEEP_ON" | "FEATURE_MORE" | "REDUCE_MINUTES" | "BENCH";
+    state: PlayerState;
+    coachAction: PlayerCoachAction;
     reason: string;
   }>;
 

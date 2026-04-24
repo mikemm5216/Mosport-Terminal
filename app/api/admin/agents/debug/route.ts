@@ -76,6 +76,27 @@ const validationFixture: ValidationInput = {
   ],
 };
 
+const playerFixture = {
+  players: [
+    {
+      playerId: "lal-lebron-james",
+      playerName: "LeBron James",
+      teamCode: "LAL",
+      momentum: 0.74,
+      fatigue: 0.31,
+      pressure: 0.42,
+    },
+    {
+      playerId: "lal-rotation-big",
+      playerName: "LAL Rotation Big",
+      teamCode: "LAL",
+      momentum: 0.38,
+      fatigue: 0.76,
+      pressure: 0.71,
+    },
+  ],
+};
+
 function withInternalKeyAlias(req: Request): Request {
   const internalKey = req.headers.get("x-internal-api-key");
   if (!internalKey) return req;
@@ -186,6 +207,7 @@ export async function GET(req: Request) {
               titleDistribution: simulationReport.titleDistribution,
             }
           : null,
+        playerContext: playerFixture,
       });
     } catch (error) {
       diagnostics.errors.push({
