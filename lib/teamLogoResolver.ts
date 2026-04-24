@@ -14,13 +14,28 @@ export const TEAM_LOGO_FALLBACK =
 export function getTeamLogo(league: string, rawCode: string | null | undefined): string {
   const safeLeague = league?.trim().toUpperCase()
   const safeRawCode = rawCode?.trim()
+  const normalizedCode = safeLeague && safeRawCode ? normalizeTeamCode(safeLeague, safeRawCode) : ''
+  const canonicalKey = safeLeague && safeRawCode ? getCanonicalTeamLogoKey(safeLeague, safeRawCode) : ''
+  const resolvedPath = safeLeague && safeRawCode
+    ? (TEAM_LOGOS[canonicalKey] ?? TEAM_LOGO_FALLBACK)
+    : TEAM_LOGO_FALLBACK
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('[logo-resolve]', {
+      league: safeLeague ?? league ?? '',
+      rawCode: safeRawCode ?? rawCode ?? '',
+      normalizedCode,
+      canonicalKey,
+      resolvedPath,
+      found: Boolean(resolvedPath && resolvedPath !== TEAM_LOGO_FALLBACK),
+    })
+  }
 
   if (!safeLeague || !safeRawCode) {
     return TEAM_LOGO_FALLBACK
   }
 
-  const canonicalKey = getCanonicalTeamLogoKey(safeLeague, safeRawCode)
-  return TEAM_LOGOS[canonicalKey] ?? TEAM_LOGO_FALLBACK
+  return resolvedPath
 }
 
 export { normalizeTeamCode }

@@ -1,16 +1,27 @@
 import type { League } from '../data/mockData'
-import { toCanonicalTeamKey } from '../config/teamCodeNormalization'
+import { normalizeTeamCode, toCanonicalTeamKey } from '../config/teamCodeNormalization'
 import { TEAM_LOGOS } from '../config/teamLogos'
 
 export const TEAM_LOGO_FALLBACK = '/logos/fallback.png'
 
 export function getTeamLogo(league: League, rawCode: string): string {
-  const key = toCanonicalTeamKey(league, rawCode)
-  const direct = TEAM_LOGOS[key]
-  if (direct) return direct
+  const normalizedCode = normalizeTeamCode(league, rawCode)
+  const canonicalKey = toCanonicalTeamKey(league, rawCode)
+  const resolvedPath = TEAM_LOGOS[canonicalKey] ?? TEAM_LOGO_FALLBACK
 
   if (process.env.NODE_ENV !== 'production') {
-    console.warn(`[logos] Missing canonical logo map for ${key}; using fallback logo.`)
+    console.warn('[logo-resolve]', {
+      league,
+      rawCode,
+      normalizedCode,
+      canonicalKey,
+      resolvedPath,
+      found: Boolean(resolvedPath && resolvedPath !== TEAM_LOGO_FALLBACK),
+    })
+  }
+
+  if (resolvedPath !== TEAM_LOGO_FALLBACK) {
+    return resolvedPath
   }
 
   return TEAM_LOGO_FALLBACK

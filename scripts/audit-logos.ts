@@ -3,6 +3,8 @@ import path from "node:path";
 
 import { getCanonicalTeamLogoKey, normalizeTeamCode } from "../src/config/teamCodeNormalization";
 import { TEAM_LOGOS, getTeamLogo } from "../src/config/teamLogos";
+import { getTeamLogo as getFrontendTeamLogo, TEAM_LOGO_FALLBACK as FRONTEND_FALLBACK } from "../frontend/app/lib/teamLogoResolver";
+import { getTeamLogo as getServerTeamLogo, TEAM_LOGO_FALLBACK as SERVER_FALLBACK } from "../lib/teamLogoResolver";
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -46,6 +48,40 @@ function main(): void {
     assert(canonicalKey === sample.expected, `Expected ${sample.league} ${sample.rawCode} -> ${sample.expected}, got ${canonicalKey}`);
     assert(TEAM_LOGOS[canonicalKey] === logoPath, `Resolver mismatch for ${canonicalKey}`);
     assert(normalizedCode === sample.expected.split("_")[1], `Normalization mismatch for ${sample.league} ${sample.rawCode}`);
+  }
+
+  const knownRealTeams: Array<{ key: string; league: "MLB" | "NBA" | "EPL"; rawCode: string }> = [
+    { key: "MLB_PIT", league: "MLB", rawCode: "PIT" },
+    { key: "MLB_TEX", league: "MLB", rawCode: "TEX" },
+    { key: "MLB_LAD", league: "MLB", rawCode: "LAD" },
+    { key: "MLB_NYY", league: "MLB", rawCode: "NYY" },
+    { key: "NBA_TOR", league: "NBA", rawCode: "TOR" },
+    { key: "NBA_MIN", league: "NBA", rawCode: "MIN" },
+    { key: "NBA_DEN", league: "NBA", rawCode: "DEN" },
+    { key: "NBA_CLE", league: "NBA", rawCode: "CLE" },
+    { key: "EPL_NFO", league: "EPL", rawCode: "NFO" },
+    { key: "EPL_ARS", league: "EPL", rawCode: "ARS" },
+    { key: "EPL_LIV", league: "EPL", rawCode: "LIV" },
+    { key: "EPL_MCI", league: "EPL", rawCode: "MCI" },
+  ];
+
+  for (const sample of knownRealTeams) {
+    const logoPath = TEAM_LOGOS[sample.key];
+    assert(Boolean(logoPath), `Missing TEAM_LOGOS key: ${sample.key}`);
+
+    const normalizedPath = logoPath.startsWith("/") ? logoPath.slice(1) : logoPath;
+    const absolutePath = path.join(publicDir, normalizedPath);
+    assert(fs.existsSync(absolutePath), `Missing logo file for ${sample.key}: ${logoPath}`);
+
+    const frontendResolved = getFrontendTeamLogo(sample.league, sample.rawCode);
+    const serverResolved = getServerTeamLogo(sample.league, sample.rawCode);
+    const srcResolved = getTeamLogo(sample.league, sample.rawCode);
+
+    assert(frontendResolved !== FRONTEND_FALLBACK, `Frontend resolver fell back for ${sample.key}`);
+    assert(serverResolved !== SERVER_FALLBACK, `Server resolver fell back for ${sample.key}`);
+    assert(srcResolved === logoPath, `Source resolver mismatch for ${sample.key}`);
+    assert(frontendResolved === logoPath, `Frontend resolver mismatch for ${sample.key}`);
+    assert(serverResolved === logoPath, `Server resolver mismatch for ${sample.key}`);
   }
 
   console.log("Logo audit passed.");
