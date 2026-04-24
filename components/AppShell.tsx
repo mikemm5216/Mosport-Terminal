@@ -1,14 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, X, Shield, Activity, TrendingUp, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { StatusHeader } from './StatusHeader';
+import { DataFreshnessBadge, Freshness } from './DataFreshnessBadge';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const pathname = usePathname();
+    const [meta, setMeta] = useState<{
+        lastUpdatedAt: string | null;
+        dataFreshness: Freshness;
+        sourceProvider: string;
+        fallbackUsed: boolean;
+    } | null>(null);
+
+    useEffect(() => {
+        async function fetchMeta() {
+            try {
+                const res = await fetch('/api/matches?limit=1');
+                const json = await res.json();
+                if (json.success && json.meta) {
+                    setMeta(json.meta);
+                }
+            } catch (err) {
+                console.error("Failed to fetch data freshness meta", err);
+            }
+        }
+
+        fetchMeta();
+        const interval = setInterval(fetchMeta, 60000); // 1 minute heartbeat
+        return () => clearInterval(interval);
+    }, []);
+
+    const metaData = meta ?? {
+        lastUpdatedAt: null,
+        dataFreshness: "offline" as Freshness,
+        sourceProvider: "unknown",
+        fallbackUsed: false,
+    };
 
     return (
         <div className="min-h-screen bg-surface font-body text-slate-300 relative overflow-hidden">
@@ -31,7 +62,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     </div>
                 </div>
                 <div className="hidden md:flex items-center gap-6 text-[10px] font-black uppercase tracking-widest">
-                    <StatusHeader />
+                    <DataFreshnessBadge 
+                        freshness={metaData.dataFreshness}
+                        lastUpdatedAt={metaData.lastUpdatedAt}
+                        sourceProvider={metaData.sourceProvider}
+                        fallbackUsed={metaData.fallbackUsed}
+                    />
                     <span className="text-slate-600">Secure Node: 0x4A2B</span>
                 </div>
             </nav>
