@@ -392,8 +392,13 @@ export default function PlayersPage({ onTeam, onPlayer }: Props) {
 
       {/* League → Team → Players */}
       {grouped.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "60px 0", fontFamily: "var(--font-mono), monospace", fontSize: 10, color: "#334155", letterSpacing: "0.28em" }}>
-          NO PLAYERS MATCH FILTER
+        <div style={{ textAlign: "center", padding: "60px 0", fontFamily: "var(--font-mono), monospace" }}>
+          <div style={{ fontSize: 10, color: "#334155", letterSpacing: "0.28em", marginBottom: 10 }}>
+            PLAYER BIOMETRIC DATA NOT AVAILABLE
+          </div>
+          <div style={{ fontSize: 8, color: "#1e293b", letterSpacing: "0.18em" }}>
+            ⚠ PLAYER DATA IS PLACEHOLDER — REAL BIOMETRIC API NOT YET INTEGRATED
+          </div>
         </div>
       ) : (
         grouped.map(({ league, teams }) => {

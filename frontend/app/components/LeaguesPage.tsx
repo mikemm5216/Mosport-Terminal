@@ -152,9 +152,12 @@ function LeagueBlock({ league, isMobile, matches, onTeam, onPlayoffs }: { league
         </div>
       )}
 
-      {/* Team standings */}
+      {/* Team standings — PLACEHOLDER data, not connected to live standings API */}
       <div style={{ padding: isMobile ? "12px 16px 16px" : "12px 24px 16px" }}>
-        <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, color: "#1e293b", letterSpacing: "0.3em", marginBottom: 10, fontWeight: 800 }}>TEAM TRACKER</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, color: "#1e293b", letterSpacing: "0.3em", fontWeight: 800 }}>TEAM TRACKER</div>
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, fontWeight: 800, letterSpacing: "0.18em", color: "#fbbf24", padding: "2px 6px", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 2 }}>PLACEHOLDER</span>
+        </div>
 
         {/* Table header */}
         <div style={{

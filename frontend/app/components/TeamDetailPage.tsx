@@ -306,8 +306,11 @@ export default function TeamDetailPage({ teamAbbr, league, onBack }: Props) {
 
       {/* League standings */}
       <div style={{ background: "rgba(15,23,42,0.4)", border: "1px solid rgba(148,163,184,0.07)", borderRadius: 4, padding: "20px 24px" }}>
-        <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, color: "#334155", letterSpacing: "0.3em", fontWeight: 800, marginBottom: 14 }}>
-          {league} STANDINGS
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, color: "#334155", letterSpacing: "0.3em", fontWeight: 800 }}>
+            {league} STANDINGS
+          </div>
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, fontWeight: 800, letterSpacing: "0.18em", color: "#fbbf24", padding: "2px 6px", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 2 }}>PLACEHOLDER</span>
         </div>
         {standings.map((s, i) => {
           const isThis = s.abbr === teamAbbr

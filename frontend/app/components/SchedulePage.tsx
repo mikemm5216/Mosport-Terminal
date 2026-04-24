@@ -5,7 +5,7 @@ import type { Match, League, KeyPlayer } from '../data/mockData'
 import { getKeyPlayers } from '../data/mockData'
 import { leagueTheme, TeamMark, LeagueBadge, wpaColor } from './ui'
 import { useWindowWidth } from '../lib/useWindowWidth'
-import { useMatchesContext } from '../context/MatchesContext'
+import { useMatchesContext, DataFreshnessBadge } from '../context/MatchesContext'
 
 // ── Date helpers ─────────────────────────────────────────────
 function todayISO() {
@@ -538,7 +538,7 @@ export default function SchedulePage({ onOpen, onOpenLab }: { onOpen: (m: Match)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<"ALL" | League>("ALL")
   const [selectedDate, setSelectedDate] = useState(todayISO())
-  const { matches: allMatches, loading } = useMatchesContext()
+  const { matches: allMatches, loading, error, dataFreshness } = useMatchesContext()
   const w = useWindowWidth()
   const isMobile = w < 640
 
@@ -594,7 +594,8 @@ export default function SchedulePage({ onOpen, onOpenLab }: { onOpen: (m: Match)
         fontFamily: "var(--font-mono), monospace", fontSize: 9,
         letterSpacing: "0.22em",
       }}>
-        <span style={{ color: "#334155" }}>{base.length} MATCHES</span>
+        <DataFreshnessBadge freshness={dataFreshness} />
+        {!loading && base.length > 0 && <span style={{ color: "#334155" }}>{base.length} MATCHES</span>}
         {liveCount > 0 && <span style={{ color: "#ef4444" }}>● {liveCount} LIVE</span>}
         {finalCount > 0 && <span style={{ color: "#34d399" }}>✓ {finalCount} FINAL</span>}
         {isArchived && (
@@ -605,6 +606,22 @@ export default function SchedulePage({ onOpen, onOpenLab }: { onOpen: (m: Match)
           }}>ARCHIVED RESULTS</span>
         )}
       </div>
+
+      {/* Offline empty state — no mock fallback */}
+      {!loading && dataFreshness === 'offline' && (
+        <div style={{
+          marginTop: 60, display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
+          fontFamily: "var(--font-mono), monospace", textAlign: "center",
+        }}>
+          <span style={{ fontSize: 32, opacity: 0.3 }}>◯</span>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.28em", color: "#475569" }}>
+            NO MATCH DATA AVAILABLE
+          </div>
+          <div style={{ fontSize: 9, color: "#334155", letterSpacing: "0.18em", maxWidth: 320 }}>
+            {error ?? "ODDS API returned 0 events. Check ODDS_API_KEY or try again later."}
+          </div>
+        </div>
+      )}
 
       {/* League filter — Horizontal scroll on mobile */}
       <div style={{ 

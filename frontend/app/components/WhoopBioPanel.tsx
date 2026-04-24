@@ -113,11 +113,17 @@ export default function WhoopBioPanel({ m, recovery, setRecovery }: Props) {
       <div style={{
         fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 700,
         letterSpacing: "0.32em", color: "#22d3ee", textTransform: "uppercase",
-        display: "flex", alignItems: "center", gap: 8, marginBottom: 14,
+        display: "flex", alignItems: "center", gap: 8, marginBottom: 6,
       }}>
         <span style={{ width: 14, height: 1, background: "#22d3ee", opacity: 0.5 }} />
         ROSTER READINESS &amp; BIOMETRICS
       </div>
+      <div style={{
+        fontFamily: "var(--font-mono), monospace", fontSize: 8, fontWeight: 800,
+        letterSpacing: "0.2em", color: "#fbbf24",
+        padding: "3px 8px", border: "1px solid rgba(251,191,36,0.25)",
+        borderRadius: 2, display: "inline-block", marginBottom: 14,
+      }}>⚠ PLACEHOLDER DATA — NOT CONNECTED TO REAL BIOMETRICS</div>
 
       {/* Aggregate recovery hero */}
       <div style={{
