@@ -1,4 +1,10 @@
-import type { Match, League, TacticalLabel } from '../data/mockData'
+import type { Match, League, TacticalLabel, KeyPlayer } from '../data/mockData'
+import {
+  generateSimulatedPlayers,
+  getPlayerImportanceScore,
+  getPlayerSource,
+  isRosterPlaceholder,
+} from './playerReadiness'
 
 export interface V11Opinion {
   agent: string
@@ -51,12 +57,71 @@ const SPORT_MAP: Record<League, string> = {
   NHL: 'hockey',
 }
 
+type V11PlayerContextItem = {
+  name: string
+  team: string
+  side: 'home' | 'away'
+  role: string
+  readiness_flag: KeyPlayer['flag']
+  hrv_delta: number
+  sleep_debt: number
+  source: string | null
+  placeholder: boolean
+  importance_score: number | null
+}
+
+function toV11PlayerContextItem(
+  player: KeyPlayer,
+  side: 'home' | 'away',
+  teamCode: string,
+): V11PlayerContextItem {
+  return {
+    name: player.name,
+    team: teamCode,
+    side,
+    role: player.pos,
+    readiness_flag: player.flag,
+    hrv_delta: player.hrv,
+    sleep_debt: player.sleep,
+    source: getPlayerSource(player),
+    placeholder: isRosterPlaceholder(player),
+    importance_score: getPlayerImportanceScore(player),
+  }
+}
+
+function buildPlayerContext(m: Match) {
+  const awayPlayers = generateSimulatedPlayers(m, 'away')
+  const homePlayers = generateSimulatedPlayers(m, 'home')
+  const keyPlayers = [
+    ...awayPlayers.map((p) => toV11PlayerContextItem(p, 'away', m.away.abbr)),
+    ...homePlayers.map((p) => toV11PlayerContextItem(p, 'home', m.home.abbr)),
+  ]
+
+  const usableRealPlayers = keyPlayers.filter((p) => !p.placeholder)
+  const rosterRiskByTeam = keyPlayers.reduce<Record<string, number>>((acc, player) => {
+    const fatigueLoad = Math.min(1, Math.abs(player.hrv_delta) * 2.5 + player.sleep_debt / 4)
+    acc[player.team] = Math.max(acc[player.team] ?? 0, Number(fatigueLoad.toFixed(3)))
+    return acc
+  }, {})
+
+  return {
+    source: usableRealPlayers.length > 0 ? 'player_readiness_resolved' : 'placeholder_only',
+    key_players: keyPlayers,
+    roster_risk: rosterRiskByTeam,
+  }
+}
+
 export function matchToV11Input(m: Match, recoveryOverride?: number) {
   const rec = recoveryOverride ?? m.recovery_away
   const mismatch = parseFloat(
     Math.min(1, Math.max(0, (rec - m.recovery_home) * 2.5 + Math.max(0, m.baseline_win - 0.5) * 3)).toFixed(2),
   )
   const volatility = parseFloat(Math.min(0.69, m.matchup_complexity).toFixed(2))
+  const playerContext = buildPlayerContext(m)
+  const rosterRiskValues = Object.values(playerContext.roster_risk)
+  const rosterRisk = rosterRiskValues.length
+    ? parseFloat((rosterRiskValues.reduce((sum, risk) => sum + risk, 0) / rosterRiskValues.length).toFixed(2))
+    : 0
 
   return {
     game_id: m.id,
@@ -70,7 +135,9 @@ export function matchToV11Input(m: Match, recoveryOverride?: number) {
       volatility,
       momentum: 0.5,
       mismatch,
+      roster_risk: rosterRisk,
     },
+    player_context: playerContext,
     tags: [m.status === 'LIVE' ? 'live' : m.status === 'FINAL' ? 'final' : 'pre_game'],
   }
 }
