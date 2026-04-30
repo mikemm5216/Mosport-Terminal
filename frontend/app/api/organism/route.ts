@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const V11_URL = process.env.V11_API_URL ?? 'http://localhost:8811'
+const V11_URL = process.env.V11_API_URL
 
 export async function POST(req: NextRequest) {
+  if (!V11_URL) {
+    console.error('[organism] V11_API_URL missing')
+    return NextResponse.json({ error: 'V11_URL_MISSING' }, { status: 503 })
+  }
+
   const body = await req.json()
   try {
     const res = await fetch(`${V11_URL}/organism/run`, {
