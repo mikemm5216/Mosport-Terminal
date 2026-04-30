@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import {
   NBA_BRACKET_2026,
