@@ -6,6 +6,12 @@
  * 2. Fresh cached team roster by league + teamCode
  * 3. Neutral team-safe placeholder fallback
  *
+ * Key-player model:
+ * - Real players are ranked inside their own team roster only.
+ * - Ranking prefers provider metadata when present: usage, minutes, starter,
+ *   depth, position, availability.
+ * - Missing metadata falls back to deterministic tie-breakers, never random.
+ *
  * Critical trust rules:
  * - Never use league-wide player name pools.
  * - Never assign a real player unless it came from that exact team's roster store.
@@ -23,11 +29,29 @@ type PlayerSource =
   | 'cached_team_roster'
   | 'simulated_player_state_team_placeholder'
 
+type AvailabilityStatus = 'ACTIVE' | 'QUESTIONABLE' | 'DOUBTFUL' | 'OUT' | 'UNKNOWN'
+
+type ProviderRosterPlayer = {
+  name: string
+  position?: string
+  isStarter?: boolean
+  projectedMinutes?: number
+  usageRate?: number
+  depthRank?: number
+  availability?: AvailabilityStatus
+}
+
 type RosterEntry = {
   name: string
   league: League
   teamCode: TeamCode
   updatedAtMs: number
+  position?: string
+  isStarter?: boolean
+  projectedMinutes?: number
+  usageRate?: number
+  depthRank?: number
+  availability: AvailabilityStatus
 }
 
 type TeamRosterStore = Record<League, Record<TeamCode, readonly RosterEntry[]>>
@@ -49,10 +73,6 @@ function djb2(s: string): number {
   return Math.abs(h)
 }
 
-function pick<T>(pool: readonly T[], seed: string): T {
-  return pool[djb2(seed) % pool.length]
-}
-
 function normalizeCode(code: string | undefined): TeamCode {
   return String(code ?? '').trim().toUpperCase()
 }
@@ -63,6 +83,21 @@ function normalizeLeague(league: string | undefined): League {
 
 function nowMs(): number {
   return Date.now()
+}
+
+function finiteOrUndefined(value: unknown): number | undefined {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : undefined
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value))
+}
+
+function normalizeAvailability(value: unknown): AvailabilityStatus {
+  const v = String(value ?? 'UNKNOWN').trim().toUpperCase()
+  if (v === 'ACTIVE' || v === 'QUESTIONABLE' || v === 'DOUBTFUL' || v === 'OUT') return v
+  return 'UNKNOWN'
 }
 
 function isFresh(entry: RosterEntry, maxAgeMs: number, atMs = nowMs()): boolean {
@@ -76,16 +111,30 @@ function ensureLeagueBucket(store: TeamRosterStore, league: League): Record<Team
   return store[league]
 }
 
+function toProviderPlayers(players: readonly (string | ProviderRosterPlayer)[]): readonly ProviderRosterPlayer[] {
+  return players
+    .map((player) => typeof player === 'string' ? { name: player } : player)
+    .filter((player): player is ProviderRosterPlayer => Boolean(String(player?.name ?? '').trim()))
+}
+
 function toRosterEntries(
   league: League,
   teamCode: TeamCode,
-  names: readonly string[],
+  players: readonly (string | ProviderRosterPlayer)[],
   updatedAtMs: number,
 ): readonly RosterEntry[] {
-  return names
-    .map((rawName) => String(rawName ?? '').trim())
-    .filter(Boolean)
-    .map((name) => ({ name, league, teamCode, updatedAtMs }))
+  return toProviderPlayers(players).map((player) => ({
+    name: String(player.name).trim(),
+    league,
+    teamCode,
+    updatedAtMs,
+    position: player.position ? String(player.position).trim().toUpperCase() : undefined,
+    isStarter: typeof player.isStarter === 'boolean' ? player.isStarter : undefined,
+    projectedMinutes: finiteOrUndefined(player.projectedMinutes),
+    usageRate: finiteOrUndefined(player.usageRate),
+    depthRank: finiteOrUndefined(player.depthRank),
+    availability: normalizeAvailability(player.availability),
+  }))
 }
 
 /**
@@ -95,7 +144,7 @@ function toRosterEntries(
 export function upsertLiveTeamRoster(
   leagueInput: League,
   teamCodeInput: TeamCode,
-  playerNames: readonly string[],
+  players: readonly (string | ProviderRosterPlayer)[],
   updatedAtMs = nowMs(),
 ): void {
   const league = normalizeLeague(leagueInput)
@@ -105,7 +154,7 @@ export function upsertLiveTeamRoster(
   ensureLeagueBucket(TEAM_PLAYER_POOL, league)[teamCode] = toRosterEntries(
     league,
     teamCode,
-    playerNames,
+    players,
     updatedAtMs,
   )
 }
@@ -117,7 +166,7 @@ export function upsertLiveTeamRoster(
 export function upsertCachedTeamRoster(
   leagueInput: League,
   teamCodeInput: TeamCode,
-  playerNames: readonly string[],
+  players: readonly (string | ProviderRosterPlayer)[],
   updatedAtMs: number,
 ): void {
   const league = normalizeLeague(leagueInput)
@@ -127,7 +176,7 @@ export function upsertCachedTeamRoster(
   ensureLeagueBucket(CACHED_TEAM_PLAYER_POOL, league)[teamCode] = toRosterEntries(
     league,
     teamCode,
-    playerNames,
+    players,
     updatedAtMs,
   )
 }
@@ -144,6 +193,7 @@ function getFreshRoster(
   const fresh = roster.filter((entry) =>
     entry.league === league
     && entry.teamCode === teamCode
+    && entry.availability !== 'OUT'
     && isFresh(entry, maxAgeMs),
   )
 
@@ -165,8 +215,18 @@ function getPlaceholderPool(league: League): readonly string[] {
 }
 
 type ResolvedPlayerPool = {
-  names: readonly string[]
+  players: readonly RosterEntry[]
   source: PlayerSource
+}
+
+function placeholderEntries(league: League, teamCode: TeamCode): readonly RosterEntry[] {
+  return getPlaceholderPool(league).map((name) => ({
+    name,
+    league,
+    teamCode,
+    updatedAtMs: nowMs(),
+    availability: 'UNKNOWN' as const,
+  }))
 }
 
 function resolvePlayerPool(league: League, teamCode: TeamCode): ResolvedPlayerPool {
@@ -179,7 +239,7 @@ function resolvePlayerPool(league: League, teamCode: TeamCode): ResolvedPlayerPo
 
   if (liveRoster) {
     return {
-      names: liveRoster.map((entry) => entry.name),
+      players: liveRoster,
       source: 'live_roster_provider',
     }
   }
@@ -193,15 +253,93 @@ function resolvePlayerPool(league: League, teamCode: TeamCode): ResolvedPlayerPo
 
   if (cachedRoster) {
     return {
-      names: cachedRoster.map((entry) => entry.name),
+      players: cachedRoster,
       source: 'cached_team_roster',
     }
   }
 
   return {
-    names: getPlaceholderPool(league),
+    players: placeholderEntries(league, teamCode),
     source: 'simulated_player_state_team_placeholder',
   }
+}
+
+function positionPriority(league: League, position?: string): number {
+  const p = String(position ?? '').toUpperCase()
+
+  if (league === 'NBA') {
+    if (['PG', 'SG', 'G', 'GUARD'].includes(p)) return 9
+    if (['SF', 'PF', 'F', 'FORWARD', 'WING'].includes(p)) return 8
+    if (['C', 'CENTER'].includes(p)) return 7
+  }
+
+  if (league === 'MLB') {
+    if (['SP', 'P', 'STARTING PITCHER'].includes(p)) return 9
+    if (['C', '1B', '2B', '3B', 'SS', 'OF', 'DH'].includes(p)) return 8
+    if (['RP', 'RELIEF PITCHER'].includes(p)) return 6
+  }
+
+  if (league === 'NHL') {
+    if (['C', 'LW', 'RW', 'F', 'FORWARD'].includes(p)) return 9
+    if (['D', 'DEFENSE', 'DEFENDER'].includes(p)) return 7
+    if (['G', 'GOALIE'].includes(p)) return 6
+  }
+
+  if (league === 'EPL' || league === 'UCL') {
+    if (['F', 'FW', 'ST', 'CF', 'FORWARD'].includes(p)) return 9
+    if (['M', 'MID', 'MIDFIELDER', 'AM', 'CM', 'DM'].includes(p)) return 8
+    if (['D', 'DEF', 'DEFENDER'].includes(p)) return 6
+    if (['GK', 'GOALKEEPER'].includes(p)) return 5
+  }
+
+  return 5
+}
+
+function availabilityPenalty(availability: AvailabilityStatus): number {
+  switch (availability) {
+    case 'ACTIVE': return 0
+    case 'UNKNOWN': return 0
+    case 'QUESTIONABLE': return -8
+    case 'DOUBTFUL': return -18
+    case 'OUT': return -999
+  }
+}
+
+function importanceScore(
+  player: RosterEntry,
+  league: League,
+  teamCode: TeamCode,
+  matchId: string,
+): number {
+  const seed = `${matchId}::${league}::${teamCode}::${player.name}`
+  const stableTieBreaker = (djb2(seed) % 1000) / 1000
+  const usage = player.usageRate === undefined ? 0 : clamp(player.usageRate, 0, 40) * 1.1
+  const minutes = player.projectedMinutes === undefined ? 0 : clamp(player.projectedMinutes, 0, 48) * 0.7
+  const starter = player.isStarter ? 12 : 0
+  const depth = player.depthRank === undefined ? 0 : Math.max(0, 8 - clamp(player.depthRank, 1, 12)) * 2
+  const position = positionPriority(league, player.position)
+
+  return usage
+    + minutes
+    + starter
+    + depth
+    + position
+    + availabilityPenalty(player.availability)
+    + stableTieBreaker
+}
+
+function rankKeyPlayers(
+  players: readonly RosterEntry[],
+  league: League,
+  teamCode: TeamCode,
+  matchId: string,
+): readonly RosterEntry[] {
+  return [...players].sort((a, b) => {
+    const scoreDelta = importanceScore(b, league, teamCode, matchId)
+      - importanceScore(a, league, teamCode, matchId)
+    if (scoreDelta !== 0) return scoreDelta
+    return a.name.localeCompare(b.name)
+  })
 }
 
 // ── State definitions ─────────────────────────────────────────────────────────
@@ -269,21 +407,13 @@ export function generateSimulatedPlayers(
   const tc = normalizeCode(team.abbr)
   const league = normalizeLeague(match.league)
   const resolved = resolvePlayerPool(league, tc)
+  const rankedPlayers = rankKeyPlayers(resolved.players, league, tc, String(match.id))
 
   return [0, 1].map((idx) => {
-    const nameSeed = `${match.id}::${league}::${tc}::name::${idx}`
     const stateSeed = `${match.id}::${league}::${tc}::state::${idx}`
     const entropySeed = `${match.id}::${league}::${tc}::entropy::${idx}`
-
-    let name = pick(resolved.names, nameSeed)
-
-    // Keep the two rows distinct without leaving the resolved team-scoped pool.
-    if (idx === 1) {
-      const alt = pick(resolved.names, `${nameSeed}::alt`)
-      if (alt !== name) name = alt
-      else name = resolved.names[(djb2(nameSeed) + 1) % resolved.names.length]
-    }
-
+    const player = rankedPlayers[idx % rankedPlayers.length]
+    const name = player.name
     const state = STATES[djb2(stateSeed) % 4]
     const entropy = djb2(entropySeed)
 
@@ -298,11 +428,13 @@ export function generateSimulatedPlayers(
       _reason:      STATE_REASON[state],
       _coachAction: STATE_COACH_ACTION[state],
       _source:      resolved.source,
+      _importanceScore: importanceScore(player, league, tc, String(match.id)),
     } as KeyPlayer & {
       _state: PlayerState
       _reason: string
       _coachAction: string
       _source: PlayerSource
+      _importanceScore: number
     }
   })
 }
@@ -317,6 +449,10 @@ export function getSimulatedCoachAction(p: KeyPlayer): string | null {
 
 export function getPlayerSource(p: KeyPlayer): PlayerSource | null {
   return (p as any)._source ?? null
+}
+
+export function getPlayerImportanceScore(p: KeyPlayer): number | null {
+  return (p as any)._importanceScore ?? null
 }
 
 export function isSimulatedPlayer(p: KeyPlayer): boolean {
