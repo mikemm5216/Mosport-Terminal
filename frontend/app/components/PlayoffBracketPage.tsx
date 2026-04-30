@@ -3,12 +3,12 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import {
-  NBA_BRACKET_2026, NHL_BRACKET_2026,
+  NBA_BRACKET_2026,
   type BracketSeries, type BracketTeam, type League, type PlayoffConference,
-  type PlayoffSimulationSummary,
 } from '../data/mockData'
 import { leagueTheme } from './ui'
 import TeamLogo from './TeamLogo'
+import type { SimulationSummaryResponse } from '../contracts/product'
 
 // ── Visual bracket engine (small iterations, display only) ────────
 // These power the bracket card rendering. They are NOT the 10M simulation —
@@ -84,7 +84,7 @@ function simulateBracket(firstRound: BracketSeries[], league: League): BracketSe
 // ── Fetch pre-computed simulation summary ────────────────────────
 
 function useSummary(league: string) {
-  const [summary, setSummary] = useState<PlayoffSimulationSummary | null>(null)
+  const [summary, setSummary] = useState<SimulationSummaryResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -92,7 +92,7 @@ function useSummary(league: string) {
     setSummary(null)
     fetch(`/api/playoffs/summary?league=${league}`)
       .then(r => r.json())
-      .then((data: PlayoffSimulationSummary) => { setSummary(data); setLoading(false) })
+      .then((data: SimulationSummaryResponse) => { setSummary(data); setLoading(false) })
       .catch(() => setLoading(false))
   }, [league])
 
@@ -179,12 +179,12 @@ function PlayoffChampionHero({
 function FinalsMatchupCard({
   summary, league, loading,
 }: {
-  summary: PlayoffSimulationSummary | null
+  summary: SimulationSummaryResponse | null
   league: League
   loading: boolean
 }) {
   const t = leagueTheme(league)
-  const matchup = summary?.most_likely_finals_matchup
+  const matchup = summary?.data.mostLikelyFinalsMatchup
 
   return (
     <div style={{
@@ -199,15 +199,15 @@ function FinalsMatchupCard({
       ) : (
         <>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <TeamLogo teamAbbr={matchup.home_team} league={league} size={28} accentColor={t.hex} />
+            <TeamLogo teamAbbr={matchup.teamA.shortName} league={league} size={28} accentColor={t.hex} />
             <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 18, color: "#f8fafc" }}>
-              {matchup.home_team}
+              {matchup.teamA.shortName}
             </span>
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569" }}>vs</span>
             <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 18, color: "#f8fafc" }}>
-              {matchup.away_team}
+              {matchup.teamB.shortName}
             </span>
-            <TeamLogo teamAbbr={matchup.away_team} league={league} size={28} accentColor={t.hex} />
+            <TeamLogo teamAbbr={matchup.teamB.shortName} league={league} size={28} accentColor={t.hex} />
           </div>
           <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 20, color: t.hex }}>
             {(matchup.probability * 100).toFixed(1)}%
@@ -224,12 +224,12 @@ function FinalsMatchupCard({
 function TitleDistributionTable({
   summary, league, loading,
 }: {
-  summary: PlayoffSimulationSummary | null
+  summary: SimulationSummaryResponse | null
   league: League
   loading: boolean
 }) {
   const t = leagueTheme(league)
-  const top5 = summary?.champion_distribution.slice(0, 5) ?? []
+  const top5 = summary?.data.titleDistribution.slice(0, 5) ?? []
 
   return (
     <div style={{
@@ -244,11 +244,11 @@ function TitleDistributionTable({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {top5.map((entry, i) => (
-            <div key={entry.team} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div key={entry.team.shortName} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", width: 12 }}>{i + 1}.</span>
-              <TeamLogo teamAbbr={entry.team} league={league} size={16} accentColor={i === 0 ? t.hex : "#475569"} />
+              <TeamLogo teamAbbr={entry.team.shortName} league={league} size={16} accentColor={i === 0 ? t.hex : "#475569"} />
               <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 10, color: i === 0 ? "#f8fafc" : "#94a3b8", flex: 1 }}>
-                {entry.team}
+                {entry.team.shortName}
               </span>
               <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 13, color: i === 0 ? t.hex : "#64748b" }}>
                 {(entry.probability * 100).toFixed(1)}%
@@ -264,10 +264,10 @@ function TitleDistributionTable({
 function ValidationSummaryCard({
   summary, loading,
 }: {
-  summary: PlayoffSimulationSummary | null
+  summary: SimulationSummaryResponse | null
   loading: boolean
 }) {
-  const validation = summary?.validation
+  const validation = summary?.data.validation
 
   return (
     <div style={{
@@ -290,13 +290,7 @@ function ValidationSummaryCard({
         </>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {[
-            ["Round 1", validation.round_1_accuracy],
-            ["Conf Semis", validation.semifinal_accuracy],
-            ["Conf Finals", validation.conference_finals_accuracy],
-            ["Finals", validation.finals_accuracy],
-            ["Overall", validation.overall_bracket_accuracy],
-          ].map(([label, val]) => (
+          {[["Overall", validation.overallAccuracy] as const].map(([label, val]) => (
             <div key={String(label)} style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#64748b" }}>{label}</span>
               <span style={{ fontFamily: "var(--font-inter)", fontWeight: 800, fontSize: 11, color: "#34d399" }}>
@@ -315,21 +309,21 @@ function ValidationSummaryCard({
 export default function PlayoffBracketPage({ embedded = false }: { embedded?: boolean } = {}) {
   const width = useWindowWidth()
   const isMobile = width < 1024
-  const [selectedLeague, setSelectedLeague] = useState<"NBA" | "NHL">("NBA")
+  const [selectedLeague, setSelectedLeague] = useState<'NBA'>('NBA')
   const league = selectedLeague
   const t = leagueTheme(league)
 
   const { summary, loading } = useSummary(selectedLeague)
 
-  const initialSeries = selectedLeague === "NBA" ? NBA_BRACKET_2026 : NHL_BRACKET_2026
+  const initialSeries = NBA_BRACKET_2026
   const allSeries = useMemo(() => simulateBracket(initialSeries, league), [initialSeries, league])
   const finals = allSeries.find(s => s.round === 4)
 
   // Use the simulation summary's projected champion for display; fall back to bracket prediction
-  const displayChampion = summary?.projected_champion.team
+  const displayChampion = summary?.data.projectedChampion.team.shortName
     ?? (finals ? predictSeries(finals).winner : null)
     ?? ""
-  const titleProb = summary?.projected_champion.probability ?? 0
+  const titleProb = summary?.data.projectedChampion.titleProbability ?? 0
 
   const getS = (round: number, conf: PlayoffConference) =>
     allSeries.filter(s => s.round === round && s.conference === conf)
@@ -386,12 +380,12 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
               {selectedLeague} 2026 <span style={{ color: t.hex }}>PLAYOFFS</span>
             </h1>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#334155", marginTop: 6, letterSpacing: "0.15em" }}>
-              {(summary?.simulation_runs ?? 10000000).toLocaleString()} SIMULATION RUNS · MODEL {summary?.metadata.model_version ?? "v4.1"}
+              {(summary?.meta.simulationRuns ?? 10000000).toLocaleString()} SIMULATION RUNS · MODEL {'v4.1'}
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 8 }}>
-            {(["NBA", "NHL"] as const).map(lg => (
+            {(['NBA'] as const).map(lg => (
               <button
                 key={lg}
                 onClick={() => setSelectedLeague(lg)}
@@ -484,7 +478,7 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
             SIMULATION RUNS
           </div>
           <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: t.hex, fontSize: 18 }}>
-            {(summary?.simulation_runs ?? 10000000).toLocaleString()}
+            {(summary?.meta.simulationRuns ?? 10000000).toLocaleString()}
           </div>
         </div>
       </div>

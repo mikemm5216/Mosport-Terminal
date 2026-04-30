@@ -29,7 +29,7 @@ function buildLocalMessage(recovery: number, m: Match): string {
     return (
       `PEAK CONDITION ACTIVE :: Recovery at ${pct}% — travel fatigue neutralized. ` +
       `HRV trending +14% on ${m.away.abbr} starter over last 30 days. ` +
-      `GAME PLAN :: Go aggressive on the bullpen — full-strength rotation available. ` +
+      `${getLeaguePlanLine(m)} ` +
       `Dominant performance window open — engine confidence HIGH.`
     )
   }
@@ -37,7 +37,7 @@ function buildLocalMessage(recovery: number, m: Match): string {
     return (
       `SOLID CONDITION :: Recovery at ${pct}% — within normal range. ` +
       `${m.away.abbr} rotation holding a mild edge. ` +
-      `GAME PLAN :: Standard rotation deployment // watch the 7th-inning bullpen switch.`
+      getLeagueWatchLine(m)
     )
   }
   if (recovery > 0.55) {
@@ -51,6 +51,21 @@ function buildLocalMessage(recovery: number, m: Match): string {
     `DANGER ZONE :: Recovery at ${pct}% — team is running on fumes. Any edge is gone. ` +
     `GAME PLAN :: Hold aggressive calls // rest key rotation players // play it safe.`
   )
+}
+
+
+function getLeaguePlanLine(m: Match): string {
+  if (m.league === 'MLB') return 'GAME PLAN :: Go aggressive on the bullpen — full-strength rotation available.'
+  if (m.league === 'NBA') return 'GAME PLAN :: Extend rotation pressure — second unit pace advantage available.'
+  if (m.league === 'NHL') return 'GAME PLAN :: Protect crease rhythm — goalie stability window currently favorable.'
+  return 'GAME PLAN :: Sustain pressing intensity — transition control window currently favorable.'
+}
+
+function getLeagueWatchLine(m: Match): string {
+  if (m.league === 'MLB') return 'GAME PLAN :: Standard rotation deployment // watch the 7th-inning bullpen switch.'
+  if (m.league === 'NBA') return 'GAME PLAN :: Standard rotation deployment // monitor fourth-quarter bench energy.'
+  if (m.league === 'NHL') return 'GAME PLAN :: Standard line deployment // monitor late-shift goalie workload.'
+  return 'GAME PLAN :: Standard shape deployment // monitor late-phase pressing drop.'
 }
 
 // V11-driven mode

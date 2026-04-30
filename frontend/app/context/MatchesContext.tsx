@@ -1,13 +1,8 @@
 'use client'
 
-// ── DATA CONTRACT ────────────────────────────────────────────────────────────
-// ALLOWED:   /api/games, /api/matches
-// FORBIDDEN: /api/admin/*, /api/ingest/*, any internal pipeline routes
-// This context is the ONLY permitted data source for match data in the UI.
-// ────────────────────────────────────────────────────────────────────────────
-
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import type { Match } from '../data/mockData'
+import type { Match, TacticalLabel } from '../data/mockData'
+import type { LiveMatchCard, LiveMatchesResponse } from '../contracts/product'
 
 export type DataFreshness = 'live' | 'recent' | 'stale' | 'offline'
 
@@ -27,12 +22,7 @@ const MatchesContext = createContext<MatchesState>({
   refresh: () => {},
 })
 
-function computeFreshness(
-  matches: Match[],
-  loading: boolean,
-  error: string | null,
-  lastSuccessAt: number | null,
-): DataFreshness {
+function computeFreshness(matches: Match[], loading: boolean, error: string | null, lastSuccessAt: number | null): DataFreshness {
   if (loading) return 'stale'
   if (error || matches.length === 0) return 'offline'
   if (!lastSuccessAt) return 'offline'
@@ -40,6 +30,50 @@ function computeFreshness(
   if (ageMs < 5 * 60 * 1000) return 'live'
   if (ageMs < 30 * 60 * 1000) return 'recent'
   return 'stale'
+}
+
+function toLegacyStatus(status: LiveMatchCard['status']): Match['status'] {
+  if (status === 'live') return 'LIVE'
+  if (status === 'closed') return 'FINAL'
+  return 'SCHEDULED'
+}
+
+function toLegacyLabel(label: LiveMatchCard['decision']['label']): TacticalLabel {
+  if (label === 'STRONG') return 'HIGH_CONFIDENCE'
+  if (label === 'UPSET') return 'OUTLIER_POTENTIAL'
+  if (label === 'CHAOS') return 'VULNERABILITY'
+  return 'UNCERTAIN'
+}
+
+function adaptLiveCard(card: LiveMatchCard): Match {
+  return {
+    id: card.id,
+    league: card.league,
+    status: toLegacyStatus(card.status),
+    time: card.clockLabel ?? card.periodLabel ?? card.startsAt,
+    away: {
+      abbr: card.away.shortName,
+      name: card.away.displayName,
+      city: card.away.displayName,
+    },
+    home: {
+      abbr: card.home.shortName,
+      name: card.home.displayName,
+      city: card.home.displayName,
+    },
+    score: card.score.home == null && card.score.away == null ? null : {
+      away: card.score.away ?? 0,
+      home: card.score.home ?? 0,
+    },
+    baseline_win: 0.5,
+    physio_adjusted: 0.5,
+    wpa: card.decision.score ?? 0,
+    perspective: card.decision.action === 'LEAN_AWAY' ? 'AWAY' : 'HOME',
+    tactical_label: toLegacyLabel(card.decision.label),
+    matchup_complexity: 0.5,
+    recovery_away: 0.72,
+    recovery_home: 0.72,
+  }
 }
 
 export function MatchesProvider({ children }: { children: React.ReactNode }) {
@@ -52,13 +86,13 @@ export function MatchesProvider({ children }: { children: React.ReactNode }) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/games', { cache: 'no-store' })
-      if (!res.ok) throw new Error(`/api/games returned ${res.status}`)
-      const data = await res.json()
-      const live: Match[] = data.matches ?? []
-      // Never fall back to mock — if API returns 0, surface as offline
+      const res = await fetch('/api/matches?mode=live&league=ALL', { cache: 'no-store' })
+      if (!res.ok) throw new Error(`/api/matches returned ${res.status}`)
+      const data: LiveMatchesResponse = await res.json()
+      const live = (data.data ?? []).map(adaptLiveCard)
       setMatches(live)
       if (live.length > 0) setLastSuccessAt(Date.now())
+      if (data.status === 'error') setError('Live endpoint returned error status')
     } catch (err: any) {
       setError(err.message)
       setMatches([])
@@ -81,22 +115,17 @@ export function MatchesProvider({ children }: { children: React.ReactNode }) {
 
   const dataFreshness = computeFreshness(matches, loading, error, lastSuccessAt)
 
-  return (
-    <MatchesContext.Provider value={{ matches, loading, error, dataFreshness, refresh: fetchMatches }}>
-      {children}
-    </MatchesContext.Provider>
-  )
+  return <MatchesContext.Provider value={{ matches, loading, error, dataFreshness, refresh: fetchMatches }}>{children}</MatchesContext.Provider>
 }
 
 export function useMatchesContext() {
   return useContext(MatchesContext)
 }
 
-// ── DataFreshnessBadge ───────────────────────────────────────────────────────
 const FRESHNESS_META: Record<DataFreshness, { label: string; color: string; dot: string }> = {
-  live:    { label: 'LIVE',    color: '#34d399', dot: '#34d399' },
-  recent:  { label: 'RECENT', color: '#22d3ee', dot: '#22d3ee' },
-  stale:   { label: 'STALE',  color: '#fbbf24', dot: '#fbbf24' },
+  live: { label: 'LIVE', color: '#34d399', dot: '#34d399' },
+  recent: { label: 'RECENT', color: '#22d3ee', dot: '#22d3ee' },
+  stale: { label: 'STALE', color: '#fbbf24', dot: '#fbbf24' },
   offline: { label: 'OFFLINE', color: '#ef4444', dot: '#ef4444' },
 }
 
@@ -105,18 +134,10 @@ export function DataFreshnessBadge({ freshness }: { freshness: DataFreshness }) 
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
-      padding: '3px 8px',
-      border: `1px solid ${m.color}33`,
-      borderRadius: 2,
-      fontFamily: 'var(--font-mono), monospace',
-      fontSize: 9, fontWeight: 800, letterSpacing: '0.22em',
-      color: m.color,
+      padding: '3px 8px', border: `1px solid ${m.color}33`, borderRadius: 2,
+      fontFamily: 'var(--font-mono), monospace', fontSize: 9, fontWeight: 800, letterSpacing: '0.22em', color: m.color,
     }}>
-      <span style={{
-        width: 5, height: 5, borderRadius: '50%',
-        background: m.dot,
-        boxShadow: freshness === 'live' ? `0 0 6px ${m.dot}` : 'none',
-      }} />
+      <span style={{ width: 5, height: 5, borderRadius: '50%', background: m.dot, boxShadow: freshness === 'live' ? `0 0 6px ${m.dot}` : 'none' }} />
       DATA · {m.label}
     </span>
   )

@@ -39,6 +39,32 @@ function CausalFactor({ label, magnitude, dir, detail }: {
   )
 }
 
+
+function getSportSpecificFactorCopy(m: Match): { label: string; detail: string } {
+  if (m.league === 'MLB') {
+    return {
+      label: 'BULLPEN FATIGUE PENALTY',
+      detail: `${m.home.abbr} bullpen load flagged — 3 high-leverage relievers on MONITOR`,
+    }
+  }
+  if (m.league === 'NBA') {
+    return {
+      label: 'BENCH ENERGY SWING',
+      detail: `${m.home.abbr} second-unit load elevated — rotation cadence under watch`,
+    }
+  }
+  if (m.league === 'NHL') {
+    return {
+      label: 'GOALIE STABILITY SHIFT',
+      detail: `${m.home.abbr} crease stability flagged — high-danger sequence exposure rising`,
+    }
+  }
+  return {
+    label: 'PRESSING INTENSITY SHIFT',
+    detail: `${m.home.abbr} pressing cycle flagged — late-phase intensity drop under monitor`,
+  }
+}
+
 interface Props {
   m: Match
   adjustedOverride?: number
@@ -57,12 +83,13 @@ export default function MatchupGauge({ m, adjustedOverride, v11 }: Props) {
 
   const tacLabel = v11 ? (V11_LABEL_MAP[v11.label] ?? m.tactical_label) : m.tactical_label
 
+  const sportFactor = getSportSpecificFactorCopy(m)
   const factors: { label: string; magnitude: number; dir: "+" | "−"; detail: string }[] = [
     {
-      label: "BULLPEN FATIGUE PENALTY",
+      label: sportFactor.label,
       magnitude: m.recovery_home < 0.7 ? 0.024 : 0.015,
       dir: m.recovery_home < 0.7 ? "−" : "+",
-      detail: `${m.home.abbr} bullpen load flagged — 3 high-leverage relievers on MONITOR`,
+      detail: sportFactor.detail,
     },
     {
       label: "TRAVEL BURDEN",
@@ -74,7 +101,9 @@ export default function MatchupGauge({ m, adjustedOverride, v11 }: Props) {
       label: "MATCHUP SYNERGY",
       magnitude: 0.033,
       dir: "+",
-      detail: `${m.away.abbr} SP vs ${m.home.abbr} RHB wOBA-diff +0.042 // platoon advantage in lineup`,
+      detail: m.league === 'MLB'
+        ? `${m.away.abbr} SP vs ${m.home.abbr} RHB wOBA-diff +0.042 // platoon advantage in lineup`
+        : `${m.away.abbr} tactical unit fit vs ${m.home.abbr} matchup profile // execution edge detected`,
     },
     {
       label: "ROSTER READINESS Δ",
