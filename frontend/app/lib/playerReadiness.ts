@@ -1,16 +1,20 @@
 /**
  * playerReadiness.ts — Deterministic simulated key player state helper
  *
- * Heartbeat: 2026-04-30T12:45:00Z
+ * Generates impact-based player rows per match using team-scoped fallback pools.
+ * All output is deterministic via djb2 hash — no Math.random().
+ * No real biometric claims and no real-time roster telemetry claims.
  *
- * Generates impact-based player rows per match using realistic name pools
- * per sport. All output is fully deterministic via djb2 hash — no Math.random().
- * No real biometric claims.
- *
- * Source tag: "simulated_player_state"
+ * Critical identity rule:
+ * Do not use league-wide player name pools. A generated player must be selected
+ * from TEAM_PLAYER_POOL[league][teamCode]. Missing pools use neutral placeholders.
  */
 
 import type { Match, KeyPlayer, ReadinessFlag } from '../data/mockData'
+
+type League = string
+type TeamCode = string
+type PlayerSource = 'simulated_player_state' | 'simulated_player_state_team_placeholder'
 
 // ── Deterministic hash ────────────────────────────────────────────────────────
 function djb2(s: string): number {
@@ -25,42 +29,80 @@ function pick<T>(pool: readonly T[], seed: string): T {
   return pool[djb2(seed) % pool.length]
 }
 
-// ── Player name pools (realistic per sport) ───────────────────────────────────
-const PLAYER_POOLS: Record<string, readonly string[]> = {
-  NBA: [
-    'G. Curry',   'L. James',    'N. Jokic',     'G. Antetokounmpo', 'J. Tatum',
-    'D. Mitchell','J. Embiid',   'K. Durant',    'T. Young',         'D. Lillard',
-    'J. Morant',  'A. Davis',    'K. Thompson',  'B. Adebayo',       'P. George',
-    'Z. LaVine',  'T. Haliburton','C. Cunningham','E. Gordon',        'J. Holiday',
-  ],
-  MLB: [
-    'M. Betts',   'A. Judge',    'R. Acuña',     'F. Freeman',       'V. Guerrero',
-    'J. Alvarez', 'G. Cole',     'S. Alcantara', 'P. Goldschmidt',   'M. Machado',
-    'T. Turner',  'J. Ohtani',   'W. Franco',    'R. Devers',        'B. Woodruff',
-    'F. Valdez',  'S. Strider',  'D. Cease',     'G. Kirby',         'M. Olson',
-  ],
-  EPL: [
-    'E. Haaland', 'K. De Bruyne','M. Salah',     'H. Kane',          'B. Saka',
-    'P. Foden',   'B. Fernandes','M. Rashford',  'R. James',         'T. Werner',
-    'C. Palmer',  'J. Grealish', 'O. Watkins',   'M. Mount',         'R. Mahrez',
-    'T. Alexander-Arnold',       'V. Díaz',      'A. Robertson',     'I. Gündogan','L. Dunk',
-  ],
-  UCL: [
-    'K. Mbappé',  'J. Bellingham','V. Osimhen',  'L. Pedri',         'R. Lewandowski',
-    'T. Müller',  'C. Pulisic',  'A. Griezmann', 'F. Valverde',      'V. Vinicius',
-    'R. Benzema', 'N. Barella',  'P. Dybala',    'D. Mertens',       'H. Mkhitaryan',
-    'A. Di María','S. Gnabry',   'J. Gavi',      'M. Camavinga',     'L. Hernández',
-  ],
-  NHL: [
-    'C. McDavid', 'N. MacKinnon','A. Matthews',  'S. Crosby',        'D. Pastrnak',
-    'A. Ovechkin','J. Draisaitl','M. Tkachuk',   'E. Lindholm',      'V. Tarasenko',
-    'B. Tkachuk', 'J. Robertson','T. Hall',      'P. Kane',          'J. Toews',
-    'R. O\'Reilly','K. Okposo',  'M. Scheifele', 'Z. Hyman',         'T. Barrie',
-  ],
+function normalizeCode(code: string | undefined): TeamCode {
+  return String(code ?? '').trim().toUpperCase()
 }
 
-function getPool(league: string): readonly string[] {
-  return PLAYER_POOLS[league] ?? PLAYER_POOLS['NBA']
+function buildTeamSpecificPool(
+  teamCodes: readonly TeamCode[],
+  roles: readonly string[],
+): Record<TeamCode, readonly string[]> {
+  return Object.fromEntries(
+    teamCodes.map((teamCode) => [
+      teamCode,
+      roles.map((role) => `${teamCode} ${role}`),
+    ]),
+  )
+}
+
+const NBA_TEAM_CODES = [
+  'ATL', 'BOS', 'BKN', 'CHA', 'CHI', 'CLE', 'DAL', 'DEN', 'DET', 'GSW',
+  'HOU', 'IND', 'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN', 'NOP', 'NYK',
+  'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS',
+] as const
+
+const MLB_TEAM_CODES = [
+  'ARI', 'ATL', 'BAL', 'BOS', 'CHC', 'CWS', 'CIN', 'CLE', 'COL', 'DET',
+  'HOU', 'KC', 'LAA', 'LAD', 'MIA', 'MIL', 'MIN', 'NYM', 'NYY', 'OAK',
+  'PHI', 'PIT', 'SD', 'SEA', 'SF', 'STL', 'TB', 'TEX', 'TOR', 'WSH',
+] as const
+
+// ── Team-scoped fallback player pools ─────────────────────────────────────────
+// These are team-safe simulated labels, not live roster data.
+// Real player names must only be introduced here when verified for that exact team.
+export const TEAM_PLAYER_POOL: Record<League, Record<TeamCode, readonly string[]>> = {
+  NBA: buildTeamSpecificPool(NBA_TEAM_CODES, ['Key Guard', 'Key Forward', 'Rotation Player']),
+  MLB: buildTeamSpecificPool(MLB_TEAM_CODES, ['Starting Pitcher', 'Relief Arm', 'Rotation Player']),
+}
+
+const TEAM_PLACEHOLDERS: Record<League, readonly string[]> = {
+  NBA: ['Key Guard', 'Key Forward', 'Rotation Player'],
+  MLB: ['Starting Pitcher', 'Relief Arm', 'Rotation Player'],
+  NHL: ['Top Line Forward', 'Blue Line Defender', 'Rotation Player'],
+  EPL: ['Key Forward', 'Key Midfielder', 'Rotation Player'],
+  UCL: ['Key Forward', 'Key Midfielder', 'Rotation Player'],
+}
+
+const DEFAULT_PLACEHOLDERS = ['Key Guard', 'Key Forward', 'Rotation Player'] as const
+
+function getTeamPool(league: League, teamCode: TeamCode): readonly string[] | null {
+  return TEAM_PLAYER_POOL[league]?.[teamCode] ?? null
+}
+
+function getPlaceholderPool(league: League): readonly string[] {
+  return TEAM_PLACEHOLDERS[league] ?? DEFAULT_PLACEHOLDERS
+}
+
+function resolvePlayerName(
+  league: League,
+  teamCode: TeamCode,
+  seed: string,
+): { name: string; source: PlayerSource; pool: readonly string[] } {
+  const teamPool = getTeamPool(league, teamCode)
+  if (teamPool?.length) {
+    return {
+      name: pick(teamPool, seed),
+      source: 'simulated_player_state_team_placeholder',
+      pool: teamPool,
+    }
+  }
+
+  const placeholderPool = getPlaceholderPool(league)
+  return {
+    name: pick(placeholderPool, seed),
+    source: 'simulated_player_state_team_placeholder',
+    pool: placeholderPool,
+  }
 }
 
 // ── State definitions ─────────────────────────────────────────────────────────
@@ -74,7 +116,6 @@ const STATE_TO_FLAG: Record<PlayerState, ReadinessFlag> = {
   COLLAPSE_RISK:  'REST',
 }
 
-// Match-specific feel, not generic templates
 const STATE_REASON: Record<PlayerState, string> = {
   HOT:           'Driving offensive momentum and creating matchup pressure.',
   STABLE:        'Maintaining role contribution — workload within manageable range.',
@@ -89,7 +130,6 @@ const STATE_COACH_ACTION: Record<PlayerState, string> = {
   COLLAPSE_RISK: 'BENCH',
 }
 
-// ── HRV + sleep derived from state ────────────────────────────────────────────
 function computeHrv(state: PlayerState, entropy: number): number {
   const r = entropy % 10
   switch (state) {
@@ -110,44 +150,39 @@ function computeSleep(state: PlayerState, entropy: number): number {
   }
 }
 
-// ── Initials from "G. Curry" → "GC" ─────────────────────────────────────────
 function toInitials(name: string): string {
   const parts = name.replace(/'/g, '').split(/[\s.]+/).filter(Boolean)
-  return parts
-    .map(p => p[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 3)
+  return parts.map(p => p[0]).join('').toUpperCase().slice(0, 3)
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
 /**
  * Generates 2 key player rows for a given match side (home | away).
- * Players are selected from a realistic name pool via deterministic hash.
- * Never produces "Captain", "Key Starter", or "Rotation" labels.
+ * Selection is team-scoped: TEAM_PLAYER_POOL[league][teamCode] only.
+ * Missing team pools use neutral placeholders. No cross-team famous names.
  */
 export function generateSimulatedPlayers(
   match: Match,
   side: 'home' | 'away',
 ): KeyPlayer[] {
   const team   = match[side]
-  const tc     = team.abbr
-  const league = match.league
-  const pool   = getPool(league)
+  const tc     = normalizeCode(team.abbr)
+  const league = String(match.league)
 
-  // Generate 2 key players per team
   return [0, 1].map((idx) => {
-    const nameSeed   = `${match.id}::${tc}::name::${idx}`
-    const stateSeed  = `${match.id}::${tc}::state::${idx}`
-    const entropySeed = `${match.id}::${tc}::entropy::${idx}`
+    const nameSeed    = `${match.id}::${league}::${tc}::name::${idx}`
+    const stateSeed   = `${match.id}::${league}::${tc}::state::${idx}`
+    const entropySeed = `${match.id}::${league}::${tc}::entropy::${idx}`
 
-    // Pick a name — ensure the two players don't collide
-    let name = pick(pool, nameSeed)
+    const resolved = resolvePlayerName(league, tc, nameSeed)
+    let name = resolved.name
+
+    // Keep the two rows distinct without leaving the team-scoped pool.
     if (idx === 1) {
-      const alt = pick(pool, nameSeed + '::alt')
+      const alt = pick(resolved.pool, `${nameSeed}::alt`)
       if (alt !== name) name = alt
-      else name = pool[(djb2(nameSeed) + 1) % pool.length]
+      else name = resolved.pool[(djb2(nameSeed) + 1) % resolved.pool.length]
     }
 
     const state   = STATES[djb2(stateSeed) % 4]
@@ -160,16 +195,15 @@ export function generateSimulatedPlayers(
       hrv:      computeHrv(state, entropy),
       sleep:    computeSleep(state, entropy),
       flag:     STATE_TO_FLAG[state],
-      // Extra meta (optional, won't break KeyPlayer interface)
       _state:       state,
       _reason:      STATE_REASON[state],
       _coachAction: STATE_COACH_ACTION[state],
-      _source:      'simulated_player_state' as const,
+      _source:      resolved.source,
     } as KeyPlayer & {
       _state: PlayerState
       _reason: string
       _coachAction: string
-      _source: string
+      _source: PlayerSource
     }
   })
 }
@@ -183,5 +217,7 @@ export function getSimulatedCoachAction(p: KeyPlayer): string | null {
 }
 
 export function isSimulatedPlayer(p: KeyPlayer): boolean {
-  return (p as any)._source === 'simulated_player_state'
+  const source = (p as any)._source
+  return source === 'simulated_player_state'
+    || source === 'simulated_player_state_team_placeholder'
 }
