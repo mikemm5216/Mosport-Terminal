@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import { KEY_PLAYERS, PLAYER_FORM, type League, type KeyPlayer, type ReadinessFlag, type Match } from '../data/mockData'
+import { generateSimulatedPlayers } from '../lib/playerReadiness'
 import { leagueTheme, BioBar, LiveDot } from './ui'
 import TeamLogo from './TeamLogo'
 import { useMatchesContext } from '../context/MatchesContext'
@@ -38,6 +39,9 @@ interface TeamGroup {
 
 function buildPlayerRows(matches: Match[]): PlayerRow[] {
   const rows: PlayerRow[] = []
+  const coveredMatchIds = new Set<string>()
+
+  // Pass 1: KEY_PLAYERS map (specific mock / seeded data)
   for (const [rawKey, players] of Object.entries(KEY_PLAYERS)) {
     const isAway = rawKey.endsWith("_away")
     const isHome = rawKey.endsWith("_home")
@@ -46,6 +50,7 @@ function buildPlayerRows(matches: Match[]): PlayerRow[] {
     const matchId = rawKey.slice(0, -(side.length + 1))
     const match = matches.find(m => m.id === matchId)
     if (!match) continue
+    coveredMatchIds.add(matchId)
     for (const p of players) {
       rows.push({
         player: p,
@@ -58,6 +63,27 @@ function buildPlayerRows(matches: Match[]): PlayerRow[] {
       })
     }
   }
+
+  // Pass 2: simulated rows for matches not covered by KEY_PLAYERS
+  // Ensures Players page is never empty when live matches exist
+  for (const match of matches) {
+    if (coveredMatchIds.has(match.id)) continue
+    for (const side of ['home', 'away'] as const) {
+      const simPlayers = generateSimulatedPlayers(match, side)
+      for (const p of simPlayers) {
+        rows.push({
+          player: p,
+          teamAbbr: match[side].abbr,
+          teamName: match[side].name,
+          league: match.league,
+          match,
+          isHome: side === 'home',
+          key: `sim-${match.id}-${side}-${p.name}`,
+        })
+      }
+    }
+  }
+
   return rows
 }
 
@@ -394,10 +420,10 @@ export default function PlayersPage({ onTeam, onPlayer }: Props) {
       {grouped.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 0", fontFamily: "var(--font-mono), monospace" }}>
           <div style={{ fontSize: 10, color: "#334155", letterSpacing: "0.28em", marginBottom: 10 }}>
-            PLAYER BIOMETRIC DATA NOT AVAILABLE
+            PLAYER STATE SIMULATION MODE
           </div>
           <div style={{ fontSize: 8, color: "#1e293b", letterSpacing: "0.18em" }}>
-            ⚠ PLAYER DATA IS PLACEHOLDER — REAL BIOMETRIC API NOT YET INTEGRATED
+            Real biometric provider not connected yet. Current roster readiness is simulated from match and team context.
           </div>
         </div>
       ) : (

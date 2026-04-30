@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server'
 import type { Match, League, TacticalLabel, PlayoffInfo } from '../../data/mockData'
+import {
+  canCallProvider,
+  recordProviderSuccess,
+  recordProviderError,
+  getCurrentDataMode,
+} from '../../lib/apiGovernor'
 
 // ── Provider fallback order ──────────────────────────────────────────────────
-// 1. The Odds API  — full odds + EV data
+// 1. The Odds API  — full odds + EV data (governor-gated)
 // 2. ESPN Scoreboard — schedule + live scores, no odds
 // 3. TheSportsDB (Sportradar stub) — schedule data, no odds
 // Each league is resolved independently. System never fully offline if any
@@ -11,6 +17,14 @@ import type { Match, League, TacticalLabel, PlayoffInfo } from '../../data/mockD
 
 const ODDS_API_KEY = process.env.ODDS_API_KEY
 const TSDB_KEY = process.env.THESPORTSDB_API_KEY ?? '3'
+
+// ── Env-var sanity warnings (no secret values printed) ────────────────────────
+if (!ODDS_API_KEY) {
+  console.warn('[api-governor] ODDS_API_KEY not configured — OddsAPI provider disabled')
+}
+if (!ODDS_API_KEY && process.env.THE_ODDS_API_KEY) {
+  console.warn('[api-governor] THE_ODDS_API_KEY is set but ODDS_API_KEY is missing; ingest pipeline and games route use different env vars')
+}
 
 const SPORT_CONFIGS: { league: League; oddsKey: string; espnPath: string; tsdbId: string }[] = [
   { league: 'MLB', oddsKey: 'baseball_mlb',              espnPath: 'baseball/mlb',              tsdbId: '4424' },
@@ -320,13 +334,32 @@ async function fetchLeagueWithFallback(
   cfg: typeof SPORT_CONFIGS[number],
   playoffCtx: Map<string, PlayoffInfo>,
 ): Promise<{ matches: Match[]; source: ProviderSource }> {
-  // 1. Odds API
+  // 1. Odds API — governor-gated
   if (ODDS_API_KEY) {
-    try {
-      const matches = await fetchFromOddsAPI(cfg.league, cfg.oddsKey, ODDS_API_KEY, playoffCtx)
-      if (matches.length > 0) return { matches, source: 'odds_api' }
-    } catch (e) {
-      console.warn(`[games] OddsAPI failed for ${cfg.league}:`, (e as Error).message)
+    const govResult = canCallProvider({
+      provider: 'odds-api',
+      league: cfg.league,
+      endpoint: cfg.oddsKey,
+    })
+
+    if (!govResult.allowed) {
+      console.log(`[api-governor] odds-api skipped`, { league: cfg.league, reason: govResult.reason })
+    } else {
+      try {
+        const matches = await fetchFromOddsAPI(cfg.league, cfg.oddsKey, ODDS_API_KEY, playoffCtx)
+        if (matches.length > 0) {
+          recordProviderSuccess({ provider: 'odds-api', league: cfg.league, endpoint: cfg.oddsKey })
+          return { matches, source: 'odds_api' }
+        }
+      } catch (e) {
+        const msg = (e as Error).message ?? ''
+        console.warn(`[games] OddsAPI failed for ${cfg.league}:`, msg)
+
+        // Parse HTTP status from error message: 'OddsAPI {oddsKey} {status}'
+        const statusMatch = msg.match(/(\d{3})$/)
+        const status = statusMatch ? parseInt(statusMatch[1], 10) : 0
+        recordProviderError({ provider: 'odds-api', league: cfg.league, endpoint: cfg.oddsKey, status })
+      }
     }
   }
 
@@ -385,6 +418,6 @@ export async function GET() {
 
   return NextResponse.json({
     matches: allMatches,
-    meta: { fallbackUsed, sources },
+    meta: { fallbackUsed, sources, dataMode: getCurrentDataMode() },
   })
 }
