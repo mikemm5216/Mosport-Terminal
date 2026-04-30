@@ -292,9 +292,11 @@ function toInitials(name: string): string {
   return parts.map(p => p[0]).join('').toUpperCase().slice(0, 3)
 }
 
-function displayPosition(player: RosterEntry, source: PlayerSource): string {
-  if (source === 'simulated_player_state_team_placeholder') return 'KEY PLAYER · ROSTER PENDING'
-  return player.position ? `${player.position} · KEY PLAYER` : 'KEY PLAYER'
+function displayPosition(position: string | undefined, source: PlayerSource): string {
+  if (source === 'simulated_player_state_team_placeholder') {
+    return 'KEY PLAYER · ROSTER PENDING'
+  }
+  return position ? `${position} · KEY PLAYER` : 'KEY PLAYER'
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -331,7 +333,7 @@ export function generateSimulatedPlayers(
     return {
       name: player.name,
       initials: toInitials(player.name),
-      pos:      displayPosition(player, resolved.source),
+      pos:      displayPosition(player.position, resolved.source),
       hrv:      computeHrv(state, entropy),
       sleep:    computeSleep(state, entropy),
       flag:     STATE_TO_FLAG[state],
