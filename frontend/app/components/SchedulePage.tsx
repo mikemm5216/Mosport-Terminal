@@ -6,6 +6,7 @@ import { getKeyPlayers } from '../data/mockData'
 import { leagueTheme, TeamMark, LeagueBadge, wpaColor } from './ui'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import { useMatchesContext, DataFreshnessBadge } from '../context/MatchesContext'
+import { getCoachMetricLabels } from '../lib/coachMetricLabels'
 
 // ── Date helpers ─────────────────────────────────────────────
 function todayISO() {
@@ -127,6 +128,7 @@ function TeamSummaryCard({ m, side }: { m: Match; side: "away" | "home" }) {
   const momentum = side === "away" ? 0.72 : 0.48
   const recColor = recovery >= 0.8 ? "#34d399" : recovery >= 0.6 ? "#fbbf24" : "#f43f5e"
   const align: React.CSSProperties["alignItems"] = side === "away" ? "flex-end" : "flex-start"
+  const labels = getCoachMetricLabels(m.league)
 
   return (
     <div style={{
@@ -150,10 +152,10 @@ function TeamSummaryCard({ m, side }: { m: Match; side: "away" | "home" }) {
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
-        <StatBar label="AGGREGATE RECOVERY" value={recovery} color={recColor} />
-        <StatBar label="BULLPEN READINESS" value={bullpen} color={bullpen >= 0.7 ? "#34d399" : bullpen >= 0.5 ? "#fbbf24" : "#f43f5e"} />
-        <StatBar label="MOMENTUM TREND" value={momentum} color="#94a3b8" />
-        <StatBar label="TRAVEL FATIGUE" value={fatigue} color={fatigue > 0.15 ? "#f43f5e" : fatigue > 0.05 ? "#fbbf24" : "#34d399"} invert />
+        <StatBar label={labels.recovery} value={recovery} color={recColor} />
+        <StatBar label={labels.depth} value={bullpen} color={bullpen >= 0.7 ? "#34d399" : bullpen >= 0.5 ? "#fbbf24" : "#f43f5e"} />
+        <StatBar label={labels.momentum} value={momentum} color="#94a3b8" />
+        <StatBar label={labels.fatigue} value={fatigue} color={fatigue > 0.15 ? "#f43f5e" : fatigue > 0.05 ? "#fbbf24" : "#34d399"} invert />
       </div>
     </div>
   )

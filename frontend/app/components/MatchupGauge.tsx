@@ -4,6 +4,7 @@ import type { Match } from '../data/mockData'
 import { leagueTheme, RingGauge, TacticalLabel } from './ui'
 import type { V11Decision } from '../lib/v11'
 import { V11_LABEL_MAP, actionLabel } from '../lib/v11'
+import { getCoachMetricLabels } from '../lib/coachMetricLabels'
 
 function CausalFactor({ label, magnitude, dir, detail }: {
   label: string
@@ -63,12 +64,14 @@ export default function MatchupGauge({ m, adjustedOverride, v11 }: Props) {
   const edgeColor = positive ? '#22d3ee' : '#f43f5e'
   const tacLabel = v11 ? (V11_LABEL_MAP[v11.label] ?? m.tactical_label) : m.tactical_label
 
+  const labels = getCoachMetricLabels(m.league)
+
   const factors: { label: string; magnitude: number; dir: '+' | '-'; detail: string }[] = [
     {
-      label: 'BULLPEN FATIGUE PENALTY',
+      label: labels.depthFactor,
       magnitude: m.recovery_home < 0.7 ? 0.024 : 0.015,
       dir: m.recovery_home < 0.7 ? '-' : '+',
-      detail: `${m.home.abbr} bullpen load flagged // 3 high-leverage relievers on monitor`,
+      detail: `${m.home.abbr} ${labels.depth.toLowerCase()} flagged // 3 high-leverage units on monitor`,
     },
     {
       label: 'TRAVEL BURDEN',
