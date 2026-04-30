@@ -10,7 +10,7 @@ class SharpAgent(BaseAgent):
     High mismatch → fade the market (AWAY). Low mismatch → side with home.
 
     V12: also reads roster_risk, team_collapse_risk, player_leverage.
-    High roster_risk on home team → additional pressure toward AWAY.
+    Aggregate roster_risk caps conviction but is not directional unless side-specific risk is provided.
     High player_leverage amplifies mismatch signal.
     """
 
@@ -66,13 +66,12 @@ class SharpAgent(BaseAgent):
                 f"Observing with high caution."
             )
 
-        # V12: roster_risk on home side → extra AWAY pressure
-        if roster_risk >= 0.55 and lean != "AWAY":
-            lean = "AWAY"
-            confidence = min(0.70, confidence + 0.10)
+        # V12: roster_risk is aggregate, so it caps conviction instead of forcing AWAY lean
+        if roster_risk >= 0.55:
+            confidence = min(confidence, 0.60)
             reasoning += (
-                f" [V12] Elevated roster risk ({roster_risk:.2f}) — "
-                f"shifting toward AWAY regardless of mismatch band."
+                f" [V12] Elevated aggregate roster risk ({roster_risk:.2f}). "
+                f"Conviction capped; not treated as directional roster edge."
             )
 
         # V12: team collapse risk adds pressure signal

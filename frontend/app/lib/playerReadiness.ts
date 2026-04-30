@@ -185,3 +185,20 @@ export function getSimulatedCoachAction(p: KeyPlayer): string | null {
 export function isSimulatedPlayer(p: KeyPlayer): boolean {
   return (p as any)._source === 'simulated_player_state'
 }
+
+// ── V12 Compat Helpers ────────────────────────────────────────────────────────
+
+export function getPlayerSource(p: KeyPlayer): string {
+  return (p as any)._source ?? 'unknown_source'
+}
+
+export function isRosterPlaceholder(p: KeyPlayer): boolean {
+  // If it's from our simulation, it's a placeholder.
+  return isSimulatedPlayer(p)
+}
+
+export function getPlayerImportanceScore(p: KeyPlayer): number {
+  // Hardcode 0.5 for now, future iterations can scale based on state/HRV.
+  return (p as any)._importance_score ?? 0.5
+}
+

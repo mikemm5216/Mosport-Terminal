@@ -1,5 +1,10 @@
 import type { Match, League, TacticalLabel } from '../data/mockData'
-import { generateSimulatedPlayers } from './playerReadiness'
+import {
+  generateSimulatedPlayers,
+  getPlayerSource,
+  getPlayerImportanceScore,
+  isRosterPlaceholder,
+} from './playerReadiness'
 import { buildTeamStateV12 } from './engines/teamStateEngine'
 
 // ── V11 Response types (unchanged — DO NOT break these) ───────────────────────
@@ -117,9 +122,9 @@ function buildPlayerStatesV12(m: Match): { home: V12PlayerState[]; away: V12Play
       team,
       side,
       role: kp.pos ?? 'KEY PLAYER',
-      source: (kp as any)._source ?? 'simulated_player_state',
-      placeholder: true,
-      importance_score: 0.5,
+      source: getPlayerSource(kp) ?? 'simulated_player_state_team_placeholder',
+      placeholder: isRosterPlaceholder(kp),
+      importance_score: getPlayerImportanceScore(kp) ?? 0.5,
       physical: {
         recovery,
         fatigue: parseFloat((1 - recovery).toFixed(2)),
