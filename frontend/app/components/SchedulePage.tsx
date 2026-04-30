@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { Match, League, KeyPlayer } from '../data/mockData'
-import { getKeyPlayers } from '../data/mockData'
+import { generateSimulatedPlayers } from '../lib/playerReadiness'
 import { leagueTheme, TeamMark, LeagueBadge, wpaColor } from './ui'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import { useMatchesContext, DataFreshnessBadge } from '../context/MatchesContext'
@@ -252,7 +252,7 @@ function PlayerChip({ p, isMobile }: { p: KeyPlayer; isMobile?: boolean }) {
 // ── Key player row ─────────────────────────────────────────────
 function KeyPlayerRow({ m, side, isMobile }: { m: Match; side: "away" | "home"; isMobile?: boolean }) {
   const team = m[side]
-  const players = getKeyPlayers(m, side)
+  const players = generateSimulatedPlayers(m, side)
   const t = leagueTheme(m.league)
   return (
     <div style={{

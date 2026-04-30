@@ -2,9 +2,10 @@
 
 import { useWindowWidth } from '../lib/useWindowWidth'
 import {
-  LEAGUE_STANDINGS, getKeyPlayers, PLAYER_FORM,
+  LEAGUE_STANDINGS, PLAYER_FORM,
   type League, type Match, type KeyPlayer,
 } from '../data/mockData'
+import { generateSimulatedPlayers } from '../lib/playerReadiness'
 import { leagueTheme, BioBar, LiveDot } from './ui'
 import TeamLogo from './TeamLogo'
 import { useMatchesContext } from '../context/MatchesContext'
@@ -59,7 +60,7 @@ export default function TeamDetailPage({ teamAbbr, league, onBack }: Props) {
   const playerEntries: { player: KeyPlayer; match: Match }[] = []
   for (const m of matches) {
     const side = m.home.abbr === teamAbbr ? "home" : "away"
-    const players = getKeyPlayers(m, side)
+    const players = generateSimulatedPlayers(m, side)
     for (const p of players) playerEntries.push({ player: p, match: m })
   }
 
