@@ -1,15 +1,17 @@
 /**
- * keyPlayerEngine.ts — League-aware key player selection engine
+ * keyPlayerEngine.ts — Data-driven key player selection engine
  *
  * Responsibility boundary:
  * - This engine owns key-player scoring/selection logic.
  * - playerReadiness.ts must only own identity freshness and display formatting.
  *
- * Current model is intentionally conservative:
- * - It never crosses team boundaries.
- * - It does not hardcode league-wide famous player pools.
- * - Position is only a small baseline prior, not the final answer.
- * - Future matchup/tactical engines should feed matchupLeverage and tacticalFit.
+ * Core rule:
+ * - A player becomes key because of this matchup/context, not because a sport
+ *   position was hardcoded as globally more important.
+ *
+ * The engine accepts optional matchup/tactical/context signals from upstream
+ * engines. Until those exist, it falls back to provider metadata and stable
+ * deterministic tie-breaking only.
  */
 
 export type League = string
@@ -60,39 +62,6 @@ function numericSignal(signal: Record<string, number> | undefined, playerName: s
   return Number.isFinite(value) ? Number(value) : 0
 }
 
-function roleBaselinePrior(league: League, position?: string): number {
-  const normalizedLeague = String(league ?? '').toUpperCase()
-  const p = String(position ?? '').toUpperCase()
-
-  // Small prior only. Do not treat this as the final key-player answer.
-  if (normalizedLeague === 'NBA') {
-    if (['PG', 'SG', 'G', 'GUARD'].includes(p)) return 3
-    if (['SF', 'PF', 'F', 'FORWARD', 'WING'].includes(p)) return 2.5
-    if (['C', 'CENTER'].includes(p)) return 2
-  }
-
-  if (normalizedLeague === 'MLB') {
-    if (['SP', 'P', 'STARTING PITCHER'].includes(p)) return 3
-    if (['C', '1B', '2B', '3B', 'SS', 'OF', 'DH'].includes(p)) return 2.5
-    if (['RP', 'RELIEF PITCHER'].includes(p)) return 1.5
-  }
-
-  if (normalizedLeague === 'NHL') {
-    if (['C', 'LW', 'RW', 'F', 'FORWARD'].includes(p)) return 3
-    if (['D', 'DEFENSE', 'DEFENDER'].includes(p)) return 2.25
-    if (['G', 'GOALIE'].includes(p)) return 2
-  }
-
-  if (normalizedLeague === 'EPL' || normalizedLeague === 'UCL') {
-    if (['F', 'FW', 'ST', 'CF', 'FORWARD'].includes(p)) return 2.75
-    if (['M', 'MID', 'MIDFIELDER', 'AM', 'CM', 'DM'].includes(p)) return 2.75
-    if (['D', 'DEF', 'DEFENDER'].includes(p)) return 2.25
-    if (['GK', 'GOALKEEPER'].includes(p)) return 2
-  }
-
-  return 2
-}
-
 function availabilityPenalty(availability: AvailabilityStatus): number {
   switch (availability) {
     case 'ACTIVE': return 0
@@ -110,23 +79,21 @@ export function computeKeyPlayerScore(
   const seed = `${context.matchId}::${context.league}::${context.teamCode}::${player.name}`
   const stableTieBreaker = (djb2(seed) % 1000) / 1000
 
-  const usage = player.usageRate === undefined ? 0 : clamp(player.usageRate, 0, 40) * 0.8
-  const minutes = player.projectedMinutes === undefined ? 0 : clamp(player.projectedMinutes, 0, 48) * 0.45
-  const starter = player.isStarter ? 6 : 0
-  const depth = player.depthRank === undefined ? 0 : Math.max(0, 8 - clamp(player.depthRank, 1, 12))
-  const rolePrior = roleBaselinePrior(context.league, player.position)
+  // Provider metadata: useful, but not a tactical conclusion by itself.
+  const usage = player.usageRate === undefined ? 0 : clamp(player.usageRate, 0, 40) * 0.45
+  const minutes = player.projectedMinutes === undefined ? 0 : clamp(player.projectedMinutes, 0, 120) * 0.20
+  const starter = player.isStarter ? 3 : 0
+  const depth = player.depthRank === undefined ? 0 : Math.max(0, 8 - clamp(player.depthRank, 1, 12)) * 0.5
 
-  // These are the real future drivers. They are optional today because the
-  // matchup/tactical engines are separate layers and may not exist yet.
-  const matchupLeverage = numericSignal(context.matchupLeverage, player.name) * 1.8
-  const tacticalFit = numericSignal(context.tacticalFit, player.name) * 1.2
-  const gameContextLeverage = numericSignal(context.gameContextLeverage, player.name) * 1.1
+  // Main future drivers. These should be produced by matchup/tactical/context engines.
+  const matchupLeverage = numericSignal(context.matchupLeverage, player.name) * 2.0
+  const tacticalFit = numericSignal(context.tacticalFit, player.name) * 1.4
+  const gameContextLeverage = numericSignal(context.gameContextLeverage, player.name) * 1.2
 
   return usage
     + minutes
     + starter
     + depth
-    + rolePrior
     + matchupLeverage
     + tacticalFit
     + gameContextLeverage
