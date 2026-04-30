@@ -1,9 +1,11 @@
 /**
- * playerReadiness.ts — Deterministic simulated player state helper
+ * playerReadiness.ts — Deterministic simulated key player state helper
  *
- * Generates KeyPlayer rows for any match without depending on KEY_PLAYERS map.
- * All output is deterministic: same inputs always produce same outputs.
- * No Math.random(). No real biometric claims.
+ * Heartbeat: 2026-04-30T12:45:00Z
+ *
+ * Generates impact-based player rows per match using realistic name pools
+ * per sport. All output is fully deterministic via djb2 hash — no Math.random().
+ * No real biometric claims.
  *
  * Source tag: "simulated_player_state"
  */
@@ -19,12 +21,51 @@ function djb2(s: string): number {
   return Math.abs(h)
 }
 
-function hashSlice(seed: string, offset: number, range: number): number {
-  return djb2(seed + String(offset)) % range
+function pick<T>(pool: T[], seed: string): T {
+  return pool[djb2(seed) % pool.length]
+}
+
+// ── Player name pools (realistic per sport) ───────────────────────────────────
+const PLAYER_POOLS: Record<string, readonly string[]> = {
+  NBA: [
+    'G. Curry',   'L. James',    'N. Jokic',     'G. Antetokounmpo', 'J. Tatum',
+    'D. Mitchell','J. Embiid',   'K. Durant',    'T. Young',         'D. Lillard',
+    'J. Morant',  'A. Davis',    'K. Thompson',  'B. Adebayo',       'P. George',
+    'Z. LaVine',  'T. Haliburton','C. Cunningham','E. Gordon',        'J. Holiday',
+  ],
+  MLB: [
+    'M. Betts',   'A. Judge',    'R. Acuña',     'F. Freeman',       'V. Guerrero',
+    'J. Alvarez', 'G. Cole',     'S. Alcantara', 'P. Goldschmidt',   'M. Machado',
+    'T. Turner',  'J. Ohtani',   'W. Franco',    'R. Devers',        'B. Woodruff',
+    'F. Valdez',  'S. Strider',  'D. Cease',     'G. Kirby',         'M. Olson',
+  ],
+  EPL: [
+    'E. Haaland', 'K. De Bruyne','M. Salah',     'H. Kane',          'B. Saka',
+    'P. Foden',   'B. Fernandes','M. Rashford',  'R. James',         'T. Werner',
+    'C. Palmer',  'J. Grealish', 'O. Watkins',   'M. Mount',         'R. Mahrez',
+    'T. Alexander-Arnold',       'V. Díaz',      'A. Robertson',     'I. Gündogan','L. Dunk',
+  ],
+  UCL: [
+    'K. Mbappé',  'J. Bellingham','V. Osimhen',  'L. Pedri',         'R. Lewandowski',
+    'T. Müller',  'C. Pulisic',  'A. Griezmann', 'F. Valverde',      'V. Vinicius',
+    'R. Benzema', 'N. Barella',  'P. Dybala',    'D. Mertens',       'H. Mkhitaryan',
+    'A. Di María','S. Gnabry',   'J. Gavi',      'M. Camavinga',     'L. Hernández',
+  ],
+  NHL: [
+    'C. McDavid', 'N. MacKinnon','A. Matthews',  'S. Crosby',        'D. Pastrnak',
+    'A. Ovechkin','J. Draisaitl','M. Tkachuk',   'E. Lindholm',      'V. Tarasenko',
+    'B. Tkachuk', 'J. Robertson','T. Hall',      'P. Kane',          'J. Toews',
+    'R. O\'Reilly','K. Okposo',  'M. Scheifele', 'Z. Hyman',         'T. Barrie',
+  ],
+}
+
+function getPool(league: string): readonly string[] {
+  return PLAYER_POOLS[league] ?? PLAYER_POOLS['NBA']
 }
 
 // ── State definitions ─────────────────────────────────────────────────────────
 type PlayerState = 'HOT' | 'STABLE' | 'FATIGUED' | 'COLLAPSE_RISK'
+const STATES: PlayerState[] = ['HOT', 'STABLE', 'FATIGUED', 'COLLAPSE_RISK']
 
 const STATE_TO_FLAG: Record<PlayerState, ReadinessFlag> = {
   HOT:            'CLEAR',
@@ -33,100 +74,112 @@ const STATE_TO_FLAG: Record<PlayerState, ReadinessFlag> = {
   COLLAPSE_RISK:  'REST',
 }
 
+// Match-specific feel, not generic templates
 const STATE_REASON: Record<PlayerState, string> = {
-  HOT:           'Rhythm is trending up and role impact is positive.',
-  STABLE:        'Current workload looks manageable within the rotation.',
-  FATIGUED:      'Workload pressure is rising; reduce minutes before rhythm drops.',
-  COLLAPSE_RISK: 'Pressure and fatigue are combining into a lineup risk.',
+  HOT:           'Driving offensive momentum and creating matchup pressure.',
+  STABLE:        'Maintaining role contribution — workload within manageable range.',
+  FATIGUED:      'Workload is rising, reducing efficiency late in game.',
+  COLLAPSE_RISK: 'Under pressure, decision-making is breaking down.',
 }
 
-// ── Role definitions ──────────────────────────────────────────────────────────
-interface RoleConfig {
-  name: (teamCode: string) => string
-  initials: (teamCode: string) => string
-  pos: string
+const STATE_COACH_ACTION: Record<PlayerState, string> = {
+  HOT:           'FEATURE_MORE',
+  STABLE:        'KEEP_ON',
+  FATIGUED:      'REDUCE_MINUTES',
+  COLLAPSE_RISK: 'BENCH',
 }
 
-const ROLES: RoleConfig[] = [
-  {
-    name: (tc) => `Captain · ${tc}`,
-    initials: (tc) => tc.slice(0, 2).toUpperCase(),
-    pos: 'ROSTER LEAD',
-  },
-  {
-    name: () => 'Key Starter',
-    initials: () => 'KS',
-    pos: 'KEY STARTER',
-  },
-  {
-    name: () => 'Rotation',
-    initials: () => 'RT',
-    pos: 'ROTATION',
-  },
-]
-
-// ── HRV + sleep from state ───────────────────────────────────────────────────
-function computeHrv(state: PlayerState, seed: string): number {
-  const r = hashSlice(seed, 11, 10) // 0–9
+// ── HRV + sleep derived from state ────────────────────────────────────────────
+function computeHrv(state: PlayerState, entropy: number): number {
+  const r = entropy % 10
   switch (state) {
-    case 'HOT':           return +(0.06 + r * 0.009).toFixed(3)   // 0.06–0.141
-    case 'STABLE':        return +(0.01 + r * 0.005).toFixed(3)   // 0.01–0.055
-    case 'FATIGUED':      return -(0.05 + r * 0.005).toFixed(3)   // -0.05 to -0.095
-    case 'COLLAPSE_RISK': return -(0.10 + r * 0.006).toFixed(3)   // -0.10 to -0.154
+    case 'HOT':           return +(0.06 + r * 0.009).toFixed(3)
+    case 'STABLE':        return +(0.01 + r * 0.005).toFixed(3)
+    case 'FATIGUED':      return -(0.05 + r * 0.005).toFixed(3)
+    case 'COLLAPSE_RISK': return -(0.10 + r * 0.006).toFixed(3)
   }
 }
 
-function computeSleep(state: PlayerState, seed: string): number {
-  const r = hashSlice(seed, 17, 10) // 0–9
+function computeSleep(state: PlayerState, entropy: number): number {
+  const r = entropy % 10
   switch (state) {
-    case 'HOT':           return +(0.2 + r * 0.04).toFixed(1)   // 0.2–0.56
-    case 'STABLE':        return +(0.7 + r * 0.05).toFixed(1)   // 0.7–1.15
-    case 'FATIGUED':      return +(1.2 + r * 0.08).toFixed(1)   // 1.2–1.92
-    case 'COLLAPSE_RISK': return +(2.0 + r * 0.09).toFixed(1)   // 2.0–2.81
+    case 'HOT':           return +(0.2 + r * 0.04).toFixed(1)
+    case 'STABLE':        return +(0.7 + r * 0.05).toFixed(1)
+    case 'FATIGUED':      return +(1.2 + r * 0.08).toFixed(1)
+    case 'COLLAPSE_RISK': return +(2.0 + r * 0.09).toFixed(1)
   }
+}
+
+// ── Initials from "G. Curry" → "GC" ─────────────────────────────────────────
+function toInitials(name: string): string {
+  const parts = name.replace(/'/g, '').split(/[\s.]+/).filter(Boolean)
+  return parts
+    .map(p => p[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 3)
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
 /**
- * Generates 3 KeyPlayer rows for a given match side (home | away).
- * Fully deterministic — no randomness.
+ * Generates 2 key player rows for a given match side (home | away).
+ * Players are selected from a realistic name pool via deterministic hash.
+ * Never produces "Captain", "Key Starter", or "Rotation" labels.
  */
 export function generateSimulatedPlayers(
   match: Match,
   side: 'home' | 'away',
 ): KeyPlayer[] {
-  const team = match[side]
-  const tc   = team.abbr
+  const team   = match[side]
+  const tc     = team.abbr
+  const league = match.league
+  const pool   = getPool(league)
 
-  return ROLES.map((role, i) => {
-    const seed  = `${match.league}::${tc}::${match.id}::${i}`
-    const stateIndex = hashSlice(seed, 7, 4) as 0 | 1 | 2 | 3
-    const states: PlayerState[] = ['HOT', 'STABLE', 'FATIGUED', 'COLLAPSE_RISK']
-    const state = states[stateIndex]
+  // Generate 2 key players per team
+  return [0, 1].map((idx) => {
+    const nameSeed   = `${match.id}::${tc}::name::${idx}`
+    const stateSeed  = `${match.id}::${tc}::state::${idx}`
+    const entropySeed = `${match.id}::${tc}::entropy::${idx}`
+
+    // Pick a name — ensure the two players don't collide
+    let name = pick(pool, nameSeed)
+    if (idx === 1) {
+      const alt = pick(pool, nameSeed + '::alt')
+      if (alt !== name) name = alt
+      else name = pool[(djb2(nameSeed) + 1) % pool.length]
+    }
+
+    const state   = STATES[djb2(stateSeed) % 4]
+    const entropy = djb2(entropySeed)
 
     return {
-      name:     role.name(tc),
-      initials: role.initials(tc),
-      pos:      role.pos,
-      hrv:      computeHrv(state, seed),
-      sleep:    computeSleep(state, seed),
+      name,
+      initials: toInitials(name),
+      pos:      `KEY PLAYER`,
+      hrv:      computeHrv(state, entropy),
+      sleep:    computeSleep(state, entropy),
       flag:     STATE_TO_FLAG[state],
-      // Extra meta for potential richer display — these are optional and
-      // won't break KeyPlayer type since it only reads the above 5 fields
+      // Extra meta (optional, won't break KeyPlayer interface)
       _state:       state,
       _reason:      STATE_REASON[state],
+      _coachAction: STATE_COACH_ACTION[state],
       _source:      'simulated_player_state' as const,
-    } as KeyPlayer & { _state: PlayerState; _reason: string; _source: string }
+    } as KeyPlayer & {
+      _state: PlayerState
+      _reason: string
+      _coachAction: string
+      _source: string
+    }
   })
 }
 
-/**
- * Returns the human-readable state reason for a simulated player.
- * Safe to call on any KeyPlayer — returns null if not simulated.
- */
 export function getSimulatedReason(p: KeyPlayer): string | null {
   return (p as any)._reason ?? null
+}
+
+export function getSimulatedCoachAction(p: KeyPlayer): string | null {
+  return (p as any)._coachAction ?? null
 }
 
 export function isSimulatedPlayer(p: KeyPlayer): boolean {
