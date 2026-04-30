@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
 import type { Match, TacticalLabel } from '../data/mockData'
 import type { LiveMatchCard, LiveMatchesResponse } from '../contracts/product'
 
@@ -82,11 +82,16 @@ export function MatchesProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [lastSuccessAt, setLastSuccessAt] = useState<number | null>(null)
 
+  // Tracks when the last auto-refresh (focus/visibility) was triggered.
+  // Manual refresh via refresh() bypasses this.
+  const lastAutoFetchAt = useRef<number>(0)
+  const AUTO_REFRESH_THROTTLE_MS = 60_000  // 60 seconds
+
   const fetchMatches = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/matches?mode=live&league=ALL', { cache: 'no-store' })
+      const res = await fetch('/api/matches?mode=live&league=ALL')
       if (!res.ok) throw new Error(`/api/matches returned ${res.status}`)
       const data: LiveMatchesResponse = await res.json()
       const live = (data.data ?? []).map(adaptLiveCard)
@@ -102,9 +107,25 @@ export function MatchesProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    // Initial load — always fetch
     fetchMatches()
-    const onFocus = () => fetchMatches()
-    const onVisibility = () => { if (!document.hidden) fetchMatches() }
+    lastAutoFetchAt.current = Date.now()
+
+    const onFocus = () => {
+      const now = Date.now()
+      if (now - lastAutoFetchAt.current >= AUTO_REFRESH_THROTTLE_MS) {
+        lastAutoFetchAt.current = now
+        fetchMatches()
+      }
+    }
+    const onVisibility = () => {
+      if (document.hidden) return
+      const now = Date.now()
+      if (now - lastAutoFetchAt.current >= AUTO_REFRESH_THROTTLE_MS) {
+        lastAutoFetchAt.current = now
+        fetchMatches()
+      }
+    }
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
