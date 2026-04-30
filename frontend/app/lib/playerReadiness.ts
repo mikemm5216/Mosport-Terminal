@@ -1,20 +1,44 @@
 /**
- * playerReadiness.ts — Deterministic simulated key player state helper
+ * playerReadiness.ts — Deterministic key player state helper
  *
- * Generates impact-based player rows per match using team-scoped fallback pools.
- * All output is deterministic via djb2 hash — no Math.random().
- * No real biometric claims and no real-time roster telemetry claims.
+ * Final identity model:
+ * 1. Fresh live roster snapshot by league + teamCode
+ * 2. Fresh cached team roster by league + teamCode
+ * 3. Neutral team-safe placeholder fallback
  *
- * Critical identity rule:
- * Do not use league-wide player name pools. A generated player must be selected
- * from TEAM_PLAYER_POOL[league][teamCode]. Missing pools use neutral placeholders.
+ * Critical trust rules:
+ * - Never use league-wide player name pools.
+ * - Never assign a real player unless it came from that exact team's roster store.
+ * - Never claim real-time roster telemetry when no fresh provider snapshot exists.
+ * - Missing or stale roster data must fall back to neutral placeholders.
  */
 
 import type { Match, KeyPlayer, ReadinessFlag } from '../data/mockData'
 
 type League = string
 type TeamCode = string
-type PlayerSource = 'simulated_player_state' | 'simulated_player_state_team_placeholder'
+
+type PlayerSource =
+  | 'live_roster_provider'
+  | 'cached_team_roster'
+  | 'simulated_player_state_team_placeholder'
+
+type RosterEntry = {
+  name: string
+  league: League
+  teamCode: TeamCode
+  updatedAtMs: number
+}
+
+type TeamRosterStore = Record<League, Record<TeamCode, readonly RosterEntry[]>>
+
+const LIVE_ROSTER_MAX_AGE_MS = 15 * 60 * 1000
+const CACHED_ROSTER_MAX_AGE_MS = 24 * 60 * 60 * 1000
+
+// Provider-backed stores. These are intentionally empty by default.
+// A crawler/API adapter must hydrate them with league + teamCode scoped data.
+export const TEAM_PLAYER_POOL: TeamRosterStore = {}
+const CACHED_TEAM_PLAYER_POOL: TeamRosterStore = {}
 
 // ── Deterministic hash ────────────────────────────────────────────────────────
 function djb2(s: string): number {
@@ -33,36 +57,97 @@ function normalizeCode(code: string | undefined): TeamCode {
   return String(code ?? '').trim().toUpperCase()
 }
 
-function buildTeamSpecificPool(
-  teamCodes: readonly TeamCode[],
-  roles: readonly string[],
-): Record<TeamCode, readonly string[]> {
-  return Object.fromEntries(
-    teamCodes.map((teamCode) => [
-      teamCode,
-      roles.map((role) => `${teamCode} ${role}`),
-    ]),
+function normalizeLeague(league: string | undefined): League {
+  return String(league ?? '').trim().toUpperCase()
+}
+
+function nowMs(): number {
+  return Date.now()
+}
+
+function isFresh(entry: RosterEntry, maxAgeMs: number, atMs = nowMs()): boolean {
+  return Number.isFinite(entry.updatedAtMs)
+    && entry.updatedAtMs > 0
+    && atMs - entry.updatedAtMs <= maxAgeMs
+}
+
+function ensureLeagueBucket(store: TeamRosterStore, league: League): Record<TeamCode, readonly RosterEntry[]> {
+  store[league] ??= {}
+  return store[league]
+}
+
+function toRosterEntries(
+  league: League,
+  teamCode: TeamCode,
+  names: readonly string[],
+  updatedAtMs: number,
+): readonly RosterEntry[] {
+  return names
+    .map((rawName) => String(rawName ?? '').trim())
+    .filter(Boolean)
+    .map((name) => ({ name, league, teamCode, updatedAtMs }))
+}
+
+/**
+ * Hydrate the fresh live roster read model from a provider adapter.
+ * The caller must pass only players belonging to the exact league + teamCode.
+ */
+export function upsertLiveTeamRoster(
+  leagueInput: League,
+  teamCodeInput: TeamCode,
+  playerNames: readonly string[],
+  updatedAtMs = nowMs(),
+): void {
+  const league = normalizeLeague(leagueInput)
+  const teamCode = normalizeCode(teamCodeInput)
+  if (!league || !teamCode) return
+
+  ensureLeagueBucket(TEAM_PLAYER_POOL, league)[teamCode] = toRosterEntries(
+    league,
+    teamCode,
+    playerNames,
+    updatedAtMs,
   )
 }
 
-const NBA_TEAM_CODES = [
-  'ATL', 'BOS', 'BKN', 'CHA', 'CHI', 'CLE', 'DAL', 'DEN', 'DET', 'GSW',
-  'HOU', 'IND', 'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN', 'NOP', 'NYK',
-  'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS',
-] as const
+/**
+ * Hydrate the cache layer from persisted provider data.
+ * Stale cache will not be used by generateSimulatedPlayers.
+ */
+export function upsertCachedTeamRoster(
+  leagueInput: League,
+  teamCodeInput: TeamCode,
+  playerNames: readonly string[],
+  updatedAtMs: number,
+): void {
+  const league = normalizeLeague(leagueInput)
+  const teamCode = normalizeCode(teamCodeInput)
+  if (!league || !teamCode) return
 
-const MLB_TEAM_CODES = [
-  'ARI', 'ATL', 'BAL', 'BOS', 'CHC', 'CWS', 'CIN', 'CLE', 'COL', 'DET',
-  'HOU', 'KC', 'LAA', 'LAD', 'MIA', 'MIL', 'MIN', 'NYM', 'NYY', 'OAK',
-  'PHI', 'PIT', 'SD', 'SEA', 'SF', 'STL', 'TB', 'TEX', 'TOR', 'WSH',
-] as const
+  ensureLeagueBucket(CACHED_TEAM_PLAYER_POOL, league)[teamCode] = toRosterEntries(
+    league,
+    teamCode,
+    playerNames,
+    updatedAtMs,
+  )
+}
 
-// ── Team-scoped fallback player pools ─────────────────────────────────────────
-// These are team-safe simulated labels, not live roster data.
-// Real player names must only be introduced here when verified for that exact team.
-export const TEAM_PLAYER_POOL: Record<League, Record<TeamCode, readonly string[]>> = {
-  NBA: buildTeamSpecificPool(NBA_TEAM_CODES, ['Key Guard', 'Key Forward', 'Rotation Player']),
-  MLB: buildTeamSpecificPool(MLB_TEAM_CODES, ['Starting Pitcher', 'Relief Arm', 'Rotation Player']),
+function getFreshRoster(
+  store: TeamRosterStore,
+  league: League,
+  teamCode: TeamCode,
+  maxAgeMs: number,
+): readonly RosterEntry[] | null {
+  const roster = store[league]?.[teamCode]
+  if (!roster?.length) return null
+
+  const fresh = roster.filter((entry) =>
+    entry.league === league
+    && entry.teamCode === teamCode
+    && isFresh(entry, maxAgeMs),
+  )
+
+  return fresh.length ? fresh : null
 }
 
 const TEAM_PLACEHOLDERS: Record<League, readonly string[]> = {
@@ -75,33 +160,47 @@ const TEAM_PLACEHOLDERS: Record<League, readonly string[]> = {
 
 const DEFAULT_PLACEHOLDERS = ['Key Guard', 'Key Forward', 'Rotation Player'] as const
 
-function getTeamPool(league: League, teamCode: TeamCode): readonly string[] | null {
-  return TEAM_PLAYER_POOL[league]?.[teamCode] ?? null
-}
-
 function getPlaceholderPool(league: League): readonly string[] {
   return TEAM_PLACEHOLDERS[league] ?? DEFAULT_PLACEHOLDERS
 }
 
-function resolvePlayerName(
-  league: League,
-  teamCode: TeamCode,
-  seed: string,
-): { name: string; source: PlayerSource; pool: readonly string[] } {
-  const teamPool = getTeamPool(league, teamCode)
-  if (teamPool?.length) {
+type ResolvedPlayerPool = {
+  names: readonly string[]
+  source: PlayerSource
+}
+
+function resolvePlayerPool(league: League, teamCode: TeamCode): ResolvedPlayerPool {
+  const liveRoster = getFreshRoster(
+    TEAM_PLAYER_POOL,
+    league,
+    teamCode,
+    LIVE_ROSTER_MAX_AGE_MS,
+  )
+
+  if (liveRoster) {
     return {
-      name: pick(teamPool, seed),
-      source: 'simulated_player_state_team_placeholder',
-      pool: teamPool,
+      names: liveRoster.map((entry) => entry.name),
+      source: 'live_roster_provider',
     }
   }
 
-  const placeholderPool = getPlaceholderPool(league)
+  const cachedRoster = getFreshRoster(
+    CACHED_TEAM_PLAYER_POOL,
+    league,
+    teamCode,
+    CACHED_ROSTER_MAX_AGE_MS,
+  )
+
+  if (cachedRoster) {
+    return {
+      names: cachedRoster.map((entry) => entry.name),
+      source: 'cached_team_roster',
+    }
+  }
+
   return {
-    name: pick(placeholderPool, seed),
+    names: getPlaceholderPool(league),
     source: 'simulated_player_state_team_placeholder',
-    pool: placeholderPool,
   }
 }
 
@@ -159,33 +258,33 @@ function toInitials(name: string): string {
 
 /**
  * Generates 2 key player rows for a given match side (home | away).
- * Selection is team-scoped: TEAM_PLAYER_POOL[league][teamCode] only.
- * Missing team pools use neutral placeholders. No cross-team famous names.
+ * Real names can only come from fresh live or fresh cached roster data for the
+ * exact league + teamCode. Missing/stale data uses neutral placeholders.
  */
 export function generateSimulatedPlayers(
   match: Match,
   side: 'home' | 'away',
 ): KeyPlayer[] {
-  const team   = match[side]
-  const tc     = normalizeCode(team.abbr)
-  const league = String(match.league)
+  const team = match[side]
+  const tc = normalizeCode(team.abbr)
+  const league = normalizeLeague(match.league)
+  const resolved = resolvePlayerPool(league, tc)
 
   return [0, 1].map((idx) => {
-    const nameSeed    = `${match.id}::${league}::${tc}::name::${idx}`
-    const stateSeed   = `${match.id}::${league}::${tc}::state::${idx}`
+    const nameSeed = `${match.id}::${league}::${tc}::name::${idx}`
+    const stateSeed = `${match.id}::${league}::${tc}::state::${idx}`
     const entropySeed = `${match.id}::${league}::${tc}::entropy::${idx}`
 
-    const resolved = resolvePlayerName(league, tc, nameSeed)
-    let name = resolved.name
+    let name = pick(resolved.names, nameSeed)
 
-    // Keep the two rows distinct without leaving the team-scoped pool.
+    // Keep the two rows distinct without leaving the resolved team-scoped pool.
     if (idx === 1) {
-      const alt = pick(resolved.pool, `${nameSeed}::alt`)
+      const alt = pick(resolved.names, `${nameSeed}::alt`)
       if (alt !== name) name = alt
-      else name = resolved.pool[(djb2(nameSeed) + 1) % resolved.pool.length]
+      else name = resolved.names[(djb2(nameSeed) + 1) % resolved.names.length]
     }
 
-    const state   = STATES[djb2(stateSeed) % 4]
+    const state = STATES[djb2(stateSeed) % 4]
     const entropy = djb2(entropySeed)
 
     return {
@@ -216,8 +315,13 @@ export function getSimulatedCoachAction(p: KeyPlayer): string | null {
   return (p as any)._coachAction ?? null
 }
 
+export function getPlayerSource(p: KeyPlayer): PlayerSource | null {
+  return (p as any)._source ?? null
+}
+
 export function isSimulatedPlayer(p: KeyPlayer): boolean {
-  const source = (p as any)._source
-  return source === 'simulated_player_state'
+  const source = getPlayerSource(p)
+  return source === 'live_roster_provider'
+    || source === 'cached_team_roster'
     || source === 'simulated_player_state_team_placeholder'
 }
