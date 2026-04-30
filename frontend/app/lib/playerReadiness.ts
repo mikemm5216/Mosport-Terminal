@@ -154,7 +154,7 @@ export function generateSimulatedPlayers(
     return {
       name,
       initials: toInitials(name),
-      pos:      `KEY PLAYER ${idx + 1}`,
+      pos:      `KEY PLAYER`,
       hrv:      computeHrv(state, entropy),
       sleep:    computeSleep(state, entropy),
       flag:     STATE_TO_FLAG[state],
