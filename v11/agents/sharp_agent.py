@@ -85,7 +85,7 @@ class SharpAgent(BaseAgent):
             confidence = min(confidence, 0.55)
             reasoning += (
                 f" [V12] Low data confidence ({data_confidence:.2f}). "
-                f"Sharp conviction capped — roster data may be simulated."
+                f"Operating on simulated roster state. Player-state signal is capped."
             )
 
         features_used = ["mismatch", "sport"]

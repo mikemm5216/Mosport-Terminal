@@ -85,7 +85,7 @@ class AnalystAgent(BaseAgent):
             confidence = min(confidence, 0.52)
             reasoning += (
                 f" [V12] Data confidence low ({data_confidence:.2f}) — "
-                f"conviction capped. Roster data may be placeholder."
+                f"player-state signal is capped. Roster data may be placeholder-driven."
             )
 
         features_used = ["market_home_prob", "volatility", "sport"]
