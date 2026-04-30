@@ -2,10 +2,20 @@ import type { CanonicalTeamKey, LeagueCode } from '../contracts/product'
 
 const TEAM_CODE_NORMALIZATION: Record<LeagueCode, Record<string, string>> = {
   MLB: {
-    LA: 'LAD', LAD: 'LAD', NY: 'NYY', NYY: 'NYY', SF: 'SFG', SFG: 'SFG', WSH: 'WSH', WAS: 'WSH', CHW: 'CHW', CWS: 'CHW',
+    LA: 'LAD', LAD: 'LAD',
+    NY: 'NYY', NYY: 'NYY',
+    SF: 'SFG', SFG: 'SFG',
+    WSH: 'WSH', WSN: 'WSH', WAS: 'WSH',
+    CHW: 'CHW', CWS: 'CHW',
   },
   NBA: {
-    LA: 'LAL', LAL: 'LAL', GS: 'GSW', GSW: 'GSW', NY: 'NYK', NYK: 'NYK', PHO: 'PHX', PHX: 'PHX', NO: 'NOP', NOP: 'NOP', SA: 'SAS', SAS: 'SAS',
+    LA: 'LAL', LAL: 'LAL',
+    GS: 'GSW', GSW: 'GSW',
+    NY: 'NYK', NYK: 'NYK',
+    PHO: 'PHX', PHX: 'PHX',
+    NO: 'NOP', NOP: 'NOP',
+    SA: 'SAS', SAS: 'SAS',
+    WSH: 'WAS', WAS: 'WAS',
   },
   EPL: {
     MAN_CITY: 'MCI', MANCHESTER_CITY: 'MCI', MAN_UNITED: 'MUN', MANCHESTER_UNITED: 'MUN', SPURS: 'TOT', TOTTENHAM: 'TOT',

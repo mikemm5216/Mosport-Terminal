@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { League } from '../data/mockData'
 import { getTeamLogo } from '../lib/teamLogoResolver'
 
@@ -12,11 +12,8 @@ interface Props {
 }
 
 export default function TeamLogo({ teamAbbr, league, size, accentColor }: Props) {
+  const logoSrc = getTeamLogo(league, teamAbbr)
   const [error, setError] = useState(false)
-
-  useEffect(() => {
-    setError(false)
-  }, [teamAbbr, league])
 
   if (error) {
     return (
@@ -41,7 +38,8 @@ export default function TeamLogo({ teamAbbr, league, size, accentColor }: Props)
   return (
     <div style={{ width: size, height: size, flexShrink: 0, position: 'relative' }}>
       <img
-        src={getTeamLogo(league, teamAbbr)}
+        key={logoSrc}
+        src={logoSrc}
         alt={teamAbbr}
         onError={() => setError(true)}
         style={{
