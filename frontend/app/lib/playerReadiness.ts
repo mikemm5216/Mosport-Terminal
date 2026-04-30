@@ -21,7 +21,7 @@ function djb2(s: string): number {
   return Math.abs(h)
 }
 
-function pick<T>(pool: T[], seed: string): T {
+function pick<T>(pool: readonly T[], seed: string): T {
   return pool[djb2(seed) % pool.length]
 }
 
