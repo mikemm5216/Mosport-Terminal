@@ -1,6 +1,8 @@
 /**
  * playerReadiness.ts — Deterministic simulated key player state helper
  *
+ * Heartbeat: 2026-04-30T12:45:00Z
+ *
  * Generates impact-based player rows per match using realistic name pools
  * per sport. All output is fully deterministic via djb2 hash — no Math.random().
  * No real biometric claims.
