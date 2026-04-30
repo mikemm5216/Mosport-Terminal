@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import {
   NBA_BRACKET_2026,
@@ -9,6 +9,8 @@ import {
 import { leagueTheme } from './ui'
 import TeamLogo from './TeamLogo'
 import type { SimulationSummaryResponse } from '../contracts/product'
+import { useMatchesContext, DataFreshnessBadge } from '../context/MatchesContext'
+import { getSeriesStateFromCompletedGames, resolveSeriesWins } from '../lib/seriesState'
 
 // ── Visual bracket engine (small iterations, display only) ────────
 // These power the bracket card rendering. They are NOT the 10M simulation —
@@ -106,6 +108,7 @@ function MiniSeriesCard({ series, league, align = "left" }: { series: BracketSer
   const isPending = series.status === 'pending'
   const { winner, prob } = predictSeries(series)
   const homeWins = winner === series.home.abbr
+  const isLiveData = (series as BracketSeries & { _source?: string })._source === 'live_completed_games'
 
   function TeamRow({ team, isWinner }: { team: BracketTeam; isWinner: boolean }) {
     const wins = team.abbr === series.home.abbr ? series.winsHome : series.winsAway
@@ -138,6 +141,13 @@ function MiniSeriesCard({ series, league, align = "left" }: { series: BracketSer
         <div style={{
           position: "absolute", top: "50%", [align === "left" ? "right" : "left"]: -2, transform: "translateY(-50%)",
           width: 4, height: 12, background: t.hex, borderRadius: 2,
+        }} />
+      )}
+      {/* Live data source indicator */}
+      {isLiveData && !isPending && (
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          height: 2, background: `linear-gradient(90deg, ${t.hex}00, ${t.hex}, ${t.hex}00)`,
         }} />
       )}
     </div>
@@ -315,7 +325,38 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
 
   const { summary, loading } = useSummary(selectedLeague)
 
-  const initialSeries = NBA_BRACKET_2026
+  // ── Live series state: completed games override static bracket data ──────
+  const { matches: allMatches, dataFreshness } = useMatchesContext()
+
+  const liveNbaPlayoffGames = useMemo(
+    () => allMatches.filter((m) => m.league === 'NBA' && m.status === 'FINAL' && m.playoff != null),
+    [allMatches]
+  )
+
+  const liveSeriesMap = useMemo(
+    () => getSeriesStateFromCompletedGames(liveNbaPlayoffGames),
+    [liveNbaPlayoffGames]
+  )
+
+  // Hydrate NBA_BRACKET_2026 with real series wins (live > seed)
+  const hydratedSeries: BracketSeries[] = useMemo(() => {
+    return NBA_BRACKET_2026.map((s) => {
+      const { winsHome, winsAway, source } = resolveSeriesWins(
+        s.home.abbr, s.away.abbr, s.winsHome, s.winsAway, liveSeriesMap
+      )
+      return {
+        ...s,
+        winsHome,
+        winsAway,
+        // tag the source so MiniSeriesCard can show live indicator
+        _source: source,
+      } as BracketSeries & { _source: string }
+    })
+  }, [liveSeriesMap])
+
+  const hasLiveSeriesData = liveSeriesMap.size > 0
+
+  const initialSeries = hydratedSeries
   const allSeries = useMemo(() => simulateBracket(initialSeries, league), [initialSeries, league])
   const finals = allSeries.find(s => s.round === 4)
 
@@ -381,6 +422,18 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
             </h1>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#334155", marginTop: 6, letterSpacing: "0.15em" }}>
               {(summary?.meta.simulationRuns ?? 10000000).toLocaleString()} SIMULATION RUNS · MODEL {'v4.1'}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+              <DataFreshnessBadge freshness={dataFreshness} />
+              {hasLiveSeriesData ? (
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#34d399", letterSpacing: "0.14em", fontWeight: 800 }}>
+                  ● SERIES SCORES FROM LIVE DATA
+                </span>
+              ) : (
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#fbbf24", letterSpacing: "0.14em", fontWeight: 800 }}>
+                  ◈ SERIES SCORES FROM SIMULATION SEED
+                </span>
+              )}
             </div>
           </div>
 
