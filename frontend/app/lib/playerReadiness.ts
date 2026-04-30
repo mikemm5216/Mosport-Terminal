@@ -1,25 +1,24 @@
 /**
- * playerReadiness.ts — Deterministic key player state helper
+ * playerReadiness.ts — Deterministic key player identity/readiness helper
  *
- * Final identity model:
- * 1. Fresh live roster snapshot by league + teamCode
- * 2. Fresh cached team roster by league + teamCode
- * 3. Neutral team-safe placeholder fallback
- *
- * Key-player model:
- * - Real players are ranked inside their own team roster only.
- * - Ranking prefers provider metadata when present: usage, minutes, starter,
- *   depth, position, availability.
- * - Missing metadata falls back to deterministic tie-breakers, never random.
+ * Responsibility boundary:
+ * - Owns roster identity freshness: live roster -> cached roster -> safe placeholder.
+ * - Owns display readiness formatting for KeyPlayer cards.
+ * - Does NOT own tactical matchup scoring. That belongs to keyPlayerEngine.ts.
  *
  * Critical trust rules:
  * - Never use league-wide player name pools.
  * - Never assign a real player unless it came from that exact team's roster store.
- * - Never claim real-time roster telemetry when no fresh provider snapshot exists.
- * - Missing or stale roster data must fall back to neutral placeholders.
+ * - Never display a position/role as if it were a player name.
+ * - Missing/stale roster data must fall back to explicit non-player placeholders.
  */
 
 import type { Match, KeyPlayer, ReadinessFlag } from '../data/mockData'
+import {
+  rankKeyPlayers,
+  type AvailabilityStatus,
+  type KeyPlayerEngineInput,
+} from './engines/keyPlayerEngine'
 
 type League = string
 type TeamCode = string
@@ -28,8 +27,6 @@ type PlayerSource =
   | 'live_roster_provider'
   | 'cached_team_roster'
   | 'simulated_player_state_team_placeholder'
-
-type AvailabilityStatus = 'ACTIVE' | 'QUESTIONABLE' | 'DOUBTFUL' | 'OUT' | 'UNKNOWN'
 
 type ProviderRosterPlayer = {
   name: string
@@ -41,17 +38,9 @@ type ProviderRosterPlayer = {
   availability?: AvailabilityStatus
 }
 
-type RosterEntry = {
-  name: string
-  league: League
-  teamCode: TeamCode
+type RosterEntry = KeyPlayerEngineInput & {
   updatedAtMs: number
-  position?: string
-  isStarter?: boolean
-  projectedMinutes?: number
-  usageRate?: number
-  depthRank?: number
-  availability: AvailabilityStatus
+  isPlaceholder?: boolean
 }
 
 type TeamRosterStore = Record<League, Record<TeamCode, readonly RosterEntry[]>>
@@ -59,8 +48,7 @@ type TeamRosterStore = Record<League, Record<TeamCode, readonly RosterEntry[]>>
 const LIVE_ROSTER_MAX_AGE_MS = 15 * 60 * 1000
 const CACHED_ROSTER_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
-// Provider-backed stores. These are intentionally empty by default.
-// A crawler/API adapter must hydrate them with league + teamCode scoped data.
+// Provider-backed stores. Empty by default; hydrate from a roster provider/crawler.
 export const TEAM_PLAYER_POOL: TeamRosterStore = {}
 const CACHED_TEAM_PLAYER_POOL: TeamRosterStore = {}
 
@@ -88,10 +76,6 @@ function nowMs(): number {
 function finiteOrUndefined(value: unknown): number | undefined {
   const n = Number(value)
   return Number.isFinite(n) ? n : undefined
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value))
 }
 
 function normalizeAvailability(value: unknown): AvailabilityStatus {
@@ -200,33 +184,24 @@ function getFreshRoster(
   return fresh.length ? fresh : null
 }
 
-const TEAM_PLACEHOLDERS: Record<League, readonly string[]> = {
-  NBA: ['Key Guard', 'Key Forward', 'Rotation Player'],
-  MLB: ['Starting Pitcher', 'Relief Arm', 'Rotation Player'],
-  NHL: ['Top Line Forward', 'Blue Line Defender', 'Rotation Player'],
-  EPL: ['Key Forward', 'Key Midfielder', 'Rotation Player'],
-  UCL: ['Key Forward', 'Key Midfielder', 'Rotation Player'],
-}
+const PLACEHOLDER_NAMES = ['Team Key Player', 'Team Rotation Player'] as const
 
-const DEFAULT_PLACEHOLDERS = ['Key Guard', 'Key Forward', 'Rotation Player'] as const
-
-function getPlaceholderPool(league: League): readonly string[] {
-  return TEAM_PLACEHOLDERS[league] ?? DEFAULT_PLACEHOLDERS
+function placeholderEntries(league: League, teamCode: TeamCode): readonly RosterEntry[] {
+  return PLACEHOLDER_NAMES.map((name, idx) => ({
+    name,
+    league,
+    teamCode,
+    updatedAtMs: nowMs(),
+    position: 'ROSTER_PENDING',
+    depthRank: idx + 1,
+    availability: 'UNKNOWN' as const,
+    isPlaceholder: true,
+  }))
 }
 
 type ResolvedPlayerPool = {
   players: readonly RosterEntry[]
   source: PlayerSource
-}
-
-function placeholderEntries(league: League, teamCode: TeamCode): readonly RosterEntry[] {
-  return getPlaceholderPool(league).map((name) => ({
-    name,
-    league,
-    teamCode,
-    updatedAtMs: nowMs(),
-    availability: 'UNKNOWN' as const,
-  }))
 }
 
 function resolvePlayerPool(league: League, teamCode: TeamCode): ResolvedPlayerPool {
@@ -262,84 +237,6 @@ function resolvePlayerPool(league: League, teamCode: TeamCode): ResolvedPlayerPo
     players: placeholderEntries(league, teamCode),
     source: 'simulated_player_state_team_placeholder',
   }
-}
-
-function positionPriority(league: League, position?: string): number {
-  const p = String(position ?? '').toUpperCase()
-
-  if (league === 'NBA') {
-    if (['PG', 'SG', 'G', 'GUARD'].includes(p)) return 9
-    if (['SF', 'PF', 'F', 'FORWARD', 'WING'].includes(p)) return 8
-    if (['C', 'CENTER'].includes(p)) return 7
-  }
-
-  if (league === 'MLB') {
-    if (['SP', 'P', 'STARTING PITCHER'].includes(p)) return 9
-    if (['C', '1B', '2B', '3B', 'SS', 'OF', 'DH'].includes(p)) return 8
-    if (['RP', 'RELIEF PITCHER'].includes(p)) return 6
-  }
-
-  if (league === 'NHL') {
-    if (['C', 'LW', 'RW', 'F', 'FORWARD'].includes(p)) return 9
-    if (['D', 'DEFENSE', 'DEFENDER'].includes(p)) return 7
-    if (['G', 'GOALIE'].includes(p)) return 6
-  }
-
-  if (league === 'EPL' || league === 'UCL') {
-    if (['F', 'FW', 'ST', 'CF', 'FORWARD'].includes(p)) return 9
-    if (['M', 'MID', 'MIDFIELDER', 'AM', 'CM', 'DM'].includes(p)) return 8
-    if (['D', 'DEF', 'DEFENDER'].includes(p)) return 6
-    if (['GK', 'GOALKEEPER'].includes(p)) return 5
-  }
-
-  return 5
-}
-
-function availabilityPenalty(availability: AvailabilityStatus): number {
-  switch (availability) {
-    case 'ACTIVE': return 0
-    case 'UNKNOWN': return 0
-    case 'QUESTIONABLE': return -8
-    case 'DOUBTFUL': return -18
-    case 'OUT': return -999
-  }
-}
-
-function importanceScore(
-  player: RosterEntry,
-  league: League,
-  teamCode: TeamCode,
-  matchId: string,
-): number {
-  const seed = `${matchId}::${league}::${teamCode}::${player.name}`
-  const stableTieBreaker = (djb2(seed) % 1000) / 1000
-  const usage = player.usageRate === undefined ? 0 : clamp(player.usageRate, 0, 40) * 1.1
-  const minutes = player.projectedMinutes === undefined ? 0 : clamp(player.projectedMinutes, 0, 48) * 0.7
-  const starter = player.isStarter ? 12 : 0
-  const depth = player.depthRank === undefined ? 0 : Math.max(0, 8 - clamp(player.depthRank, 1, 12)) * 2
-  const position = positionPriority(league, player.position)
-
-  return usage
-    + minutes
-    + starter
-    + depth
-    + position
-    + availabilityPenalty(player.availability)
-    + stableTieBreaker
-}
-
-function rankKeyPlayers(
-  players: readonly RosterEntry[],
-  league: League,
-  teamCode: TeamCode,
-  matchId: string,
-): readonly RosterEntry[] {
-  return [...players].sort((a, b) => {
-    const scoreDelta = importanceScore(b, league, teamCode, matchId)
-      - importanceScore(a, league, teamCode, matchId)
-    if (scoreDelta !== 0) return scoreDelta
-    return a.name.localeCompare(b.name)
-  })
 }
 
 // ── State definitions ─────────────────────────────────────────────────────────
@@ -388,8 +285,16 @@ function computeSleep(state: PlayerState, entropy: number): number {
 }
 
 function toInitials(name: string): string {
+  if (name === 'Team Key Player') return 'TKP'
+  if (name === 'Team Rotation Player') return 'TRP'
+
   const parts = name.replace(/'/g, '').split(/[\s.]+/).filter(Boolean)
   return parts.map(p => p[0]).join('').toUpperCase().slice(0, 3)
+}
+
+function displayPosition(player: RosterEntry, source: PlayerSource): string {
+  if (source === 'simulated_player_state_team_placeholder') return 'KEY PLAYER · ROSTER PENDING'
+  return player.position ? `${player.position} · KEY PLAYER` : 'KEY PLAYER'
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -397,30 +302,36 @@ function toInitials(name: string): string {
 /**
  * Generates 2 key player rows for a given match side (home | away).
  * Real names can only come from fresh live or fresh cached roster data for the
- * exact league + teamCode. Missing/stale data uses neutral placeholders.
+ * exact league + teamCode. Missing/stale data uses explicit non-player placeholders.
  */
 export function generateSimulatedPlayers(
   match: Match,
   side: 'home' | 'away',
 ): KeyPlayer[] {
   const team = match[side]
+  const opponent = match[side === 'home' ? 'away' : 'home']
   const tc = normalizeCode(team.abbr)
+  const opponentCode = normalizeCode(opponent.abbr)
   const league = normalizeLeague(match.league)
   const resolved = resolvePlayerPool(league, tc)
-  const rankedPlayers = rankKeyPlayers(resolved.players, league, tc, String(match.id))
+  const rankedPlayers = rankKeyPlayers(resolved.players, {
+    matchId: String(match.id),
+    league,
+    teamCode: tc,
+    opponentTeamCode: opponentCode,
+  })
 
   return [0, 1].map((idx) => {
     const stateSeed = `${match.id}::${league}::${tc}::state::${idx}`
     const entropySeed = `${match.id}::${league}::${tc}::entropy::${idx}`
     const player = rankedPlayers[idx % rankedPlayers.length]
-    const name = player.name
     const state = STATES[djb2(stateSeed) % 4]
     const entropy = djb2(entropySeed)
 
     return {
-      name,
-      initials: toInitials(name),
-      pos:      `KEY PLAYER`,
+      name: player.name,
+      initials: toInitials(player.name),
+      pos:      displayPosition(player, resolved.source),
       hrv:      computeHrv(state, entropy),
       sleep:    computeSleep(state, entropy),
       flag:     STATE_TO_FLAG[state],
@@ -428,13 +339,17 @@ export function generateSimulatedPlayers(
       _reason:      STATE_REASON[state],
       _coachAction: STATE_COACH_ACTION[state],
       _source:      resolved.source,
-      _importanceScore: importanceScore(player, league, tc, String(match.id)),
+      _importanceScore: player._importanceScore,
+      _teamCode: tc,
+      _opponentTeamCode: opponentCode,
     } as KeyPlayer & {
       _state: PlayerState
       _reason: string
       _coachAction: string
       _source: PlayerSource
       _importanceScore: number
+      _teamCode: TeamCode
+      _opponentTeamCode: TeamCode
     }
   })
 }
@@ -453,6 +368,10 @@ export function getPlayerSource(p: KeyPlayer): PlayerSource | null {
 
 export function getPlayerImportanceScore(p: KeyPlayer): number | null {
   return (p as any)._importanceScore ?? null
+}
+
+export function isRosterPlaceholder(p: KeyPlayer): boolean {
+  return (p as any)._source === 'simulated_player_state_team_placeholder'
 }
 
 export function isSimulatedPlayer(p: KeyPlayer): boolean {
