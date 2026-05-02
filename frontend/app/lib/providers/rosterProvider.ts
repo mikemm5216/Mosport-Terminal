@@ -92,10 +92,14 @@ function parseEspnRoster(data: any): ProviderRosterPlayer[] {
     if (posObj) {
       posStr = posObj.abbreviation || posObj.name
     }
+
+    const jerseyRaw = ath.jersey ?? item.jersey ?? ath.displayJersey ?? item.displayJersey ?? undefined
+    const jersey = jerseyRaw !== undefined ? String(jerseyRaw) : undefined
     
     result.push({
       name,
       position: posStr,
+      jersey,
       availability: 'ACTIVE',
     })
   }

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import { KEY_PLAYERS, PLAYER_FORM, type League, type KeyPlayer, type ReadinessFlag, type Match } from '../data/mockData'
-import { generateSimulatedPlayers } from '../lib/playerReadiness'
+import { generateSimulatedPlayers, getPlayerBadgeLabel } from '../lib/playerReadiness'
 import { leagueTheme, BioBar, LiveDot } from './ui'
 import TeamLogo from './TeamLogo'
 import { useMatchesContext } from '../context/MatchesContext'
@@ -170,7 +170,7 @@ function PlayerCard({ row, onPlayer }: { row: PlayerRow; onPlayer?: (player: Key
             background: f.bg, border: `1px solid ${f.border}`,
             display: "grid", placeItems: "center",
           }}>
-            <span style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontSize: 12, fontWeight: 900, color: f.color }}>{player.initials}</span>
+            <span style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontSize: 12, fontWeight: 900, color: f.color }}>{getPlayerBadgeLabel(player)}</span>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontSize: 12, fontWeight: 800, color: "#f1f5f9", letterSpacing: "-0.01em", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

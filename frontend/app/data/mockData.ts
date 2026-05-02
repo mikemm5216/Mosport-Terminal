@@ -390,6 +390,7 @@ export interface KeyPlayer {
   hrv: number      // 0–1 delta
   sleep: number    // hours debt
   flag: ReadinessFlag
+  jersey?: string
 }
 
 export const KEY_PLAYERS: Record<string, KeyPlayer[]> = {

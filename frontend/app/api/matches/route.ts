@@ -30,6 +30,7 @@ function toLiveRosterSnapshot(snapshot: RosterSnapshot | undefined): RosterSnaps
     players: (snapshot.players ?? []).map((p: RosterPlayerSnapshot) => ({
       name: p.name,
       position: p.position,
+      jersey: p.jersey,
       isStarter: p.isStarter,
       depthRank: p.depthRank,
       availability: p.availability,

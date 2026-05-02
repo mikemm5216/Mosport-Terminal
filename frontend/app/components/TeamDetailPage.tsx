@@ -5,7 +5,7 @@ import {
   LEAGUE_STANDINGS, PLAYER_FORM,
   type League, type Match, type KeyPlayer,
 } from '../data/mockData'
-import { generateSimulatedPlayers } from '../lib/playerReadiness'
+import { generateSimulatedPlayers, getPlayerBadgeLabel } from '../lib/playerReadiness'
 import { leagueTheme, BioBar, LiveDot } from './ui'
 import TeamLogo from './TeamLogo'
 import { useMatchesContext } from '../context/MatchesContext'
@@ -270,7 +270,7 @@ export default function TeamDetailPage({ teamAbbr, league, onBack }: Props) {
                     background: `${flagColor}12`, border: `1px solid ${flagColor}44`,
                     display: "grid", placeItems: "center",
                   }}>
-                    <span style={{ fontFamily: "var(--font-inter), Inter", fontSize: 11, fontWeight: 900, color: flagColor }}>{player.initials}</span>
+                    <span style={{ fontFamily: "var(--font-inter), Inter", fontSize: 11, fontWeight: 900, color: flagColor }}>{getPlayerBadgeLabel(player)}</span>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontSize: 11, fontWeight: 800, color: "#f1f5f9", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
