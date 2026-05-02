@@ -1,0 +1,478 @@
+// Build mirror of ../../prisma/schema.prisma for frontend deployment Prisma Client generation.
+// Keep in sync with root prisma/schema.prisma.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Core Domain ────────────────────────────────────────────────────────────────
+
+model League {
+  league_id String   @id @default(cuid())
+  name      String
+  sport     String
+  country   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teams Team[]
+}
+
+model Team {
+  team_id     String   @id @default(cuid())
+  team_name   String?
+  full_name   String?  @unique
+  short_name  String?
+  league_id   String?
+  league_type String?
+  home_city   String?
+  logo_url    String?
+  sport       String?
+  league_name String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  league      League?  @relation(fields: [league_id], references: [league_id])
+
+  homeMatches Match[]         @relation("HomeTeam")
+  awayMatches Match[]         @relation("AwayTeam")
+  players     Player[]
+  worldStates TeamWorldState[]
+}
+
+model Player {
+  id         String   @id @default(cuid())
+  teamId     String?
+  externalId String?  @unique
+  fullName   String
+  position   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  team       Team?    @relation(fields: [teamId], references: [team_id])
+}
+
+model Match {
+  match_id        String    @id @default(cuid())
+  league_id       String?
+  league          String?
+  sport           String?
+  home_team_id    String
+  away_team_id    String
+  home_team_name  String?
+  away_team_name  String?
+  match_date      DateTime
+  status          String    @default("scheduled")
+  home_score      Int?
+  away_score      Int?
+  venue           String?
+  season          String?
+  sourceUpdatedAt  DateTime?
+  sourceProvider   String?
+  sourceConfidence Float?
+  rawRefs          String[]
+  created_at       DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  home_team   Team?   @relation("HomeTeam", fields: [home_team_id], references: [team_id])
+  away_team   Team?   @relation("AwayTeam", fields: [away_team_id], references: [team_id])
+
+  odds        Odds[]
+  snapshots   EventSnapshot[]
+  experiences Experience[]
+  mappings    ExternalMatchMap[]
+  predictions MatchPrediction[]
+  signals     MatchSignal[]
+  stats       MatchStats?
+}
+
+// ─── Match Data ──────────────────────────────────────────────────────────────────
+
+model Odds {
+  id         String   @id @default(cuid())
+  matchId    String
+  provider   String
+  odds_json  Json
+  fetched_at DateTime @default(now())
+
+  match      Match    @relation(fields: [matchId], references: [match_id])
+}
+
+model EventSnapshot {
+  snapshot_id   String    @id @default(cuid())
+  match_id      String
+  snapshot_type String
+  snapshot_time DateTime?
+  feature_json  Json?
+  state_json    Json?
+  status        String    @default("DRAFT")
+  created_at    DateTime  @default(now())
+
+  match         Match     @relation(fields: [match_id], references: [match_id])
+
+  @@unique([match_id, snapshot_type], name: "match_id_snapshot_type")
+}
+
+model Experience {
+  id             String   @id @default(cuid())
+  match_id       String
+  snapshot_type  String
+  feature_json   Json?
+  feature_vector Float[]
+  label          Int?
+  label_type     String?
+  created_at     DateTime @default(now())
+
+  match          Match    @relation(fields: [match_id], references: [match_id])
+
+  @@unique([match_id, snapshot_type], name: "match_id_snapshot_type")
+}
+
+model MatchStats {
+  id        String   @id @default(cuid())
+  matchId   String   @unique
+  payload   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  match     Match    @relation(fields: [matchId], references: [match_id])
+}
+
+model MatchSignal {
+  id        String   @id @default(cuid())
+  matchId   String
+  label     String
+  score     Float
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  match     Match    @relation(fields: [matchId], references: [match_id])
+}
+
+model MatchPrediction {
+  id                   String   @id @default(cuid())
+  matchId              String
+  modelVersion         String?
+  homeWinProb          Float?
+  awayWinProb          Float?
+  finalProbabilityHome Float?
+  marketHomeProb       Float?
+  edgeVsMarket         Float?
+  decisionScore        Float?
+  label                String?
+  action               String?
+  dominantAgent        String?
+  explanation          String?
+  payload              Json?
+  createdAt            DateTime @default(now())
+
+  match                Match    @relation(fields: [matchId], references: [match_id])
+}
+
+// ─── Ingestion ───────────────────────────────────────────────────────────────────
+
+model IngestionState {
+  id          String   @id @default(cuid())
+  provider    String   @default("thesportsdb")
+  sport       String
+  league      String
+  currentPage Int      @default(1)
+  status      String   @default("pending")
+  retryCount  Int      @default(0)
+  lastRunAt   DateTime @default(now())
+
+  @@unique([provider, sport, league], name: "provider_sport_league")
+}
+
+model RawEvent {
+  id         String   @id @default(cuid())
+  extId      String
+  provider   String
+  sport      String?
+  league     String?
+  payload    Json
+  hash       String?
+  processed  Boolean  @default(false)
+  fetchedAt  DateTime @default(now())
+  status     String   @default("raw")
+  created_at DateTime @default(now())
+
+  @@unique([extId, provider], name: "extId_provider")
+}
+
+model IngestionError {
+  id           String   @id @default(cuid())
+  provider     String?
+  extId        String?
+  errorMessage String
+  payload      Json?
+  createdAt    DateTime @default(now())
+}
+
+model DeadLetterQueue {
+  id        String   @id @default(cuid())
+  source    String
+  payload   Json?
+  error     String?
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+model ExternalMatchMap {
+  id         String    @id @default(cuid())
+  matchId    String
+  provider   String
+  extId      String
+  match_date DateTime?
+  home_team  String?
+  away_team  String?
+  createdAt  DateTime  @default(now())
+
+  match      Match     @relation(fields: [matchId], references: [match_id])
+
+  @@unique([provider, extId], name: "provider_extId")
+}
+
+model MatchResolutionLog {
+  id               String   @id @default(cuid())
+  inputProvider    String?
+  inputExtId       String?
+  candidateMatchId String?
+  finalMatchId     String?
+  score            Float?
+  decision         String?
+  factors          Json?
+  confidenceLevel  String?
+  created_at       DateTime @default(now())
+}
+
+// ─── ML / Models ─────────────────────────────────────────────────────────────────
+
+model ModelRegistry {
+  model_id     String   @id @default(cuid())
+  model_type   String
+  model_json   Json?
+  metrics_json Json?
+  status       String?
+  created_at   DateTime @default(now())
+}
+
+// ─── Analytics / Ghost ───────────────────────────────────────────────────────────
+
+model UserEventLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  matchId      String?
+  action       String?
+  modelVersion String?
+  metadata     Json?
+  event        String?
+  payload      Json?
+  createdAt    DateTime @default(now())
+}
+
+model UserProfileVector {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  payload   Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model SignalOutcome {
+  id        String   @id @default(cuid())
+  signalId  String?
+  outcome   String
+  payload   Json?
+  createdAt DateTime @default(now())
+}
+
+model StrategyPerformanceSnapshot {
+  id        String   @id @default(cuid())
+  strategy  String
+  metrics   Json
+  createdAt DateTime @default(now())
+}
+
+model StrategyBacktestResult {
+  id        String   @id @default(cuid())
+  strategy  String
+  result    Json
+  createdAt DateTime @default(now())
+}
+
+// ─── World Engine ────────────────────────────────────────────────────────────────
+
+model TeamWorldState {
+  id         String   @id @default(cuid())
+  teamId     String
+  pressure   Float    @default(0)
+  fatigue    Float    @default(0)
+  volatility Float    @default(0)
+  momentum   Float    @default(0)
+  mismatch   Float    @default(0)
+  payload    Json?
+  createdAt  DateTime @default(now())
+
+  team       Team     @relation(fields: [teamId], references: [team_id])
+}
+
+// ─── Data Lifecycle Pipeline ─────────────────────────────────────────────────────
+
+model ProviderHealth {
+  id            String    @id @default(cuid())
+  provider      String
+  league        String
+  status        String    @default("healthy")
+  lastSuccessAt DateTime?
+  lastFailureAt DateTime?
+  failureCount  Int       @default(0)
+  latencyMs     Int?
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([provider, league])
+}
+
+model DataConflictLog {
+  id            String   @id @default(cuid())
+  league        String
+  matchKey      String
+  primaryRawRef String?
+  backupRawRef  String?
+  conflictType  String
+  resolution    String
+  createdAt     DateTime @default(now())
+}
+
+// ─── Legacy V1 (used via prisma as any in signals/match routes) ──────────────────
+
+model Context {
+  public_uuid   String @id @default(uuid())
+  internal_code String @unique
+  sport_code    String
+  weight_level  String
+  team_code     String
+  name          String
+
+  stats_logs StatsLog[]
+
+  @@index([internal_code])
+}
+
+model StatsLog {
+  id                    String   @id @default(cuid())
+  player_internal_code  String
+  context_internal_code String
+  metric_type           String
+  value                 Float
+  timestamp             DateTime @default(now())
+
+  context Context @relation(fields: [context_internal_code], references: [internal_code])
+
+  @@index([player_internal_code])
+  @@index([context_internal_code])
+}
+
+// ─── Keyboard Coaches & Authentication ───────────────────────────────────────────
+
+model MosportUser {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  displayName    String
+  passwordHash   String
+  role           String   @default("USER") // USER, MODERATOR, ADMIN
+  reputation     Int      @default(0)
+  coachScore     Float    @default(0)
+  commentCount   Int      @default(0)
+  reportCount    Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sessions        MosportSession[]
+  comments        MatchComment[]
+  reports         DataChallengeReport[]
+  coachVotes      CoachDecisionVote[]
+}
+
+model MosportSession {
+  id          String   @id @default(cuid())
+  userId      String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  user        MosportUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model MatchComment {
+  id              String   @id @default(cuid())
+  matchId          String
+  userId           String
+  stance           String   // AGREE, DISAGREE, ALTERNATIVE, WATCH_ONLY
+  coachAction      String?
+  targetPlayer     String?
+  confidence       Int?     // 1-100
+  commentText      String
+  status           String   @default("VISIBLE") // VISIBLE, HIDDEN, DELETED, FLAGGED
+  sourceContext    Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             MosportUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model CoachDecisionVote {
+  id              String   @id @default(cuid())
+  matchId          String
+  userId           String
+  stance           String   // AGREE, DISAGREE, ALTERNATIVE, WATCH_ONLY
+  coachAction      String?
+  targetPlayer     String?
+  confidence       Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             MosportUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, userId])
+  @@index([matchId])
+  @@index([userId])
+}
+
+model DataChallengeReport {
+  id              String   @id @default(cuid())
+  matchId          String?
+  userId           String
+  reportType       String   // WRONG_PLAYER_TEAM, WRONG_ROSTER, WRONG_SCORE_STATUS, WRONG_JERSEY, WRONG_LOGO, BAD_COACH_DECISION, UI_BUG, OTHER
+  entityType       String?  // MATCH, TEAM, PLAYER, COACH_DECISION, UI
+  entityId         String?
+  teamCode         String?
+  playerName       String?
+  currentValue     String?
+  suggestedValue   String?
+  description      String
+  status           String   @default("OPEN") // OPEN, TRIAGED, CONFIRMED, FIXED, REJECTED, DUPLICATE
+  priority         String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  resolvedAt       DateTime?
+  resolvedBy       String?
+
+  user             MosportUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+  @@index([userId])
+  @@index([reportType])
+  @@index([status])
+}
