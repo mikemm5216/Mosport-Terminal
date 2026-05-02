@@ -13,6 +13,9 @@ import LeaguesPage from './components/LeaguesPage'
 import PlayersPage from './components/PlayersPage'
 import TeamDetailPage from './components/TeamDetailPage'
 import PlayerDetailPage from './components/PlayerDetailPage'
+import AuthModal from './components/AuthModal'
+import UserMenu from './components/UserMenu'
+import { useEffect } from 'react'
 
 type PageState =
   | { screen: 'schedule' }
@@ -26,6 +29,17 @@ type PageState =
 export default function Home() {
   const [page, setPage] = useState<PageState>({ screen: 'schedule' })
   const [viewState, setViewState] = useState<AppViewState>({ mode: 'live', selectedLeague: 'ALL' })
+  const [user, setUser] = useState<any>(null)
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+
+  // Initial auth check
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(data => {
+        if (data.user) setUser(data.user)
+      })
+  }, [])
 
   function handleModeChange(mode: ProductMode) {
     setViewState((prev) => ({ ...prev, mode }))
@@ -91,7 +105,20 @@ export default function Home() {
           onTabChange={handleTabChange}
           mode={viewState.mode}
           onModeChange={handleModeChange}
-        />
+        >
+          <div className="flex items-center gap-4">
+            {user ? (
+              <UserMenu user={user} onLogout={() => setUser(null)} />
+            ) : (
+              <button 
+                onClick={() => setIsAuthModalOpen(true)}
+                className="text-[10px] text-[#3b82f6] font-bold uppercase tracking-widest px-3 py-1.5 border border-[#3b82f6]/30 rounded hover:bg-[#3b82f6]/10 transition-all"
+              >
+                Log In
+              </button>
+            )}
+          </div>
+        </TopBar>
 
         <div className="fade-in" key={fadeKey}>
           {viewState.mode === 'simulation' && <SimulationDashboard />}
@@ -99,7 +126,14 @@ export default function Home() {
           {viewState.mode === 'live' && (
             <>
               {page.screen === 'schedule' && <LiveScheduleDashboard onOpen={handleOpen} onOpenLab={() => handleTabChange('LAB')} />}
-              {page.screen === 'detail' && <DetailPage m={page.match} onBack={handleBack} />}
+              {page.screen === 'detail' && (
+                <DetailPage 
+                  m={page.match} 
+                  onBack={handleBack} 
+                  user={user} 
+                  onAuthRequired={() => setIsAuthModalOpen(true)} 
+                />
+              )}
               {page.screen === 'lab' && <LabPage />}
               {page.screen === 'leagues' && <LeaguesPage onTeam={(a, l) => handleTeam(a, l, 'leagues')} />}
               {page.screen === 'players' && <PlayersPage onTeam={(a, l) => handleTeam(a, l, 'players')} onPlayer={handlePlayer} />}
@@ -119,6 +153,12 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onSuccess={(u) => setUser(u)}
+      />
     </MatchesProvider>
   )
 }

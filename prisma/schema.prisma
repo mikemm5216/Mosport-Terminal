@@ -374,3 +374,103 @@ model StatsLog {
   @@index([player_internal_code])
   @@index([context_internal_code])
 }
+
+// ─── Keyboard Coaches & Authentication ───────────────────────────────────────────
+
+model MosportUser {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  displayName    String
+  passwordHash   String
+  role           String   @default("USER") // USER, MODERATOR, ADMIN
+  reputation     Int      @default(0)
+  coachScore     Float    @default(0)
+  commentCount   Int      @default(0)
+  reportCount    Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sessions        MosportSession[]
+  comments        MatchComment[]
+  reports         DataChallengeReport[]
+  coachVotes      CoachDecisionVote[]
+}
+
+model MosportSession {
+  id          String   @id @default(cuid())
+  userId      String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  user        MosportUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model MatchComment {
+  id              String   @id @default(cuid())
+  matchId          String
+  userId           String
+  stance           String   // AGREE, DISAGREE, ALTERNATIVE, WATCH_ONLY
+  coachAction      String?
+  targetPlayer     String?
+  confidence       Int?     // 1-100
+  commentText      String
+  status           String   @default("VISIBLE") // VISIBLE, HIDDEN, DELETED, FLAGGED
+  sourceContext    Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             MosportUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model CoachDecisionVote {
+  id              String   @id @default(cuid())
+  matchId          String
+  userId           String
+  stance           String   // AGREE, DISAGREE, ALTERNATIVE, WATCH_ONLY
+  coachAction      String?
+  targetPlayer     String?
+  confidence       Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             MosportUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, userId])
+  @@index([matchId])
+  @@index([userId])
+}
+
+model DataChallengeReport {
+  id              String   @id @default(cuid())
+  matchId          String?
+  userId           String
+  reportType       String   // WRONG_PLAYER_TEAM, WRONG_ROSTER, WRONG_SCORE_STATUS, WRONG_JERSEY, WRONG_LOGO, BAD_COACH_DECISION, UI_BUG, OTHER
+  entityType       String?  // MATCH, TEAM, PLAYER, COACH_DECISION, UI
+  entityId         String?
+  teamCode         String?
+  playerName       String?
+  currentValue     String?
+  suggestedValue   String?
+  description      String
+  status           String   @default("OPEN") // OPEN, TRIAGED, CONFIRMED, FIXED, REJECTED, DUPLICATE
+  priority         String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  resolvedAt       DateTime?
+  resolvedBy       String?
+
+  user             MosportUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+  @@index([userId])
+  @@index([reportType])
+  @@index([status])
+}

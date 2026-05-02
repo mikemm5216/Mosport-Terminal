@@ -6,12 +6,16 @@ import { leagueTheme, TeamMark, LeagueBadge, LiveDot } from './ui'
 import MatchupGauge from './MatchupGauge'
 import WhoopBioPanel from './WhoopBioPanel'
 import DecisionTerminal from './DecisionTerminal'
+import KeyboardCoachesPanel from './KeyboardCoachesPanel'
+import DataChallengePanel from './DataChallengePanel'
 import { matchToV11Input } from '../lib/v11'
 import type { V11Decision } from '../lib/v11'
 
 interface Props {
   m: Match
   onBack: () => void
+  user?: any
+  onAuthRequired: () => void
 }
 
 function SystemFooter({ live }: { live: boolean }) {
@@ -31,7 +35,7 @@ function SystemFooter({ live }: { live: boolean }) {
   )
 }
 
-export default function DetailPage({ m, onBack }: Props) {
+export default function DetailPage({ m, onBack, user, onAuthRequired }: Props) {
   const [recovery, setRecovery] = useState(m.recovery_away)
   const [v11, setV11] = useState<V11Decision | null>(null)
   const [v11Live, setV11Live] = useState(false)
@@ -161,6 +165,20 @@ export default function DetailPage({ m, onBack }: Props) {
 
       {/* Decision terminal */}
       <DecisionTerminal m={m} recovery={recovery} v11={v11} />
+
+      {/* Social & Data Layers */}
+      <KeyboardCoachesPanel 
+        matchId={m.id} 
+        league={m.league} 
+        user={user} 
+        onAuthRequired={onAuthRequired} 
+      />
+      
+      <DataChallengePanel 
+        matchId={m.id} 
+        user={user} 
+        onAuthRequired={onAuthRequired} 
+      />
 
       <SystemFooter live={v11Live} />
     </div>
