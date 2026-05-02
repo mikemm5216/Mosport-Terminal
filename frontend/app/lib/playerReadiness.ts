@@ -181,35 +181,49 @@ function getFreshRoster(
   return fresh.length ? fresh : null
 }
 
-const PLACEHOLDER_NAMES = ['Team Key Player', 'Team Rotation Player'] as const
+type PlaceholderPlayerTemplate = {
+  name: string
+  position: string
+  role: 'key' | 'rotation'
+}
+
+const PLACEHOLDER_TEMPLATES: Record<string, [PlaceholderPlayerTemplate, PlaceholderPlayerTemplate]> = {
+  MLB: [
+    { name: 'Starting Pitcher', position: 'SP', role: 'key' },
+    { name: 'Rotation Player', position: 'RP', role: 'rotation' },
+  ],
+  NBA: [
+    { name: 'Starting Guard', position: 'G', role: 'key' },
+    { name: 'Rotation Forward', position: 'F', role: 'rotation' },
+  ],
+  NHL: [
+    { name: 'Top Line Center', position: 'C', role: 'key' },
+    { name: 'Rotation Forward', position: 'F', role: 'rotation' },
+  ],
+  EPL: [
+    { name: 'Starting Attacker', position: 'F', role: 'key' },
+    { name: 'Rotation Midfielder', position: 'M', role: 'rotation' },
+  ],
+  UCL: [
+    { name: 'Starting Attacker', position: 'F', role: 'key' },
+    { name: 'Rotation Midfielder', position: 'M', role: 'rotation' },
+  ],
+}
+
+const FALLBACK_TEMPLATES: [PlaceholderPlayerTemplate, PlaceholderPlayerTemplate] = [
+  { name: 'Team Key Player', position: 'KEY', role: 'key' },
+  { name: 'Team Rotation Player', position: 'ROT', role: 'rotation' },
+]
 
 function placeholderEntries(league: League, teamCode: TeamCode): readonly RosterEntry[] {
-  const isMLB = league === 'MLB'
-  const isNBA = league === 'NBA'
-  const isNHL = league === 'NHL'
-  const isSoccer = league === 'EPL' || league === 'UCL'
+  const templates = PLACEHOLDER_TEMPLATES[league] || FALLBACK_TEMPLATES
 
-  const names = [...PLACEHOLDER_NAMES]
-  if (isMLB) {
-    names[0] = 'Starting Pitcher'
-    names[1] = 'Rotation Player'
-  } else if (isNBA) {
-    names[0] = 'Starting Guard'
-    names[1] = 'Rotation Forward'
-  } else if (isNHL) {
-    names[0] = 'Top Line Center'
-    names[1] = 'Rotation Forward'
-  } else if (isSoccer) {
-    names[0] = 'Starting Attacker'
-    names[1] = 'Rotation Midfielder'
-  }
-
-  return names.map((name, idx) => ({
-    name,
+  return templates.map((tpl, idx) => ({
+    name: tpl.name,
     league,
     teamCode,
     updatedAtMs: nowMs(),
-    position: isMLB && idx === 0 ? 'SP' : 'ROSTER_PENDING',
+    position: tpl.position,
     depthRank: idx + 1,
     availability: 'UNKNOWN' as const,
     isPlaceholder: true,
