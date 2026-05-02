@@ -1,4 +1,3 @@
-import { canCallProvider, recordProviderSuccess, recordProviderError } from '../apiGovernor'
 import { ROSTER_DATA } from '../../data/mockData'
 
 export type ProviderRosterPlayer = {
@@ -19,6 +18,7 @@ export type RosterSnapshot = {
 
 const rosterCache = new Map<string, RosterSnapshot>()
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours as suggested
+const ROSTER_FAIL_TTL_MS = 1 * 60 * 60 * 1000 // 1 hour for failures
 
 const ESPN_ROSTER_CONFIG: Record<string, { sport: string, league: string }> = {
   NBA: { sport: 'basketball', league: 'nba' },
@@ -187,8 +187,13 @@ export async function getTeamRosterSnapshot(params: {
   const now = Date.now()
 
   const cached = rosterCache.get(cacheKey)
-  if (cached && now - cached.updatedAtMs < CACHE_TTL_MS) {
-    return cached
+  if (cached) {
+    if (cached.players.length > 0 && now - cached.updatedAtMs < CACHE_TTL_MS) {
+      return cached
+    }
+    if (cached.source === 'unavailable' && now - cached.updatedAtMs < ROSTER_FAIL_TTL_MS) {
+      return cached
+    }
   }
 
   try {
@@ -208,13 +213,15 @@ export async function getTeamRosterSnapshot(params: {
     console.error(`[rosterProvider] Error fetching roster for ${league} ${teamCode}:`, err)
   }
 
-  return {
+  const unavailableSnapshot: RosterSnapshot = {
     league,
     teamCode,
     players: [],
     source: 'unavailable',
     updatedAtMs: now,
   }
+  rosterCache.set(cacheKey, unavailableSnapshot)
+  return unavailableSnapshot
 }
 
 
