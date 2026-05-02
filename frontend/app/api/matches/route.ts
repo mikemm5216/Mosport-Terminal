@@ -4,6 +4,7 @@ import type { LiveMatchCard, LiveMatchesResponse } from '../../contracts/product
 import { toCanonicalTeamKey } from '../../config/teamCodeNormalization'
 import { getTeamLogo } from '../../lib/teamLogoResolver'
 import { GET as legacyGamesGet } from '../games/route'
+import type { RosterSnapshot, RosterPlayerSnapshot } from '../../contracts/roster'
 
 function parseLeague(raw: string | null): LiveMatchesResponse['meta']['league'] {
   const candidate = (raw ?? 'ALL').toUpperCase()
@@ -19,14 +20,14 @@ function parseStatus(status: Match['status']): LiveMatchCard['status'] {
   return 'scheduled'
 }
 
-function toLiveRosterSnapshot(snapshot: Match['rosters']['home'] | undefined): import('../../contracts/roster').RosterSnapshot | undefined {
+function toLiveRosterSnapshot(snapshot: RosterSnapshot | undefined): RosterSnapshot | undefined {
   if (!snapshot) return undefined
   return {
     league: snapshot.league,
     teamCode: snapshot.teamCode,
     source: snapshot.source,
     updatedAtMs: snapshot.updatedAtMs,
-    players: (snapshot.players ?? []).map((p) => ({
+    players: (snapshot.players ?? []).map((p: RosterPlayerSnapshot) => ({
       name: p.name,
       position: p.position,
       isStarter: p.isStarter,
