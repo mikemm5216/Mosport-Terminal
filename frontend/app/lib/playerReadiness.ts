@@ -26,6 +26,7 @@ type TeamCode = string
 type PlayerSource =
   | 'live_roster_provider'
   | 'cached_team_roster'
+  | 'mock_seeded_team_roster'
   | 'simulated_player_state_team_placeholder'
 
 type ProviderRosterPlayer = {
@@ -204,7 +205,15 @@ type ResolvedPlayerPool = {
   source: PlayerSource
 }
 
-function resolvePlayerPool(league: League, teamCode: TeamCode): ResolvedPlayerPool {
+function resolvePlayerPool(match: Match, side: 'home' | 'away', league: League, teamCode: TeamCode): ResolvedPlayerPool {
+  const matchRoster = match.rosters?.[side]
+  if (matchRoster && matchRoster.players.length > 0 && matchRoster.source !== 'unavailable') {
+    return {
+      players: toRosterEntries(league, teamCode, matchRoster.players, nowMs()),
+      source: matchRoster.source,
+    }
+  }
+
   const liveRoster = getFreshRoster(
     TEAM_PLAYER_POOL,
     league,
@@ -315,7 +324,7 @@ export function generateSimulatedPlayers(
   const tc = normalizeCode(team.abbr)
   const opponentCode = normalizeCode(opponent.abbr)
   const league = normalizeLeague(match.league)
-  const resolved = resolvePlayerPool(league, tc)
+  const resolved = resolvePlayerPool(match, side, league, tc)
   const rankedPlayers = rankKeyPlayers(resolved.players, {
     matchId: String(match.id),
     league,
@@ -380,5 +389,13 @@ export function isSimulatedPlayer(p: KeyPlayer): boolean {
   const source = getPlayerSource(p)
   return source === 'live_roster_provider'
     || source === 'cached_team_roster'
+    || source === 'mock_seeded_team_roster'
     || source === 'simulated_player_state_team_placeholder'
+}
+
+export function isRosterBackedPlayer(p: KeyPlayer): boolean {
+  const source = getPlayerSource(p)
+  return source === 'live_roster_provider'
+    || source === 'cached_team_roster'
+    || source === 'mock_seeded_team_roster'
 }

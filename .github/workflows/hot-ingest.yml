@@ -8,10 +8,25 @@ on:
 jobs:
   ingest-hot:
     runs-on: ubuntu-latest
+    env:
+      INGEST_URL: ${{ secrets.MOSPORT_INGEST_URL }}
+      INGEST_SECRET: ${{ secrets.MOSPORT_INGEST_SECRET }}
     steps:
       - name: Trigger Mosport ingestion
         run: |
-          curl -X POST "${{ secrets.MOSPORT_INGEST_URL }}" \
-            -H "x-ingest-secret: ${{ secrets.MOSPORT_INGEST_SECRET }}" \
+          if [ -z "${INGEST_URL}" ]; then
+            echo "::error::INGEST_URL is missing. Set it in GitHub Actions secrets or variables."
+            exit 1
+          fi
+
+          if [ -z "${INGEST_SECRET}" ]; then
+            echo "::error::INGEST_SECRET is missing. Set it in GitHub Actions secrets."
+            exit 1
+          fi
+
+          curl -X POST "${INGEST_URL}" \
+            -H "x-ingest-secret: ${INGEST_SECRET}" \
             -H "Content-Type: application/json" \
-            --fail
+            --fail \
+            --show-error \
+            --silent

@@ -6,6 +6,7 @@ import {
   recordProviderError,
   getCurrentDataMode,
 } from '../../lib/apiGovernor'
+import { getTeamRosterSnapshot } from '../../lib/providers/rosterProvider'
 
 // ── Provider fallback order ──────────────────────────────────────────────────
 // 1. The Odds API  — full odds + EV data (governor-gated)
@@ -284,8 +285,8 @@ async function fetchFromESPN(league: League, espnPath: string): Promise<Match[]>
       id: `${league}-${awayAbbr}@${homeAbbr}_${dateStr.slice(0, 10)}`,
       league, status,
       time: commenceToTime(dateStr),
-      home: { abbr: homeAbbr, name: homeComp.team?.displayName ?? homeAbbr, city: cityFromName(homeComp.team?.displayName ?? homeAbbr) },
-      away: { abbr: awayAbbr, name: awayComp.team?.displayName ?? awayAbbr, city: cityFromName(awayComp.team?.displayName ?? awayAbbr) },
+      home: { abbr: homeAbbr, name: homeComp.team?.displayName ?? homeAbbr, city: cityFromName(homeComp.team?.displayName ?? homeAbbr), espnId: homeComp.team?.id },
+      away: { abbr: awayAbbr, name: awayComp.team?.displayName ?? awayAbbr, city: cityFromName(awayComp.team?.displayName ?? awayAbbr), espnId: awayComp.team?.id },
       score: (status === 'LIVE' || status === 'FINAL') ? { home: homeScore, away: awayScore } : null,
     }))
   }
@@ -415,6 +416,18 @@ export async function GET() {
   }
 
   allMatches.sort((a, b) => Math.abs(b.wpa) - Math.abs(a.wpa))
+
+  // Attach roster snapshots
+  for (const m of allMatches) {
+    const [homeRoster, awayRoster] = await Promise.all([
+      getTeamRosterSnapshot({ league: m.league, teamCode: m.home.abbr, espnId: m.home.espnId }),
+      getTeamRosterSnapshot({ league: m.league, teamCode: m.away.abbr, espnId: m.away.espnId }),
+    ])
+    m.rosters = {
+      home: homeRoster,
+      away: awayRoster,
+    }
+  }
 
   return NextResponse.json({
     matches: allMatches,
