@@ -1,14 +1,12 @@
 import { cookies } from 'next/headers'
 import crypto from 'node:crypto'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../db/prisma'
 
-const prisma = new PrismaClient()
 const SESSION_COOKIE_NAME = 'mosport_session'
 const SESSION_EXPIRY_DAYS = 30
 
 export interface SessionUser {
   id: string
-  email: string
   displayName: string
   role: string
   reputation: number
@@ -41,7 +39,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 /**
- * Create a session and set the cookie
+ * createSession mutates cookies; only call from Route Handlers or Server Actions.
  */
 export async function createSession(userId: string) {
   const token = crypto.randomBytes(32).toString('hex')
@@ -89,7 +87,6 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
   return {
     id: session.user.id,
-    email: session.user.email,
     displayName: session.user.displayName,
     role: session.user.role,
     reputation: session.user.reputation,

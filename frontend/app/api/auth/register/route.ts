@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../../../lib/db/prisma'
 import { hashPassword, createSession } from '../../../lib/auth/session'
-
-const prisma = new PrismaClient()
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -39,8 +37,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       user: {
         id: user.id,
-        email: user.email,
         displayName: user.displayName,
+        role: user.role,
         reputation: user.reputation,
       }
     })
