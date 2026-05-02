@@ -70,7 +70,7 @@ export async function getTeamRosterSnapshot(params: {
 
   const cached = rosterCache.get(cacheKey)
   if (cached && now - cached.updatedAtMs < CACHE_TTL_MS) {
-    return { ...cached, source: 'cached_team_roster' }
+    return cached
   }
 
   try {
