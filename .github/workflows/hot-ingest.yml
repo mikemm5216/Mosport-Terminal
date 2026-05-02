@@ -9,8 +9,8 @@ jobs:
   ingest-hot:
     runs-on: ubuntu-latest
     env:
-      INGEST_URL: ${{ secrets.MOSPORT_INGEST_URL }}
-      INGEST_SECRET: ${{ secrets.MOSPORT_INGEST_SECRET }}
+      INGEST_URL: "https://www.mosport.app/api/admin/ingest/hot"
+      INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
     steps:
       - name: Trigger Mosport ingestion
         run: |
