@@ -1,5 +1,5 @@
 import { canCallProvider, recordProviderSuccess, recordProviderError } from '../apiGovernor'
-import { KEY_PLAYERS, ROSTER_DATA } from '../../data/mockData'
+import { ROSTER_DATA } from '../../data/mockData'
 
 export type ProviderRosterPlayer = {
   name: string
@@ -13,7 +13,7 @@ export type RosterSnapshot = {
   league: string
   teamCode: string
   players: ProviderRosterPlayer[]
-  source: 'espn_roster_provider' | 'cached_team_roster' | 'seeded_team_roster' | 'unavailable'
+  source: 'espn_roster_provider' | 'cached_team_roster' | 'mock_seeded_team_roster' | 'unavailable'
   updatedAtMs: number
 }
 
@@ -43,33 +43,19 @@ function registerSeed(league: string, teamCode: string, players: any[] = []) {
   SEED_ROSTER.set(key, existing)
 }
 
-// Extract from ROSTER_DATA
+// Extract from ROSTER_DATA (for demo purposes only)
 if (ROSTER_DATA['mlb_2026_min_nym']) {
   registerSeed('MLB', 'MIN', ROSTER_DATA['mlb_2026_min_nym'].away)
   registerSeed('MLB', 'NYM', ROSTER_DATA['mlb_2026_min_nym'].home)
 }
 
-// Extract from KEY_PLAYERS
-registerSeed('NBA', 'LAL', KEY_PLAYERS['nba_2026_lal_gsw_away'])
-registerSeed('NBA', 'GSW', KEY_PLAYERS['nba_2026_lal_gsw_home'])
-registerSeed('EPL', 'MCI', KEY_PLAYERS['epl_2026_mci_liv_away'])
-registerSeed('EPL', 'LIV', KEY_PLAYERS['epl_2026_mci_liv_home'])
-registerSeed('EPL', 'ARS', KEY_PLAYERS['epl_2026_ars_tot_home'])
-registerSeed('EPL', 'TOT', KEY_PLAYERS['epl_2026_ars_tot_away'])
-registerSeed('UCL', 'RMA', KEY_PLAYERS['ucl_2026_rma_bar_home'])
-registerSeed('UCL', 'BAR', KEY_PLAYERS['ucl_2026_rma_bar_away'])
-registerSeed('NHL', 'BOS', KEY_PLAYERS['nhl_2026_bos_nyr_home'])
-registerSeed('NHL', 'NYR', KEY_PLAYERS['nhl_2026_bos_nyr_away'])
-registerSeed('MLB', 'LAD', KEY_PLAYERS['mlb_2026_lad_nyy_away'])
-registerSeed('MLB', 'NYY', KEY_PLAYERS['mlb_2026_lad_nyy_home'])
-
 async function fetchRosterFromExternal(league: string, teamCode: string): Promise<{ players: ProviderRosterPlayer[], source: RosterSnapshot['source'] } | null> {
   // Try real API...
-  // Fallback to seed
+  // Fallback to seed for demo purposes
   const key = getCacheKey(league, teamCode)
   const seeded = SEED_ROSTER.get(key)
   if (seeded && seeded.length > 0) {
-    return { players: seeded, source: 'seeded_team_roster' }
+    return { players: seeded, source: 'mock_seeded_team_roster' }
   }
   return null
 }
@@ -112,4 +98,5 @@ export async function getTeamRosterSnapshot(params: {
     updatedAtMs: now,
   }
 }
+
 

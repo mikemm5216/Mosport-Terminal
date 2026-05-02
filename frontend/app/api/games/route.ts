@@ -424,8 +424,8 @@ export async function GET() {
       getTeamRosterSnapshot({ league: m.league, teamCode: m.away.abbr }),
     ])
     m.rosters = {
-      home: homeRoster.players,
-      away: awayRoster.players,
+      home: homeRoster,
+      away: awayRoster,
     }
   }
 

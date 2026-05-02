@@ -6,7 +6,7 @@ export type MatchStatus = "SCHEDULED" | "LIVE" | "FINAL"
 export type ReadinessFlag = "CLEAR" | "MONITOR" | "REST"
 export type Perspective = "HOME" | "AWAY"
 
-import type { ProviderRosterPlayer } from '../lib/providers/rosterProvider'
+import type { ProviderRosterPlayer, RosterSnapshot } from '../lib/providers/rosterProvider'
 
 export interface Team {
   abbr: string
@@ -58,8 +58,8 @@ export interface Match {
   settled?: boolean
   settled_accurate?: boolean
   rosters?: {
-    home: ProviderRosterPlayer[]
-    away: ProviderRosterPlayer[]
+    home: RosterSnapshot
+    away: RosterSnapshot
   }
 }
 

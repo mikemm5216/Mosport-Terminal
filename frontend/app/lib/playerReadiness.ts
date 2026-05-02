@@ -26,6 +26,7 @@ type TeamCode = string
 type PlayerSource =
   | 'live_roster_provider'
   | 'cached_team_roster'
+  | 'mock_seeded_team_roster'
   | 'simulated_player_state_team_placeholder'
 
 type ProviderRosterPlayer = {
@@ -206,10 +207,10 @@ type ResolvedPlayerPool = {
 
 function resolvePlayerPool(match: Match, side: 'home' | 'away', league: League, teamCode: TeamCode): ResolvedPlayerPool {
   const matchRoster = match.rosters?.[side]
-  if (matchRoster && matchRoster.length > 0) {
+  if (matchRoster && matchRoster.players.length > 0 && matchRoster.source !== 'unavailable') {
     return {
-      players: toRosterEntries(league, teamCode, matchRoster, nowMs()),
-      source: 'live_roster_provider',
+      players: toRosterEntries(league, teamCode, matchRoster.players, nowMs()),
+      source: matchRoster.source,
     }
   }
 
