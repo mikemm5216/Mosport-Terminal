@@ -19,6 +19,23 @@ function parseStatus(status: Match['status']): LiveMatchCard['status'] {
   return 'scheduled'
 }
 
+function toLiveRosterSnapshot(snapshot: Match['rosters']['home'] | undefined): import('../../contracts/roster').RosterSnapshot | undefined {
+  if (!snapshot) return undefined
+  return {
+    league: snapshot.league,
+    teamCode: snapshot.teamCode,
+    source: snapshot.source,
+    updatedAtMs: snapshot.updatedAtMs,
+    players: (snapshot.players ?? []).map((p) => ({
+      name: p.name,
+      position: p.position,
+      isStarter: p.isStarter,
+      depthRank: p.depthRank,
+      availability: p.availability,
+    })),
+  }
+}
+
 function parseDecision(m: Match): LiveMatchCard['decision'] {
   const abs = Math.abs(m.wpa)
   if (m.tactical_label === 'HIGH_CONFIDENCE') return { label: 'STRONG', action: m.perspective === 'HOME' ? 'LEAN_HOME' : 'LEAN_AWAY', score: abs, explanation: null }
@@ -60,6 +77,18 @@ function toCard(m: Match, fallbackUsed: boolean): LiveMatchCard {
       away: m.score?.away ?? null,
     },
     decision: parseDecision(m),
+    rosters: m.rosters?.home && m.rosters?.away
+      ? {
+          home: toLiveRosterSnapshot(m.rosters.home)!,
+          away: toLiveRosterSnapshot(m.rosters.away)!,
+        }
+      : undefined,
+    dataSources: {
+      roster: {
+        home: m.rosters?.home?.source ?? 'unavailable',
+        away: m.rosters?.away?.source ?? 'unavailable',
+      }
+    },
     meta: {
       sourceProvider: 'unknown',
       fallbackUsed,

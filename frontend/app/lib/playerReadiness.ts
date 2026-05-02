@@ -23,21 +23,15 @@ import {
 type League = string
 type TeamCode = string
 
+import type { RosterSource, RosterPlayerSnapshot } from '../contracts/roster'
+
 type PlayerSource =
-  | 'espn_roster_provider'
-  | 'live_roster_provider'
-  | 'cached_team_roster'
-  | 'mock_seeded_team_roster'
+  | Exclude<RosterSource, 'unavailable'>
   | 'simulated_player_state_team_placeholder'
 
-type ProviderRosterPlayer = {
-  name: string
-  position?: string
-  isStarter?: boolean
+type ProviderRosterPlayer = RosterPlayerSnapshot & {
   projectedMinutes?: number
   usageRate?: number
-  depthRank?: number
-  availability?: AvailabilityStatus
 }
 
 type RosterEntry = KeyPlayerEngineInput & {

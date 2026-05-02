@@ -73,6 +73,7 @@ function adaptLiveCard(card: LiveMatchCard): Match {
     matchup_complexity: 0.5,
     recovery_away: 0.72,
     recovery_home: 0.72,
+    rosters: card.rosters,
   }
 }
 

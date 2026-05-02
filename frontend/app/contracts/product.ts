@@ -19,6 +19,8 @@ export type TeamRef = {
   record?: string | null
 }
 
+import type { RosterSnapshot, RosterSource } from './roster'
+
 export type LiveMatchCard = {
   id: string
   mode: 'live'
@@ -38,6 +40,16 @@ export type LiveMatchCard = {
     action: 'LEAN_HOME' | 'LEAN_AWAY' | 'UPSET_WATCH' | 'AVOID' | 'NO_ACTION'
     score: number | null
     explanation: string | null
+  }
+  rosters?: {
+    home: RosterSnapshot
+    away: RosterSnapshot
+  }
+  dataSources?: {
+    roster?: {
+      home: RosterSource
+      away: RosterSource
+    }
   }
   meta: {
     sourceProvider: 'espn' | 'sportradar' | 'unknown'

@@ -1,20 +1,5 @@
 import { ROSTER_DATA } from '../../data/mockData'
-
-export type ProviderRosterPlayer = {
-  name: string
-  position?: string
-  isStarter?: boolean
-  depthRank?: number
-  availability?: 'ACTIVE' | 'QUESTIONABLE' | 'DOUBTFUL' | 'OUT' | 'UNKNOWN'
-}
-
-export type RosterSnapshot = {
-  league: string
-  teamCode: string
-  players: ProviderRosterPlayer[]
-  source: 'espn_roster_provider' | 'cached_team_roster' | 'mock_seeded_team_roster' | 'unavailable'
-  updatedAtMs: number
-}
+import type { RosterSnapshot, RosterPlayerSnapshot as ProviderRosterPlayer } from '../../contracts/roster'
 
 const rosterCache = new Map<string, RosterSnapshot>()
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours as suggested
