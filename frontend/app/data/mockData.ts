@@ -12,6 +12,7 @@ export interface Team {
   abbr: string
   name: string
   city: string
+  espnId?: string
 }
 
 export interface Score {
