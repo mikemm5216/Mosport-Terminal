@@ -11,11 +11,9 @@ import TeamLogo from './TeamLogo'
 import type { SimulationSummaryResponse } from '../contracts/product'
 import { useMatchesContext, DataFreshnessBadge } from '../context/MatchesContext'
 import { getSeriesStateFromCompletedGames, resolveSeriesWins } from '../lib/seriesState'
+import { PAGE_SHELL_STYLE, BREAKPOINTS } from '../lib/ui'
 
-// ── Visual bracket engine (small iterations, display only) ────────
-// These power the bracket card rendering. They are NOT the 10M simulation —
-// that runs offline and is read from /api/playoffs/summary.
-
+// ── Visual bracket engine ────────────────────────────────────────
 function gameWinProb(home: BracketTeam, away: BracketTeam): number {
   const diff = home.edge - away.edge
   const recoveryBoost = (home.recovery - away.recovery) * 0.1
@@ -83,8 +81,6 @@ function simulateBracket(firstRound: BracketSeries[], league: League): BracketSe
   return all
 }
 
-// ── Fetch pre-computed simulation summary ────────────────────────
-
 function useSummary(league: string) {
   const [summary, setSummary] = useState<SimulationSummaryResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -101,12 +97,10 @@ function useSummary(league: string) {
   return { summary, loading }
 }
 
-// ── Sub-components ────────────────────────────────────────────────
-
 function MiniSeriesCard({ series, league, align = "left" }: { series: BracketSeries; league: League; align?: "left" | "right" }) {
   const t = leagueTheme(league)
   const isPending = series.status === 'pending'
-  const { winner, prob } = predictSeries(series)
+  const { winner } = predictSeries(series)
   const homeWins = winner === series.home.abbr
   const isLiveData = (series as BracketSeries & { _source?: string })._source === 'live_completed_games'
 
@@ -127,7 +121,6 @@ function MiniSeriesCard({ series, league, align = "left" }: { series: BracketSer
     )
   }
 
-  void prob
   return (
     <div style={{
       width: 140, background: "rgba(2,6,23,0.8)", border: `1px solid ${isPending ? "rgba(148,163,184,0.1)" : t.hex + "33"}`,
@@ -143,7 +136,6 @@ function MiniSeriesCard({ series, league, align = "left" }: { series: BracketSer
           width: 4, height: 12, background: t.hex, borderRadius: 2,
         }} />
       )}
-      {/* Live data source indicator */}
       {isLiveData && !isPending && (
         <div style={{
           position: "absolute", bottom: 0, left: 0, right: 0,
@@ -186,83 +178,42 @@ function PlayoffChampionHero({
   )
 }
 
-function FinalsMatchupCard({
-  summary, league, loading,
-}: {
-  summary: SimulationSummaryResponse | null
-  league: League
-  loading: boolean
-}) {
+function FinalsMatchupCard({ summary, league, loading }: { summary: SimulationSummaryResponse | null, league: League, loading: boolean }) {
   const t = leagueTheme(league)
   const matchup = summary?.data.mostLikelyFinalsMatchup
-
   return (
-    <div style={{
-      flex: 1, padding: "16px 20px", background: "rgba(15,23,42,0.6)",
-      border: `1px solid ${t.hex}33`, borderRadius: 4,
-    }}>
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", letterSpacing: "0.2em", marginBottom: 10 }}>
-        MOST LIKELY FINALS MATCHUP
-      </div>
-      {loading || !matchup ? (
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#334155" }}>—</div>
-      ) : (
+    <div style={{ flex: 1, padding: "16px 20px", background: "rgba(15,23,42,0.6)", border: `1px solid ${t.hex}33`, borderRadius: 4 }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", letterSpacing: "0.2em", marginBottom: 10 }}>MOST LIKELY FINALS MATCHUP</div>
+      {loading || !matchup ? <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#334155" }}>—</div> : (
         <>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
             <TeamLogo teamAbbr={matchup.teamA.shortName} league={league} size={28} accentColor={t.hex} />
-            <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 18, color: "#f8fafc" }}>
-              {matchup.teamA.shortName}
-            </span>
+            <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 18, color: "#f8fafc" }}>{matchup.teamA.shortName}</span>
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569" }}>vs</span>
-            <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 18, color: "#f8fafc" }}>
-              {matchup.teamB.shortName}
-            </span>
+            <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 18, color: "#f8fafc" }}>{matchup.teamB.shortName}</span>
             <TeamLogo teamAbbr={matchup.teamB.shortName} league={league} size={28} accentColor={t.hex} />
           </div>
-          <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 20, color: t.hex }}>
-            {(matchup.probability * 100).toFixed(1)}%
-          </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", marginTop: 2, letterSpacing: "0.15em" }}>
-            PROBABILITY OF THIS MATCHUP
-          </div>
+          <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 20, color: t.hex }}>{(matchup.probability * 100).toFixed(1)}%</div>
         </>
       )}
     </div>
   )
 }
 
-function TitleDistributionTable({
-  summary, league, loading,
-}: {
-  summary: SimulationSummaryResponse | null
-  league: League
-  loading: boolean
-}) {
+function TitleDistributionTable({ summary, league, loading }: { summary: SimulationSummaryResponse | null, league: League, loading: boolean }) {
   const t = leagueTheme(league)
   const top5 = summary?.data.titleDistribution.slice(0, 5) ?? []
-
   return (
-    <div style={{
-      flex: 1, padding: "16px 20px", background: "rgba(15,23,42,0.6)",
-      border: `1px solid ${t.hex}33`, borderRadius: 4,
-    }}>
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", letterSpacing: "0.2em", marginBottom: 10 }}>
-        TITLE DISTRIBUTION
-      </div>
-      {loading ? (
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#334155" }}>—</div>
-      ) : (
+    <div style={{ flex: 1, padding: "16px 20px", background: "rgba(15,23,42,0.6)", border: `1px solid ${t.hex}33`, borderRadius: 4 }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", letterSpacing: "0.2em", marginBottom: 10 }}>TITLE DISTRIBUTION</div>
+      {loading ? <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#334155" }}>—</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {top5.map((entry, i) => (
             <div key={entry.team.shortName} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", width: 12 }}>{i + 1}.</span>
               <TeamLogo teamAbbr={entry.team.shortName} league={league} size={16} accentColor={i === 0 ? t.hex : "#475569"} />
-              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 10, color: i === 0 ? "#f8fafc" : "#94a3b8", flex: 1 }}>
-                {entry.team.shortName}
-              </span>
-              <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 13, color: i === 0 ? t.hex : "#64748b" }}>
-                {(entry.probability * 100).toFixed(1)}%
-              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 10, color: i === 0 ? "#f8fafc" : "#94a3b8", flex: 1 }}>{entry.team.shortName}</span>
+              <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 13, color: i === 0 ? t.hex : "#64748b" }}>{(entry.probability * 100).toFixed(1)}%</span>
             </div>
           ))}
         </div>
@@ -271,138 +222,77 @@ function TitleDistributionTable({
   )
 }
 
-function ValidationSummaryCard({
-  summary, loading,
-}: {
-  summary: SimulationSummaryResponse | null
-  loading: boolean
-}) {
+function ValidationSummaryCard({ summary, loading }: { summary: SimulationSummaryResponse | null, loading: boolean }) {
   const validation = summary?.data.validation
-
   return (
-    <div style={{
-      flex: 1, padding: "16px 20px", background: "rgba(15,23,42,0.6)",
-      border: "1px solid rgba(148,163,184,0.1)", borderRadius: 4,
-    }}>
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", letterSpacing: "0.2em", marginBottom: 10 }}>
-        VALIDATION
-      </div>
-      {loading || !validation ? (
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#334155" }}>—</div>
-      ) : validation.mode === 'live_projection' ? (
-        <>
-          <div style={{ fontFamily: "var(--font-inter)", fontWeight: 800, fontSize: 13, color: "#22d3ee", marginBottom: 6 }}>
-            LIVE PROJECTION
-          </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", lineHeight: 1.6 }}>
-            {validation.notes ?? "Historical validation not yet attached."}
-          </div>
-        </>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {[["Overall", validation.overallAccuracy] as const].map(([label, val]) => (
-            <div key={String(label)} style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#64748b" }}>{label}</span>
-              <span style={{ fontFamily: "var(--font-inter)", fontWeight: 800, fontSize: 11, color: "#34d399" }}>
-                {val != null ? `${(Number(val) * 100).toFixed(1)}%` : "—"}
-              </span>
-            </div>
-          ))}
+    <div style={{ flex: 1, padding: "16px 20px", background: "rgba(15,23,42,0.6)", border: "1px solid rgba(148,163,184,0.1)", borderRadius: 4 }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", letterSpacing: "0.2em", marginBottom: 10 }}>VALIDATION</div>
+      {loading || !validation ? <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#334155" }}>—</div> : (
+        <div style={{ fontFamily: "var(--font-inter)", fontWeight: 800, fontSize: 11, color: "#34d399" }}>
+          {validation.mode === 'live_projection' ? "LIVE PROJECTION" : `${(Number(validation.overallAccuracy) * 100).toFixed(1)}% ACCURACY`}
         </div>
       )}
     </div>
   )
 }
-
-// ── Main component ────────────────────────────────────────────────
 
 export default function PlayoffBracketPage({ embedded = false }: { embedded?: boolean } = {}) {
   const width = useWindowWidth()
-  const isMobile = width < 1024
-  const [selectedLeague, setSelectedLeague] = useState<'NBA'>('NBA')
+  const isMobile = width < BREAKPOINTS.mobile
+  const isTablet = width < BREAKPOINTS.tablet
+  const [selectedLeague] = useState<'NBA'>('NBA')
   const league = selectedLeague
   const t = leagueTheme(league)
-
   const { summary, loading } = useSummary(selectedLeague)
-
-  // ── Live series state: completed games override static bracket data ──────
   const { matches: allMatches, dataFreshness } = useMatchesContext()
 
-  const liveNbaPlayoffGames = useMemo(
-    () => allMatches.filter((m) => m.league === 'NBA' && m.status === 'FINAL' && m.playoff != null),
-    [allMatches]
-  )
-
-  const liveSeriesMap = useMemo(
-    () => getSeriesStateFromCompletedGames(liveNbaPlayoffGames),
-    [liveNbaPlayoffGames]
-  )
-
-  // Hydrate NBA_BRACKET_2026 with real series wins (live > seed)
+  const liveNbaPlayoffGames = useMemo(() => allMatches.filter(m => m.league === 'NBA' && m.status === 'FINAL' && m.playoff != null), [allMatches])
+  const liveSeriesMap = useMemo(() => getSeriesStateFromCompletedGames(liveNbaPlayoffGames), [liveNbaPlayoffGames])
   const hydratedSeries: BracketSeries[] = useMemo(() => {
-    return NBA_BRACKET_2026.map((s) => {
-      const { winsHome, winsAway, source } = resolveSeriesWins(
-        s.home.abbr, s.away.abbr, s.winsHome, s.winsAway, liveSeriesMap
-      )
-      return {
-        ...s,
-        winsHome,
-        winsAway,
-        // tag the source so MiniSeriesCard can show live indicator
-        _source: source,
-      } as BracketSeries & { _source: string }
+    return NBA_BRACKET_2026.map(s => {
+      const { winsHome, winsAway, source } = resolveSeriesWins(s.home.abbr, s.away.abbr, s.winsHome, s.winsAway, liveSeriesMap)
+      return { ...s, winsHome, winsAway, _source: source } as BracketSeries & { _source: string }
     })
   }, [liveSeriesMap])
 
   const hasLiveSeriesData = liveSeriesMap.size > 0
-
-  const initialSeries = hydratedSeries
-  const allSeries = useMemo(() => simulateBracket(initialSeries, league), [initialSeries, league])
+  const allSeries = useMemo(() => simulateBracket(hydratedSeries, league), [hydratedSeries, league])
   const finals = allSeries.find(s => s.round === 4)
-
-  // Use the simulation summary's projected champion for display; fall back to bracket prediction
-  const displayChampion = summary?.data.projectedChampion.team.shortName
-    ?? (finals ? predictSeries(finals).winner : null)
-    ?? ""
+  const displayChampion = summary?.data.projectedChampion.team.shortName ?? (finals ? predictSeries(finals).winner : "")
   const titleProb = summary?.data.projectedChampion.titleProbability ?? 0
+  const getS = (round: number, conf: PlayoffConference) => allSeries.filter(s => s.round === round && s.conference === conf)
 
-  const getS = (round: number, conf: PlayoffConference) =>
-    allSeries.filter(s => s.round === round && s.conference === conf)
-
-  if (isMobile) {
+  if (isTablet) {
     return (
-      <div style={{ padding: embedded ? 0 : 20 }}>
-        {!embedded && (
-          <div style={{ marginBottom: 24 }}>
-            <h1 style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 24, color: "#fff" }}>
-              {selectedLeague} 2026 <span style={{ color: t.hex }}>PREDICTION</span>
-            </h1>
-          </div>
-        )}
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{
-            padding: 16, background: "rgba(15,23,42,0.6)", borderRadius: 4,
-            border: `1px solid ${t.hex}33`, borderLeft: `4px solid ${t.hex}`,
-          }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.2em", marginBottom: 8 }}>
-              PROJECTED CHAMPION
+      <div style={embedded ? { width: "100%" } : PAGE_SHELL_STYLE}>
+        <div className={embedded ? "" : "py-8 sm:py-12"}>
+          {!embedded && (
+            <div style={{ marginBottom: 32 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 800, letterSpacing: "0.32em", color: "#475569" }}>PLAYOFF INTELLIGENCE</span>
+                <span style={{ color: "#1e293b", fontFamily: "var(--font-mono), monospace", fontSize: 9 }}>//</span>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.28em", color: "#334155" }}>V12 SIMULATION ENGINE</span>
+              </div>
+              <h1 style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontSize: "clamp(32px, 8vw, 48px)", color: "#fff", margin: 0, letterSpacing: "-0.03em", lineHeight: 0.9, fontStyle: "italic" }}>
+                {selectedLeague} 2026 <span style={{ color: t.hex, fontStyle: "normal" }}>PREDICTION</span>
+              </h1>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <TeamLogo teamAbbr={displayChampion} league={league} size={48} accentColor={t.hex} />
-              <div>
-                <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 24, color: "#fff" }}>
-                  {displayChampion}
-                </div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#fbbf24", fontWeight: 800 }}>
-                  {loading ? "—" : `${(titleProb * 100).toFixed(1)}% TITLE PROBABILITY`}
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ padding: "24px", background: "rgba(15,23,42,0.6)", borderRadius: 8, border: `1px solid ${t.hex}44`, borderLeft: `5px solid ${t.hex}`, boxShadow: `0 10px 30px rgba(0,0,0,0.3)` }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", letterSpacing: "0.3em", marginBottom: 12, fontWeight: 900 }}>PROJECTED CHAMPION</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                <TeamLogo teamAbbr={displayChampion} league={league} size={64} accentColor={t.hex} />
+                <div>
+                  <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 32, color: "#fff", letterSpacing: "-0.02em" }}>{displayChampion}</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#fbbf24", fontWeight: 900, marginTop: 4, letterSpacing: "0.05em" }}>{loading ? "CALCULATING..." : `${(titleProb * 100).toFixed(1)}% TITLE PROBABILITY`}</div>
                 </div>
               </div>
             </div>
-          </div>
-
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#334155", textAlign: "center", padding: "10px 0" }}>
-            [ FULL BRACKET INTEL IN WAR ROOM ]
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <FinalsMatchupCard summary={summary} league={league} loading={loading} />
+              <TitleDistributionTable summary={summary} league={league} loading={loading} />
+            </div>
           </div>
         </div>
       </div>
@@ -410,129 +300,49 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
   }
 
   return (
-    <div style={embedded ? { width: "100%" } : { maxWidth: 1400, margin: "0 auto", padding: "40px 20px" }}>
-      {!embedded && (
-        <div style={{
-          display: "flex", justifyContent: "space-between", alignItems: "flex-end",
-          marginBottom: 40, borderBottom: `1px solid ${t.hex}33`, paddingBottom: 20,
-        }}>
-          <div>
-            <h1 style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 32, color: "#fff", letterSpacing: "-0.02em", margin: 0 }}>
-              {selectedLeague} 2026 <span style={{ color: t.hex }}>PLAYOFFS</span>
-            </h1>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#334155", marginTop: 6, letterSpacing: "0.15em" }}>
-              {(summary?.meta.simulationRuns ?? 10000000).toLocaleString()} SIMULATION RUNS · MODEL {'v4.1'}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-              <DataFreshnessBadge freshness={dataFreshness} />
-              {hasLiveSeriesData ? (
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#34d399", letterSpacing: "0.14em", fontWeight: 800 }}>
-                  ● SERIES SCORES FROM LIVE DATA
-                </span>
-              ) : (
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#fbbf24", letterSpacing: "0.14em", fontWeight: 800 }}>
-                  ◈ SERIES SCORES FROM SIMULATION SEED
-                </span>
-              )}
+    <div style={embedded ? { width: "100%" } : PAGE_SHELL_STYLE}>
+      <div className={embedded ? "" : "py-12 sm:py-16"}>
+        {!embedded && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 48, borderBottom: `1px solid ${t.hex}33`, paddingBottom: 32 }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 800, letterSpacing: "0.32em", color: "#475569" }}>PLAYOFF INTELLIGENCE</span>
+                <span style={{ color: "#1e293b", fontFamily: "var(--font-mono), monospace", fontSize: 9 }}>//</span>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.28em", color: "#334155" }}>V12 SIMULATION ENGINE</span>
+              </div>
+              <h1 style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontSize: "clamp(36px, 6vw, 56px)", color: "#fff", letterSpacing: "-0.04em", margin: 0, lineHeight: 0.85, fontStyle: "italic" }}>
+                {selectedLeague} 2026 <span style={{ color: t.hex, fontStyle: "normal" }}>PLAYOFFS</span>
+              </h1>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 20 }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", letterSpacing: "0.2em", fontWeight: 800 }}>{(summary?.meta.simulationRuns ?? 10000000).toLocaleString()} SIMULATIONS · MODEL v4.1</div>
+                <DataFreshnessBadge freshness={dataFreshness} />
+                {hasLiveSeriesData && <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#34d399", letterSpacing: "0.15em", fontWeight: 900 }}>● LIVE_SYNC ACTIVE</span>}
+              </div>
             </div>
           </div>
-
-          <div style={{ display: "flex", gap: 8 }}>
-            {(['NBA'] as const).map(lg => (
-              <button
-                key={lg}
-                onClick={() => setSelectedLeague(lg)}
-                style={{
-                  fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 800,
-                  padding: "6px 14px", borderRadius: 2, cursor: "pointer",
-                  background: selectedLeague === lg ? leagueTheme(lg).hex + "20" : "transparent",
-                  border: `1px solid ${selectedLeague === lg ? leagueTheme(lg).hex : "#1e293b"}`,
-                  color: selectedLeague === lg ? leagueTheme(lg).hex : "#475569",
-                  letterSpacing: "0.15em",
-                }}
-              >
-                {lg}
-              </button>
-            ))}
+        )}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 20, alignItems: "center", padding: "60px 0", background: "radial-gradient(circle at center, rgba(15,23,42,0.4) 0%, transparent 80%)" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 48, alignItems: "flex-end" }}>{getS(1, "West").map(s => <MiniSeriesCard key={s.id} series={s} league={league} />)}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 140, alignItems: "flex-end" }}>{getS(2, "West").map(s => <MiniSeriesCard key={s.id} series={s} league={league} />)}</div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>{getS(3, "West").map(s => <MiniSeriesCard key={s.id} series={s} league={league} />)}</div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#fbbf24", letterSpacing: "0.5em", fontWeight: 900, textShadow: "0 0 20px rgba(251,191,36,0.4)" }}>FINALS</div>
+            <PlayoffChampionHero champion={displayChampion} titleProb={titleProb} league={league} loading={loading} />
+            <div style={{ width: 2, height: 120, background: "linear-gradient(to bottom, #fbbf24, transparent)" }} />
           </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>{getS(3, "East").map(s => <MiniSeriesCard key={s.id} series={s} league={league} align="right" />)}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 140, alignItems: "flex-start" }}>{getS(2, "East").map(s => <MiniSeriesCard key={s.id} series={s} league={league} align="right" />)}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 48, alignItems: "flex-start" }}>{getS(1, "East").map(s => <MiniSeriesCard key={s.id} series={s} league={league} align="right" />)}</div>
         </div>
-      )}
-
-      {/* Butterfly bracket */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 10, alignItems: "center",
-        padding: "40px 0", background: "radial-gradient(circle at center, rgba(15,23,42,0.4) 0%, transparent 70%)",
-      }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 40, alignItems: "flex-end" }}>
-          {getS(1, "West").map(s => <MiniSeriesCard key={s.id} series={s} league={league} />)}
+        <div style={{ display: "flex", gap: 20, marginTop: 40, flexWrap: "wrap" }}>
+          <FinalsMatchupCard summary={summary} league={league} loading={loading} />
+          <TitleDistributionTable summary={summary} league={league} loading={loading} />
+          <ValidationSummaryCard summary={summary} loading={loading} />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 120, alignItems: "flex-end" }}>
-          {getS(2, "West").map(s => <MiniSeriesCard key={s.id} series={s} league={league} />)}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-          {getS(3, "West").map(s => <MiniSeriesCard key={s.id} series={s} league={league} />)}
-        </div>
-
-        {/* Center: championship hero */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#fbbf24", letterSpacing: "0.4em", fontWeight: 900 }}>
-            FINALS
-          </div>
-          <PlayoffChampionHero
-            champion={displayChampion}
-            titleProb={titleProb}
-            league={league}
-            loading={loading}
-          />
-          <div style={{ width: 1, height: 100, background: "linear-gradient(to bottom, #fbbf24, transparent)" }} />
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-          {getS(3, "East").map(s => <MiniSeriesCard key={s.id} series={s} league={league} align="right" />)}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 120, alignItems: "flex-start" }}>
-          {getS(2, "East").map(s => <MiniSeriesCard key={s.id} series={s} league={league} align="right" />)}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 40, alignItems: "flex-start" }}>
-          {getS(1, "East").map(s => <MiniSeriesCard key={s.id} series={s} league={league} align="right" />)}
-        </div>
-      </div>
-
-      {/* Summary blocks */}
-      <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-        <FinalsMatchupCard summary={summary} league={league} loading={loading} />
-        <TitleDistributionTable summary={summary} league={league} loading={loading} />
-        <ValidationSummaryCard summary={summary} loading={loading} />
-      </div>
-
-      {/* Stats footer */}
-      <div style={{
-        marginTop: 16, padding: "15px 20px", background: "rgba(15,23,42,0.6)", borderRadius: 4,
-        border: "1px solid rgba(148,163,184,0.1)", display: "flex", justifyContent: "center", gap: 60,
-      }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", letterSpacing: "0.2em" }}>
-            PROJECTED CHAMPION
-          </div>
-          <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: "#fbbf24", fontSize: 18 }}>
-            {displayChampion || "—"}
-          </div>
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", letterSpacing: "0.2em" }}>
-            TITLE PROBABILITY
-          </div>
-          <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: loading ? "#475569" : "#34d399", fontSize: 18 }}>
-            {loading ? "—" : `${(titleProb * 100).toFixed(2)}%`}
-          </div>
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", letterSpacing: "0.2em" }}>
-            SIMULATION RUNS
-          </div>
-          <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: t.hex, fontSize: 18 }}>
-            {(summary?.meta.simulationRuns ?? 10000000).toLocaleString()}
-          </div>
+        <div style={{ marginTop: 24, padding: "24px 32px", background: "rgba(15,23,42,0.6)", borderRadius: 8, border: "1px solid rgba(148,163,184,0.1)", display: "flex", justifyContent: "center", gap: 80 }}>
+          <div style={{ textAlign: "center" }}><div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.3em", fontWeight: 800 }}>PROJECTED CHAMPION</div><div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: "#fbbf24", fontSize: 24, marginTop: 4 }}>{displayChampion || "—"}</div></div>
+          <div style={{ textAlign: "center" }}><div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.3em", fontWeight: 800 }}>TITLE PROBABILITY</div><div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: loading ? "#475569" : "#34d399", fontSize: 24, marginTop: 4 }}>{loading ? "—" : `${(titleProb * 100).toFixed(2)}%`}</div></div>
+          <div style={{ textAlign: "center" }}><div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.3em", fontWeight: 800 }}>SIMULATION RUNS</div><div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: t.hex, fontSize: 24, marginTop: 4 }}>{(summary?.meta.simulationRuns ?? 10000000).toLocaleString()}</div></div>
         </div>
       </div>
     </div>
