@@ -514,7 +514,7 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
 
           {/* League badge */}
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <LeagueBadge league={m.league} size={isCompact ? "md" : "lg"} />
+            <LeagueBadge league={m.league} size={isCompact ? "sm" : "lg"} />
           </div>
 
           {/* Chevron */}

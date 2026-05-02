@@ -46,7 +46,13 @@ export default function DetailPage({ m, onBack, user, onAuthRequired }: Props) {
   const isMobile = width < BREAKPOINTS.mobile
   const isTablet = width < BREAKPOINTS.tablet
 
-  // ... (keep effects and logic same)
+  // Fallback local-computed adjusted probability (used when V11 offline)
+  const adjusted = useMemo(() => {
+    const delta = (recovery - m.recovery_away) * 0.3
+    return Math.max(0.02, Math.min(0.98, m.physio_adjusted + delta))
+  }, [recovery, m])
+
+  const t = leagueTheme(m.league)
 
   return (
     <div style={PAGE_SHELL_STYLE}>
@@ -60,7 +66,7 @@ export default function DetailPage({ m, onBack, user, onAuthRequired }: Props) {
             fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 800,
             letterSpacing: "0.24em",
           }}>← {isMobile ? 'BACK' : 'BACK TO SLATE'}</button>
-          <LeagueBadge league={m.league} size={isMobile ? "md" : "lg"} />
+          <LeagueBadge league={m.league} size={isMobile ? "sm" : "lg"} />
           <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, color: "#475569", letterSpacing: "0.26em", textTransform: "uppercase" }}>
             WAR ROOM / {m.id}
           </span>
