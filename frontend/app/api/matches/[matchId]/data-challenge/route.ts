@@ -25,10 +25,10 @@ const reportSchema = z.object({
 
 export async function GET(
   req: Request,
-  { params }: { params: { matchId: string } }
+  context: { params: Promise<{ matchId: string }> }
 ) {
   try {
-    const { matchId } = await params
+    const { matchId } = await context.params
     const reportCount = await prisma.dataChallengeReport.count({
       where: { matchId, status: 'OPEN' }
     })
@@ -42,10 +42,10 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: { matchId: string } }
+  context: { params: Promise<{ matchId: string }> }
 ) {
   try {
-    const { matchId } = await params
+    const { matchId } = await context.params
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })

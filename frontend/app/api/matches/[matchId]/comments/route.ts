@@ -13,10 +13,10 @@ const commentSchema = z.object({
 
 export async function GET(
   req: Request,
-  { params }: { params: { matchId: string } }
+  context: { params: Promise<{ matchId: string }> }
 ) {
   try {
-    const { matchId } = await params
+    const { matchId } = await context.params
     const comments = await prisma.matchComment.findMany({
       where: { matchId, status: 'VISIBLE' },
       include: {
@@ -40,10 +40,10 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: { matchId: string } }
+  context: { params: Promise<{ matchId: string }> }
 ) {
   try {
-    const { matchId } = await params
+    const { matchId } = await context.params
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
