@@ -204,7 +204,15 @@ type ResolvedPlayerPool = {
   source: PlayerSource
 }
 
-function resolvePlayerPool(league: League, teamCode: TeamCode): ResolvedPlayerPool {
+function resolvePlayerPool(match: Match, side: 'home' | 'away', league: League, teamCode: TeamCode): ResolvedPlayerPool {
+  const matchRoster = match.rosters?.[side]
+  if (matchRoster && matchRoster.length > 0) {
+    return {
+      players: toRosterEntries(league, teamCode, matchRoster, nowMs()),
+      source: 'live_roster_provider',
+    }
+  }
+
   const liveRoster = getFreshRoster(
     TEAM_PLAYER_POOL,
     league,
@@ -315,7 +323,7 @@ export function generateSimulatedPlayers(
   const tc = normalizeCode(team.abbr)
   const opponentCode = normalizeCode(opponent.abbr)
   const league = normalizeLeague(match.league)
-  const resolved = resolvePlayerPool(league, tc)
+  const resolved = resolvePlayerPool(match, side, league, tc)
   const rankedPlayers = rankKeyPlayers(resolved.players, {
     matchId: String(match.id),
     league,

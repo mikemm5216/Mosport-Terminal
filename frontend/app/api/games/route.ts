@@ -6,6 +6,7 @@ import {
   recordProviderError,
   getCurrentDataMode,
 } from '../../lib/apiGovernor'
+import { getTeamRosterSnapshot } from '../../lib/providers/rosterProvider'
 
 // ── Provider fallback order ──────────────────────────────────────────────────
 // 1. The Odds API  — full odds + EV data (governor-gated)
@@ -415,6 +416,18 @@ export async function GET() {
   }
 
   allMatches.sort((a, b) => Math.abs(b.wpa) - Math.abs(a.wpa))
+
+  // Attach roster snapshots
+  for (const m of allMatches) {
+    const [homeRoster, awayRoster] = await Promise.all([
+      getTeamRosterSnapshot({ league: m.league, teamCode: m.home.abbr }),
+      getTeamRosterSnapshot({ league: m.league, teamCode: m.away.abbr }),
+    ])
+    m.rosters = {
+      home: homeRoster.players,
+      away: awayRoster.players,
+    }
+  }
 
   return NextResponse.json({
     matches: allMatches,
