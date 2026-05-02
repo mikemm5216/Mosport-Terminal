@@ -389,5 +389,13 @@ export function isSimulatedPlayer(p: KeyPlayer): boolean {
   const source = getPlayerSource(p)
   return source === 'live_roster_provider'
     || source === 'cached_team_roster'
+    || source === 'mock_seeded_team_roster'
     || source === 'simulated_player_state_team_placeholder'
+}
+
+export function isRosterBackedPlayer(p: KeyPlayer): boolean {
+  const source = getPlayerSource(p)
+  return source === 'live_roster_provider'
+    || source === 'cached_team_roster'
+    || source === 'mock_seeded_team_roster'
 }
