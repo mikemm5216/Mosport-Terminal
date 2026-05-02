@@ -96,6 +96,27 @@ function TermAction({ icon, label, color, primary }: { icon: string; label: stri
   )
 }
 
+function getDecisionConfidence(decision: V11Decision | null | undefined): number {
+  if (!decision) return 0.5
+
+  const candidates = [
+    decision.final_probability_home,
+    decision.market_home_prob,
+    decision.decision_score,
+  ].filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
+
+  if (typeof decision.decision_score === 'number' && Number.isFinite(decision.decision_score)) {
+    return Math.max(0.35, Math.min(0.9, Math.abs(decision.decision_score)))
+  }
+
+  if (candidates.length > 0) {
+    const v = candidates[0]
+    return Math.max(0.35, Math.min(0.9, Math.abs(v - 0.5) * 2 + 0.35))
+  }
+
+  return 0.5
+}
+
 interface Props {
   m: Match
   recovery: number
@@ -117,7 +138,7 @@ export default function DecisionTerminal({ m, recovery, v11 }: Props) {
       teamState: {
         physical_load: recovery < 0.6 ? 0.75 : 0.4,
         rotation_risk: recovery < 0.65 ? 0.7 : 0.35,
-        data_confidence: v11?.confidence ?? 0.75
+        data_confidence: getDecisionConfidence(v11)
       }
     })
   }, [m, homePlayers, awayPlayers, v11, recovery])

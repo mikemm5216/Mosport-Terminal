@@ -116,6 +116,34 @@ function getPlayerSource(p) {
   return p._source
 }
 
+function clamp01(v) {
+  return Math.max(0, Math.min(1, v))
+}
+
+function getPlayerRisk(player) {
+  const explicit = player.risk
+  if (typeof explicit === 'number' && Number.isFinite(explicit)) {
+    return clamp01(explicit)
+  }
+
+  const hrvPenalty = typeof player.hrv_delta === 'number'
+    ? Math.max(0, -player.hrv_delta) / 20
+    : 0
+
+  const sleepPenalty = typeof player.sleep_debt === 'number'
+    ? Math.min(1, Math.max(0, player.sleep_debt / 4))
+    : 0
+
+  const status = String(player.status ?? '').toUpperCase()
+  const statusPenalty =
+    status === 'REST' ? 0.75 :
+    status === 'MONITOR' ? 0.45 :
+    status === 'LIMITED' ? 0.55 :
+    0.15
+
+  return clamp01(statusPenalty * 0.45 + hrvPenalty * 0.30 + sleepPenalty * 0.25)
+}
+
 function buildCoachDecision(input) {
   const { match, homePlayers, awayPlayers, selectedSide = 'home' } = input
   const players = selectedSide === 'home' ? homePlayers : awayPlayers
@@ -136,32 +164,32 @@ function buildCoachDecision(input) {
     return { action: 'NO_FORCED_CHANGE' }
   }
 
-  const highRiskPlayer = players.find(p => !isRosterPlaceholder(p) && p.risk >= 0.75)
+  const highRiskPlayer = players.find(p => !isRosterPlaceholder(p) && getPlayerRisk(p) >= 0.75)
   if (highRiskPlayer) {
-    return { action: highRiskPlayer.risk >= 0.85 ? 'REST_KEY_PLAYER' : 'LIMIT_USAGE' }
+    return { action: getPlayerRisk(highRiskPlayer) >= 0.85 ? 'REST_KEY_PLAYER' : 'LIMIT_USAGE' }
   }
 
   if (league === 'NBA') {
-    const guard = players.find(p => !isRosterPlaceholder(p) && (p.pos?.includes('G') || p.pos?.includes('GUARD')) && p.risk >= 0.70)
+    const guard = players.find(p => !isRosterPlaceholder(p) && (p.pos?.includes('G') || p.pos?.includes('GUARD')) && getPlayerRisk(p) >= 0.70)
     if (guard) return { action: 'PROTECT_PRIMARY_HANDLER' }
     if (starDependency >= 0.70 && benchFragility >= 0.60) return { action: 'STAGGER_MINUTES' }
   }
 
   if (league === 'MLB') {
-    const sp = players.find(p => !isRosterPlaceholder(p) && (p.pos?.includes('SP') || p.pos?.includes('STARTING PITCHER')) && p.risk >= 0.65)
+    const sp = players.find(p => !isRosterPlaceholder(p) && (p.pos?.includes('SP') || p.pos?.includes('STARTING PITCHER')) && getPlayerRisk(p) >= 0.65)
     if (sp) return { action: 'BULLPEN_ALERT' }
     if (rotationRisk >= 0.65) return { action: 'BULLPEN_ALERT' }
   }
 
   if (league === 'NHL') {
-    const topForward = players.find(p => !isRosterPlaceholder(p) && (p.pos?.includes('C') || p.pos?.includes('LW') || p.pos?.includes('RW')) && p.risk >= 0.70)
+    const topForward = players.find(p => !isRosterPlaceholder(p) && (p.pos?.includes('C') || p.pos?.includes('LW') || p.pos?.includes('RW')) && getPlayerRisk(p) >= 0.70)
     if (topForward) return { action: 'SHORTEN_SHIFTS' }
     if (collapseProbability >= 0.60 && mentalPressure >= 0.60) return { action: 'LINE_CHANGE_ALERT' }
     if (collapseProbability >= 0.70) return { action: 'GOALIE_PROTECTION' }
   }
 
   if (league === 'EPL' || league === 'UCL') {
-    const attacker = players.find(p => !isRosterPlaceholder(p) && (p.pos?.match(/F|FW|ST|LW|RW|M|AM/)) && p.risk >= 0.70)
+    const attacker = players.find(p => !isRosterPlaceholder(p) && (p.pos?.match(/F|FW|ST|LW|RW|M|AM/)) && getPlayerRisk(p) >= 0.70)
     if (attacker) return { action: 'SUBSTITUTION_WINDOW' }
     if (physicalLoad >= 0.65 && mentalPressure >= 0.55) return { action: 'PRESSING_ADJUSTMENT' }
   }

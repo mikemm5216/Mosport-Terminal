@@ -2,6 +2,34 @@ import { type Match, type KeyPlayer } from '../data/mockData'
 import { isRosterPlaceholder, getPlayerSource } from './playerReadiness'
 import { type CoachDecision, type CoachDecisionAction, type CoachDecisionLevel } from '../contracts/coachDecision'
 
+function clamp01(v: number): number {
+  return Math.max(0, Math.min(1, v))
+}
+
+function getPlayerRisk(player: KeyPlayer): number {
+  const explicit = (player as any).risk
+  if (typeof explicit === 'number' && Number.isFinite(explicit)) {
+    return clamp01(explicit)
+  }
+
+  const hrvPenalty = typeof (player as any).hrv_delta === 'number'
+    ? Math.max(0, -(player as any).hrv_delta) / 20
+    : 0
+
+  const sleepPenalty = typeof (player as any).sleep_debt === 'number'
+    ? Math.min(1, Math.max(0, (player as any).sleep_debt / 4))
+    : 0
+
+  const status = String((player as any).status ?? '').toUpperCase()
+  const statusPenalty =
+    status === 'REST' ? 0.75 :
+    status === 'MONITOR' ? 0.45 :
+    status === 'LIMITED' ? 0.55 :
+    0.15
+
+  return clamp01(statusPenalty * 0.45 + hrvPenalty * 0.30 + sleepPenalty * 0.25)
+}
+
 export function buildCoachDecision(input: {
   match: Match
   homePlayers: KeyPlayer[]
@@ -53,9 +81,10 @@ export function buildCoachDecision(input: {
   }
 
   // 2. High-risk real player
-  const highRiskPlayer = players.find(p => !isRosterPlaceholder(p) && p.risk >= 0.75)
+  const highRiskPlayer = players.find(p => !isRosterPlaceholder(p) && getPlayerRisk(p) >= 0.75)
   if (highRiskPlayer) {
-    const isUrgent = highRiskPlayer.risk >= 0.85
+    const riskVal = getPlayerRisk(highRiskPlayer)
+    const isUrgent = riskVal >= 0.85
     return {
       action: isUrgent ? 'REST_KEY_PLAYER' : 'LIMIT_USAGE',
       level: isUrgent ? 'URGENT' : 'ACTION',
@@ -63,7 +92,7 @@ export function buildCoachDecision(input: {
       confidence: 85,
       summary: `Decision: ${isUrgent ? 'REST KEY PLAYER' : 'LIMIT USAGE'} — ${highRiskPlayer.name}. Elevated load signal suggests reducing exposure.`,
       rationale: [
-        `${highRiskPlayer.name} load signal at ${Math.round(highRiskPlayer.risk * 100)}%.`,
+        `${highRiskPlayer.name} load signal at ${Math.round(riskVal * 100)}%.`,
         `Source: ${getPlayerSource(highRiskPlayer)}`,
         isUrgent ? "Risk concentration exceeds safety thresholds." : "Load management advised to prevent structural degradation."
       ],
@@ -73,7 +102,7 @@ export function buildCoachDecision(input: {
 
   // 3. Sport-specific rules
   if (league === 'NBA') {
-    const guard = players.find(p => !isRosterPlaceholder(p) && (p.pos?.includes('G') || p.pos?.includes('GUARD')) && p.risk >= 0.70)
+    const guard = players.find(p => !isRosterPlaceholder(p) && (p.pos?.includes('G') || p.pos?.includes('GUARD')) && getPlayerRisk(p) >= 0.70)
     if (guard) {
       return {
         action: 'PROTECT_PRIMARY_HANDLER',
@@ -106,7 +135,7 @@ export function buildCoachDecision(input: {
   }
 
   if (league === 'MLB') {
-    const sp = players.find(p => !isRosterPlaceholder(p) && (p.pos?.includes('SP') || p.pos?.includes('STARTING PITCHER')) && p.risk >= 0.65)
+    const sp = players.find(p => !isRosterPlaceholder(p) && (p.pos?.includes('SP') || p.pos?.includes('STARTING PITCHER')) && getPlayerRisk(p) >= 0.65)
     if (sp) {
       return {
         action: 'BULLPEN_ALERT',
@@ -135,7 +164,7 @@ export function buildCoachDecision(input: {
   }
 
   if (league === 'NHL') {
-    const topForward = players.find(p => !isRosterPlaceholder(p) && (p.pos?.includes('C') || p.pos?.includes('LW') || p.pos?.includes('RW')) && p.risk >= 0.70)
+    const topForward = players.find(p => !isRosterPlaceholder(p) && (p.pos?.includes('C') || p.pos?.includes('LW') || p.pos?.includes('RW')) && getPlayerRisk(p) >= 0.70)
     if (topForward) {
       return {
         action: 'SHORTEN_SHIFTS',
@@ -170,7 +199,7 @@ export function buildCoachDecision(input: {
   }
 
   if (league === 'EPL' || league === 'UCL') {
-    const attacker = players.find(p => !isRosterPlaceholder(p) && (p.pos?.match(/F|FW|ST|LW|RW|M|AM/)) && p.risk >= 0.70)
+    const attacker = players.find(p => !isRosterPlaceholder(p) && (p.pos?.match(/F|FW|ST|LW|RW|M|AM/)) && getPlayerRisk(p) >= 0.70)
     if (attacker) {
       return {
         action: 'SUBSTITUTION_WINDOW',
