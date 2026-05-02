@@ -15,4 +15,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "uvicorn v11.api.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+CMD ["sh", "-c", "python -m uvicorn v11.api.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
