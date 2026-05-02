@@ -24,6 +24,7 @@ type League = string
 type TeamCode = string
 
 type PlayerSource =
+  | 'espn_roster_provider'
   | 'live_roster_provider'
   | 'cached_team_roster'
   | 'mock_seeded_team_roster'
@@ -387,7 +388,8 @@ export function isRosterPlaceholder(p: KeyPlayer): boolean {
 
 export function isSimulatedPlayer(p: KeyPlayer): boolean {
   const source = getPlayerSource(p)
-  return source === 'live_roster_provider'
+  return source === 'espn_roster_provider'
+    || source === 'live_roster_provider'
     || source === 'cached_team_roster'
     || source === 'mock_seeded_team_roster'
     || source === 'simulated_player_state_team_placeholder'
@@ -395,7 +397,8 @@ export function isSimulatedPlayer(p: KeyPlayer): boolean {
 
 export function isRosterBackedPlayer(p: KeyPlayer): boolean {
   const source = getPlayerSource(p)
-  return source === 'live_roster_provider'
+  return source === 'espn_roster_provider'
+    || source === 'live_roster_provider'
     || source === 'cached_team_roster'
     || source === 'mock_seeded_team_roster'
 }
