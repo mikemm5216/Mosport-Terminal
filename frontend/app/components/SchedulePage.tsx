@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { Match, League, KeyPlayer } from '../data/mockData'
-import { generateSimulatedPlayers } from '../lib/playerReadiness'
+import { generateSimulatedPlayers, getPlayerBadgeLabel } from '../lib/playerReadiness'
 import { leagueTheme, TeamMark, LeagueBadge, wpaColor } from './ui'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import { useMatchesContext, DataFreshnessBadge } from '../context/MatchesContext'
@@ -218,7 +218,7 @@ function PlayerChip({ p, isMobile }: { p: KeyPlayer; isMobile?: boolean }) {
         border: "1px solid rgba(148,163,184,0.15)",
         display: "grid", placeItems: "center",
         fontFamily: "var(--font-inter), Inter", fontWeight: 900, fontSize: 10, color: "#94a3b8",
-      }}>{p.initials}</div>
+      }}>{getPlayerBadgeLabel(p)}</div>
       <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
         <span style={{ fontFamily: "var(--font-inter), Inter", fontWeight: 800, fontSize: 11, color: "#fff", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
         <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, fontWeight: 700, color: "#475569", letterSpacing: "0.22em" }}>{p.pos}</span>

@@ -108,6 +108,7 @@ function toRosterEntries(
     league,
     teamCode,
     updatedAtMs,
+    jersey: player.jersey,
     position: player.position ? String(player.position).trim().toUpperCase() : undefined,
     isStarter: typeof player.isStarter === 'boolean' ? player.isStarter : undefined,
     projectedMinutes: finiteOrUndefined(player.projectedMinutes),
@@ -183,12 +184,32 @@ function getFreshRoster(
 const PLACEHOLDER_NAMES = ['Team Key Player', 'Team Rotation Player'] as const
 
 function placeholderEntries(league: League, teamCode: TeamCode): readonly RosterEntry[] {
-  return PLACEHOLDER_NAMES.map((name, idx) => ({
+  const isMLB = league === 'MLB'
+  const isNBA = league === 'NBA'
+  const isNHL = league === 'NHL'
+  const isSoccer = league === 'EPL' || league === 'UCL'
+
+  const names = [...PLACEHOLDER_NAMES]
+  if (isMLB) {
+    names[0] = 'Starting Pitcher'
+    names[1] = 'Rotation Player'
+  } else if (isNBA) {
+    names[0] = 'Starting Guard'
+    names[1] = 'Rotation Forward'
+  } else if (isNHL) {
+    names[0] = 'Top Line Center'
+    names[1] = 'Rotation Forward'
+  } else if (isSoccer) {
+    names[0] = 'Starting Attacker'
+    names[1] = 'Rotation Midfielder'
+  }
+
+  return names.map((name, idx) => ({
     name,
     league,
     teamCode,
     updatedAtMs: nowMs(),
-    position: 'ROSTER_PENDING',
+    position: isMLB && idx === 0 ? 'SP' : 'ROSTER_PENDING',
     depthRank: idx + 1,
     availability: 'UNKNOWN' as const,
     isPlaceholder: true,
@@ -341,10 +362,12 @@ export function generateSimulatedPlayers(
       hrv:      computeHrv(state, entropy),
       sleep:    computeSleep(state, entropy),
       flag:     STATE_TO_FLAG[state],
+      jersey:   player.jersey,
       _state:       state,
       _reason:      STATE_REASON[state],
       _coachAction: STATE_COACH_ACTION[state],
       _source:      resolved.source,
+      _rawPos:      player.position,
       _importanceScore: player._importanceScore,
       _teamCode: tc,
       _opponentTeamCode: opponentCode,
@@ -378,6 +401,26 @@ export function getPlayerImportanceScore(p: KeyPlayer): number | null {
 
 export function isRosterPlaceholder(p: KeyPlayer): boolean {
   return (p as any)._source === 'simulated_player_state_team_placeholder'
+}
+
+export function getPlayerBadgeLabel(p: KeyPlayer): string {
+  if (!isRosterPlaceholder(p) && p.jersey) return String(p.jersey)
+
+  if (isRosterPlaceholder(p)) {
+    const rawPos = String((p as any)._rawPos ?? '').toUpperCase()
+    const pos = String(p.pos ?? '').toUpperCase()
+    const name = String(p.name ?? '').toUpperCase()
+
+    if (rawPos.includes('SP') || pos.includes('SP') || name.includes('STARTING PITCHER')) return 'SP'
+    if (rawPos.includes('RP') || pos.includes('RP') || name.includes('RELIEF')) return 'RP'
+    if (name.includes('ROTATION')) return 'RP'
+    if (name.includes('FORWARD')) return 'KF'
+    if (name.includes('GUARD')) return 'KG'
+    if (name.includes('TOP LINE')) return 'TL'
+    return 'KP'
+  }
+
+  return '--'
 }
 
 export function isSimulatedPlayer(p: KeyPlayer): boolean {

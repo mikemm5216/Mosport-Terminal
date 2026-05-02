@@ -8,6 +8,7 @@ export type RosterSource =
 export type RosterPlayerSnapshot = {
   name: string
   position?: string
+  jersey?: string
   isStarter?: boolean
   depthRank?: number
   availability?: 'ACTIVE' | 'QUESTIONABLE' | 'DOUBTFUL' | 'OUT' | 'UNKNOWN'

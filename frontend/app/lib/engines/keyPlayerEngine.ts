@@ -24,6 +24,7 @@ export type KeyPlayerEngineInput = {
   league: League
   teamCode: TeamCode
   position?: string
+  jersey?: string
   isStarter?: boolean
   projectedMinutes?: number
   usageRate?: number

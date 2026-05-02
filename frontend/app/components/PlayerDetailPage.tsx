@@ -3,6 +3,7 @@
 import { useWindowWidth } from '../lib/useWindowWidth'
 import { PLAYER_FORM, type League, type KeyPlayer, type Match } from '../data/mockData'
 import { leagueTheme, BioBar, LiveDot, LeagueBadge } from './ui'
+import { getPlayerBadgeLabel } from '../lib/playerReadiness'
 import TeamLogo from './TeamLogo'
 
 const FLAG_COLOR: Record<string, string> = {
@@ -140,7 +141,7 @@ export default function PlayerDetailPage({ player, teamAbbr, teamName, league, m
               <span style={{
                 fontFamily: "var(--font-inter), Inter, sans-serif",
                 fontSize: isMobile ? 20 : 24, fontWeight: 900, color: flagColor,
-              }}>{player.initials}</span>
+              }}>{getPlayerBadgeLabel(player)}</span>
             </div>
 
             <div>

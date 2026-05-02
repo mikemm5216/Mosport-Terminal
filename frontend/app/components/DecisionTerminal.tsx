@@ -4,14 +4,21 @@ import { useState, useEffect, useMemo } from 'react'
 import type { Match } from '../data/mockData'
 import type { V11Decision } from '../lib/v11'
 import { buildV11Message, actionLabel } from '../lib/v11'
+import { generateSimulatedPlayers } from '../lib/playerReadiness'
+import { buildCoachDecision } from '../lib/coachDecisionEngine'
+import { CoachDecisionLevel } from '../contracts/coachDecision'
 
 type Mode = 'PEAK' | 'SOLID' | 'CAUTION' | 'DANGER'
 
-const MODE_COLOR: Record<Mode, string> = {
+const MODE_COLOR: Record<Mode | CoachDecisionLevel, string> = {
   PEAK: '#22d3ee',
   SOLID: '#34d399',
   CAUTION: '#fbbf24',
   DANGER: '#f43f5e',
+  INFO: '#22d3ee',
+  WATCH: '#fbbf24',
+  ACTION: '#fbbf24',
+  URGENT: '#f43f5e',
 }
 
 function getLocalMode(recovery: number): Mode {
@@ -98,13 +105,26 @@ interface Props {
 export default function DecisionTerminal({ m, recovery, v11 }: Props) {
   const [line, setLine] = useState('')
 
-  const message = useMemo(() => {
-    if (v11) return buildV11Message(v11, m.home.abbr, m.away.abbr)
-    return buildLocalMessage(recovery, m)
-  }, [v11, recovery, m])
+  const homePlayers = useMemo(() => generateSimulatedPlayers(m, 'home'), [m])
+  const awayPlayers = useMemo(() => generateSimulatedPlayers(m, 'away'), [m])
 
-  const mode = v11 ? getModeFromV11(v11) : getLocalMode(recovery)
-  const modeColor = MODE_COLOR[mode]
+  const coachDecision = useMemo(() => {
+    return buildCoachDecision({
+      match: m,
+      homePlayers,
+      awayPlayers,
+      v11Decision: v11,
+      teamState: {
+        physical_load: recovery < 0.6 ? 0.75 : 0.4,
+        rotation_risk: recovery < 0.65 ? 0.7 : 0.35,
+        data_confidence: v11?.confidence ?? 0.75
+      }
+    })
+  }, [m, homePlayers, awayPlayers, v11, recovery])
+
+  const message = coachDecision.summary
+
+  const modeColor = MODE_COLOR[coachDecision.level]
 
   useEffect(() => {
     setLine('')
@@ -117,7 +137,7 @@ export default function DecisionTerminal({ m, recovery, v11 }: Props) {
     return () => clearInterval(t)
   }, [message])
 
-  const primaryLabel = v11 ? actionLabel(v11.action, m.home.abbr, m.away.abbr) : 'CONFIRM COACH MODE'
+  const primaryLabel = `APPLY: ${coachDecision.action.replace(/_/g, ' ')}`
 
   const analyst = v11?.opinions.find((o) => o.agent === 'AnalystAgent')
   const sharp = v11?.opinions.find((o) => o.agent === 'SharpAgent')
@@ -156,7 +176,7 @@ export default function DecisionTerminal({ m, recovery, v11 }: Props) {
               letterSpacing: '0.32em',
             }}
           >
-            {v11 ? `COACH_MODE_V11.1 // DOMINANT: ${v11.dominant_agent} // ${mode}` : `COACH_MODE_v4 // MODE :: ${mode}`}
+            COACH_DECISION // {coachDecision.level} // {coachDecision.action}
           </span>
         </div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
@@ -180,39 +200,58 @@ export default function DecisionTerminal({ m, recovery, v11 }: Props) {
         </div>
       </div>
 
+      {coachDecision && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{
+            fontFamily: 'var(--font-mono), monospace',
+            fontSize: 9,
+            fontWeight: 800,
+            color: '#64748b',
+            letterSpacing: '0.15em',
+            marginBottom: 6,
+          }}>
+            RATIONALE:
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
+            {coachDecision.rationale.map((r, i) => (
+              <div key={i} style={{
+                padding: '6px 12px',
+                background: '#030812',
+                border: '1px solid rgba(148,163,184,0.06)',
+                borderLeft: `2px solid ${modeColor}`,
+                borderRadius: 2,
+                fontFamily: 'var(--font-mono), monospace',
+                fontSize: 9,
+                color: '#94a3b8',
+              }}>
+                • {r}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {v11 && analyst && sharp && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12, opacity: 0.7 }}>
           {[analyst, sharp].map((op) => {
             const leanColor = op.lean === 'HOME' ? '#34d399' : op.lean === 'AWAY' ? '#f43f5e' : '#475569'
             return (
               <div
                 key={op.agent}
                 style={{
-                  padding: '8px 12px',
+                  padding: '6px 10px',
                   background: '#030812',
                   border: `1px solid ${leanColor}22`,
-                  borderLeft: `2px solid ${leanColor}`,
                   borderRadius: 3,
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-mono), monospace',
-                      fontSize: 9,
-                      fontWeight: 800,
-                      color: leanColor,
-                      letterSpacing: '0.2em',
-                    }}
-                  >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                  <span style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 8, fontWeight: 800, color: leanColor }}>
                     {op.agent.replace('Agent', '').toUpperCase()}
                   </span>
-                  <span style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 10, fontWeight: 800, color: leanColor }}>
-                    {op.lean} {(op.confidence * 100).toFixed(0)}%
+                  <span style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 8, color: '#475569' }}>
+                    {op.lean}
                   </span>
-                </div>
-                <div style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 8, color: '#64748b', letterSpacing: '0.06em', lineHeight: 1.5 }}>
-                  {op.reasoning.split('.')[0]}.
                 </div>
               </div>
             )
@@ -250,8 +289,8 @@ export default function DecisionTerminal({ m, recovery, v11 }: Props) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 14 }}>
         <TermAction primary icon=">>" label={primaryLabel} color={modeColor} />
-        <TermAction icon="[]" label="ADJUST ROTATION" color="#fbbf24" />
-        <TermAction icon="--" label="KEEP LINEUP" color="#64748b" />
+        <TermAction icon="[]" label={m.league === 'MLB' ? 'BULLPEN ALERT' : 'WATCH ROTATION'} color="#fbbf24" />
+        <TermAction icon="--" label="NO FORCED CHANGE" color="#64748b" />
       </div>
     </div>
   )
