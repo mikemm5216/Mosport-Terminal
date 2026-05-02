@@ -51,9 +51,10 @@ interface Props {
   onTabChange?: (tab: string) => void
   mode: ProductMode
   onModeChange: (mode: ProductMode) => void
+  children?: React.ReactNode
 }
 
-export default function TopBar({ onHome, activeTab = 'SCHEDULE', onTabChange, mode, onModeChange }: Props) {
+export default function TopBar({ onHome, activeTab = 'SCHEDULE', onTabChange, mode, onModeChange, children }: Props) {
   const [time, setTime] = useState<Date | null>(null)
   const width = useWindowWidth()
   const isMobile = width < 640
@@ -145,6 +146,7 @@ export default function TopBar({ onHome, activeTab = 'SCHEDULE', onTabChange, mo
             {isMobile ? `${hh}:${mm}` : `UTC ${hh}:${mm}`}
             {!isMobile && <span style={{ color: '#1e293b' }}>:{ss}</span>}
           </div>
+          {children}
         </div>
       </div>
 
