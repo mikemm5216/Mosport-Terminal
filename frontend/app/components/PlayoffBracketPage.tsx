@@ -229,7 +229,7 @@ function ValidationSummaryCard({ summary, loading }: { summary: SimulationSummar
       <div style={{ fontFamily: "var(--font-mono)", fontSize: 7, color: "#475569", letterSpacing: "0.2em", marginBottom: 10 }}>VALIDATION</div>
       {loading || !validation ? <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#334155" }}>—</div> : (
         <div style={{ fontFamily: "var(--font-inter)", fontWeight: 800, fontSize: 11, color: "#34d399" }}>
-          {validation.mode === 'live_projection' ? "LIVE PROJECTION" : `${(Number(validation.overallAccuracy) * 100).toFixed(1)}% ACCURACY`}
+          {validation.mode === 'live_projection' ? "MODEL ACCURACY" : `${(Number(validation.overallAccuracy) * 100).toFixed(1)}% ACCURACY`}
         </div>
       )}
     </div>
@@ -274,7 +274,7 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
                 <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.28em", color: "#334155" }}>V12 SIMULATION ENGINE</span>
               </div>
               <h1 style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontSize: "clamp(32px, 8vw, 48px)", color: "#fff", margin: 0, letterSpacing: "-0.03em", lineHeight: 0.9, fontStyle: "italic" }}>
-                {selectedLeague} 2026 <span style={{ color: t.hex, fontStyle: "normal" }}>PREDICTION</span>
+                {selectedLeague} 2026 <span style={{ color: t.hex, fontStyle: "normal" }}>PROJECTION</span>
               </h1>
             </div>
           )}
@@ -311,12 +311,12 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
                 <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.28em", color: "#334155" }}>V12 SIMULATION ENGINE</span>
               </div>
               <h1 style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontSize: "clamp(36px, 6vw, 56px)", color: "#fff", letterSpacing: "-0.04em", margin: 0, lineHeight: 0.85, fontStyle: "italic" }}>
-                {selectedLeague} 2026 <span style={{ color: t.hex, fontStyle: "normal" }}>PLAYOFFS</span>
+                {selectedLeague} 2026 <span style={{ color: t.hex, fontStyle: "normal" }}>PLAYOFF PROJECTION</span>
               </h1>
               <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 20 }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", letterSpacing: "0.2em", fontWeight: 800 }}>{(summary?.meta.simulationRuns ?? 10000000).toLocaleString()} SIMULATIONS · MODEL v4.1</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", letterSpacing: "0.2em", fontWeight: 800 }}>{(summary?.meta.simulationRuns ?? 10000000).toLocaleString()} model simulations · projection only</div>
                 <DataFreshnessBadge freshness={dataFreshness} />
-                {hasLiveSeriesData && <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#34d399", letterSpacing: "0.15em", fontWeight: 900 }}>● LIVE_SYNC ACTIVE</span>}
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#64748b", letterSpacing: "0.15em", fontWeight: 900 }}>PROJECTION ONLY · NOT LIVE BRACKET</span>
               </div>
             </div>
           </div>
