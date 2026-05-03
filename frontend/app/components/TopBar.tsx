@@ -51,12 +51,13 @@ interface Props {
   onTabChange?: (tab: string) => void
   mode: ProductMode
   onModeChange: (mode: ProductMode) => void
+  hideModeToggle?: boolean
   children?: React.ReactNode
 }
 
 import { BREAKPOINTS, PAGE_SHELL_STYLE } from '../lib/ui'
 
-export default function TopBar({ onHome, activeTab = 'SCHEDULE', onTabChange, mode, onModeChange, children }: Props) {
+export default function TopBar({ onHome, activeTab = 'SCHEDULE', onTabChange, mode, onModeChange, hideModeToggle = false, children }: Props) {
   const [time, setTime] = useState<Date | null>(null)
   const width = useWindowWidth()
   const isMobile = width < BREAKPOINTS.mobile
@@ -126,27 +127,29 @@ export default function TopBar({ onHome, activeTab = 'SCHEDULE', onTabChange, mo
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 24, flexShrink: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            {(['live', 'simulation'] as const).map((option) => (
-              <button
-                key={option}
-                onClick={() => onModeChange(option)}
-                style={{
-                  padding: isMobile ? '4px 6px' : '4px 10px', borderRadius: 3,
-                  border: `1px solid ${mode === option ? '#22d3ee' : 'rgba(148,163,184,0.1)'}`,
-                  color: mode === option ? '#22d3ee' : '#475569',
-                  background: mode === option ? 'rgba(34,211,238,0.08)' : 'rgba(148,163,184,0.03)',
-                  fontFamily: 'var(--font-mono), monospace', fontSize: isMobile ? 8 : 9, fontWeight: 800, letterSpacing: '0.12em', cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {option === 'simulation' ? (isMobile ? 'SIM' : 'SIMULATION') : 'LIVE'}
-              </button>
-            ))}
-          </div>
+          {!hideModeToggle && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {(['live', 'simulation'] as const).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => onModeChange(option)}
+                  style={{
+                    padding: isMobile ? '4px 6px' : '4px 10px', borderRadius: 3,
+                    border: `1px solid ${mode === option ? '#22d3ee' : 'rgba(148,163,184,0.1)'}`,
+                    color: mode === option ? '#22d3ee' : '#475569',
+                    background: mode === option ? 'rgba(34,211,238,0.08)' : 'rgba(148,163,184,0.03)',
+                    fontFamily: 'var(--font-mono), monospace', fontSize: isMobile ? 8 : 9, fontWeight: 800, letterSpacing: '0.12em', cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {option === 'simulation' ? (isMobile ? 'SIM' : 'SIMULATION') : 'LIVE'}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-            {!isMobile && (
+            {!isMobile && !hideModeToggle && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <LiveDot color={mode === 'live' ? '#34d399' : '#fbbf24'} size={5} />
                 <span style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 9, color: mode === 'live' ? '#34d399' : '#fbbf24', fontWeight: 800, letterSpacing: '0.18em' }}>{modeLabel}</span>

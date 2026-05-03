@@ -42,8 +42,12 @@ function FormDots({ form }: { form: FormResult[] }) {
 function FixtureRow({ m, isLast }: { m: Match; isLast: boolean }) {
   const isLive = m.status === "LIVE"
   const isFinal = m.status === "FINAL"
+  const hasWpa = Math.abs(m.wpa) > 0.0001
   const wpaColor = m.wpa >= 0 ? "#34d399" : "#f43f5e"
   const t = leagueTheme(m.league)
+  
+  // Only show perspective if there's a real edge or if the game is over and we know the winner
+  const showPerspective = hasWpa || (isFinal && m.score && (m.score.home > m.score.away && m.perspective === "HOME" || m.score.away > m.score.home && m.perspective === "AWAY"))
 
   return (
     <div style={{
@@ -71,16 +75,20 @@ function FixtureRow({ m, isLast }: { m: Match; isLast: boolean }) {
         <TeamMark abbr={m.home.abbr} league={m.league} size={24} />
         <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, fontWeight: 900, color: "#fff", letterSpacing: "0.05em" }}>{m.home.abbr}</span>
         {m.score && (
-          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, color: "#475569", marginLeft: 6, fontWeight: 800 }}>
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, color: isFinal ? "#fff" : "#475569", marginLeft: 6, fontWeight: 800 }}>
             {m.score.away}–{m.score.home}
           </span>
         )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, minWidth: 60 }}>
-        <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 900, color: wpaColor }}>
-          {m.wpa >= 0 ? "+" : ""}{(m.wpa * 100).toFixed(1)}%
-        </span>
+        {isFinal ? (
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 900, color: "#34d399", letterSpacing: "0.1em" }}>FINAL</span>
+        ) : hasWpa ? (
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 900, color: wpaColor }}>
+            {m.wpa >= 0 ? "+" : ""}{(m.wpa * 100).toFixed(1)}%
+          </span>
+        ) : null}
         {m.playoff && (
           <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, color: "#475569", letterSpacing: "0.1em", whiteSpace: "nowrap", fontWeight: 700 }}>
             {m.playoff.summary}
@@ -88,13 +96,17 @@ function FixtureRow({ m, isLast }: { m: Match; isLast: boolean }) {
         )}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
-        <div style={{
-          fontFamily: "var(--font-mono), monospace", fontSize: 8, fontWeight: 900,
-          color: t.hex, padding: "3px 8px", borderRadius: 4,
-          border: `1px solid ${t.hex}44`, background: t.soft,
-          letterSpacing: "0.2em",
-        }}>{m.perspective}</div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0, minWidth: 60 }}>
+        {showPerspective ? (
+          <div style={{
+            fontFamily: "var(--font-mono), monospace", fontSize: 8, fontWeight: 900,
+            color: t.hex, padding: "3px 8px", borderRadius: 4,
+            border: `1px solid ${t.hex}44`, background: t.soft,
+            letterSpacing: "0.2em",
+          }}>{m.perspective}</div>
+        ) : isFinal ? (
+          <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, fontWeight: 900, color: "#475569", letterSpacing: "0.1em" }}>COMPLETED</div>
+        ) : null}
       </div>
     </div>
   )
