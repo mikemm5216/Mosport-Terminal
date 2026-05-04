@@ -26,51 +26,69 @@ export async function runHotIngestMinimal(params: {
 }): Promise<HotIngestMinimalResult> {
   const reason = params.reason;
   const date = params.date ?? new Date().toISOString().slice(0, 10);
-  const generatedAt = new Date().toISOString();
+  const now = new Date();
+  const generatedAt = now.toISOString();
   
   let projectionsUpdated = 0;
   const warnings: string[] = [];
 
   try {
-    const timestamp = Date.now();
-    const snapshotId = `minimal-${timestamp}`;
+    const snapshotId = `latest_nba`;
+
+    const projectedChampion = {
+      team: {
+        id: "NBA-TBD",
+        code: "TBD",
+        canonicalKey: "NBA_TBD",
+        displayName: "TBD",
+        shortName: "TBD",
+        logoUrl: null,
+        seed: null,
+        record: null
+      },
+      titleProbability: 0
+    };
+
+    const titleDistribution: any[] = [];
+
+    const bracketState = {
+      status: "MINIMAL_INGEST_READY",
+      source: "minimal-hot-ingest",
+      reason,
+      date,
+      note: "Full DataIngestionAgent disabled until dependencies are consolidated"
+    };
 
     // Minimal LeagueProjectionSnapshot for NBA
     await prisma.leagueProjectionSnapshot.upsert({
-      where: { snapshotId: snapshotId }, // This is unique, but we want to update the "latest" for the league eventually.
-      // Wait, the 'where' should probably be something else if we want to replace the latest?
-      // Actually, snapshotId is unique, so this will always 'create'.
-      // If we want to replace a specific league's latest, we'd need a unique constraint on [league, isLatest] or similar.
-      // Since schema doesn't have that, we'll just create a new one.
+      where: { snapshotId: snapshotId },
       update: {
-        generatedAt: new Date(),
-        dataCutoff: new Date(),
-        dataStatus: "MINIMAL_INGEST_READY",
-        payload: {
-          source: "minimal-hot-ingest",
-          reason,
-          date,
-          note: "Full DataIngestionAgent disabled due to build constraints."
-        }
+        generatedAt: now,
+        dataCutoff: now,
+        modelVersion: "minimal-hot-ingest-v1",
+        dataStatus: "DEGRADED",
+        sourceProvider: "minimal",
+        projectedChampion,
+        titleDistribution,
+        finalsMatchup: null,
+        bracketState,
+        warnings: ["MATCH_INGESTION_MINIMAL_MODE"],
+        refreshReason: reason
       },
       create: {
         league: "NBA",
         snapshotId: snapshotId,
-        generatedAt: new Date(),
-        dataCutoff: new Date(),
-        modelVersion: "v12-minimal",
-        dataStatus: "MINIMAL_INGEST_READY",
+        generatedAt: now,
+        dataCutoff: now,
+        modelVersion: "minimal-hot-ingest-v1",
+        dataStatus: "DEGRADED",
         sourceProvider: "minimal",
-        projectedChampion: { team: { name: "TBD" }, probability: 0 },
-        titleDistribution: [],
+        projectedChampion,
+        titleDistribution,
+        finalsMatchup: null,
+        bracketState,
         warnings: ["MATCH_INGESTION_MINIMAL_MODE"],
-        refreshReason: reason,
-        payload: {
-          source: "minimal-hot-ingest",
-          reason,
-          date,
-          note: "Full DataIngestionAgent disabled due to build constraints."
-        }
+        refreshReason: reason
       }
     });
 
