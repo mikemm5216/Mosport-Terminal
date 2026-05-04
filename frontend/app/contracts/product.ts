@@ -101,6 +101,10 @@ export type PlayoffSimulationSummary = {
         projectedWinner: TeamRef
         winProbability: number
         seriesScore?: string | null
+        winsA?: number
+        winsB?: number
+        conference?: string
+        round?: number
       }>
     }>
   }

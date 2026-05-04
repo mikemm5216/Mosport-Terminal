@@ -12,11 +12,30 @@ export const dynamic = 'force-dynamic'
 const ESPN_NBA_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard'
 
 const ESPN_ABBR: Record<string, string> = {
-  GS: 'GSW', NY: 'NYK', NO: 'NOP', SA: 'SAS', UTAH: 'UTA', WSH: 'WAS',
+  GS: 'GSW',
+  NY: 'NYK',
+  NO: 'NOP',
+  SA: 'SAS',
+  UTAH: 'UTA',
+  WSH: 'WAS',
+}
+
+type ReconstructedSeries = {
+  teamA: string
+  teamB: string
+  teamASeed: number | null
+  teamBSeed: number | null
+  winsA: number
+  winsB: number
+  summary: string | null
+  roundName: string
+  roundNumber: number
+  date: string
 }
 
 function normalizeESPN(abbr: string): string {
-  return ESPN_ABBR[abbr] ?? abbr
+  const normalized = abbr.toUpperCase()
+  return ESPN_ABBR[normalized] ?? normalized
 }
 
 function teamRef(league: LeagueCode, code: string, seed?: number | null, displayName?: string): TeamRef {
@@ -31,6 +50,22 @@ function teamRef(league: LeagueCode, code: string, seed?: number | null, display
     seed,
     record: null,
   }
+}
+
+function formatDate(date: Date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}${m}${d}`
+}
+
+function numberOrNull(value: unknown): number | null {
+  const n = Number(value)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+function getSeed(competitor: any): number | null {
+  return numberOrNull(competitor?.curatedRank?.current) ?? numberOrNull(competitor?.team?.seed)
 }
 
 function pendingSummary(league: LeagueCode, message: string): SimulationSummaryResponse {
@@ -63,108 +98,158 @@ function errorSummary(league: LeagueCode, message: string): SimulationSummaryRes
   }
 }
 
-function normalizeProbabilityWeights(entries: Array<{ team: TeamRef; weight: number }>) {
-  const total = entries.reduce((sum, entry) => sum + entry.weight, 0) || 1
-  return entries
-    .map((entry) => ({ team: entry.team, probability: entry.weight / total }))
-    .sort((a, b) => b.probability - a.probability)
+async function getESPNNBAPlayoffEvents() {
+  const today = new Date()
+  const start = new Date(today)
+  start.setDate(start.getDate() - 45)
+  const end = new Date(today)
+  end.setDate(end.getDate() + 14)
+
+  const url = `${ESPN_NBA_SCOREBOARD}?dates=${formatDate(start)}-${formatDate(end)}`
+
+  try {
+    const res = await fetch(url, { next: { revalidate: 300 } })
+    if (!res.ok) return []
+    const data = await res.json()
+    return Array.isArray(data.events) ? data.events : []
+  } catch (err) {
+    console.error('[espn-playoffs] fetch failed:', err)
+    return []
+  }
 }
 
-async function buildLiveNbaPlayoffSummary(): Promise<SimulationSummaryResponse | null> {
-  try {
-    const res = await fetch(ESPN_NBA_SCOREBOARD, { next: { revalidate: 60 } })
-    if (!res.ok) return null
-    const espn = await res.json()
-    const isPostseason = espn.leagues?.[0]?.season?.type?.type === 3
-    if (!isPostseason) return null
+function getSeriesWins(series: any, competitor: any): number {
+  const seriesCompetitor = series?.competitors?.find((c: any) => String(c.id) === String(competitor.id))
+  return Number(seriesCompetitor?.wins ?? competitor?.series?.wins ?? 0) || 0
+}
 
-    const matchups: PlayoffSimulationSummary['bracket']['rounds'][number]['matchups'] = []
-    const teamWeights = new Map<string, { team: TeamRef; weight: number }>()
+function getRoundName(series: any): string {
+  return String(series?.title ?? series?.summary ?? `Round ${series?.round ?? '?'}`)
+}
 
-    for (const event of espn.events ?? []) {
-      const comp = event.competitions?.[0]
-      const homeComp = comp?.competitors?.find((c: any) => c.homeAway === 'home')
-      const awayComp = comp?.competitors?.find((c: any) => c.homeAway === 'away')
-      if (!comp?.series || !homeComp || !awayComp) continue
+function getRoundNumber(series: any, roundName: string): number {
+  const direct = Number(series?.round)
+  if (Number.isFinite(direct) && direct > 0) return direct
+  const lower = roundName.toLowerCase()
+  if (lower.includes('finals') && !lower.includes('conference')) return 4
+  if (lower.includes('conference finals')) return 3
+  if (lower.includes('semifinals') || lower.includes('semi-finals')) return 2
+  if (lower.includes('1st') || lower.includes('first') || lower.includes('round 1')) return 1
+  return 1
+}
 
-      const homeAbbr = normalizeESPN(homeComp.team?.abbreviation ?? '')
-      const awayAbbr = normalizeESPN(awayComp.team?.abbreviation ?? '')
-      if (!homeAbbr || !awayAbbr) continue
+function reconstructSeries(events: any[]): ReconstructedSeries[] {
+  const seriesMap = new Map<string, ReconstructedSeries>()
 
-      const homeTeam = teamRef('NBA', homeAbbr, Number(homeComp.curatedRank?.current ?? homeComp.team?.seed ?? 0) || null, homeComp.team?.displayName)
-      const awayTeam = teamRef('NBA', awayAbbr, Number(awayComp.curatedRank?.current ?? awayComp.team?.seed ?? 0) || null, awayComp.team?.displayName)
-      const seriesComps: any[] = comp.series.competitors ?? []
-      const homeWins = Number(seriesComps.find((sc: any) => sc.id === homeComp.id)?.wins ?? 0)
-      const awayWins = Number(seriesComps.find((sc: any) => sc.id === awayComp.id)?.wins ?? 0)
-      const homeScore = Number(homeComp.score ?? 0)
-      const awayScore = Number(awayComp.score ?? 0)
-      const homeLeads = homeWins > awayWins || (homeWins === awayWins && homeScore >= awayScore)
-      const projectedWinner = homeLeads ? homeTeam : awayTeam
-      const leaderWins = Math.max(homeWins, awayWins)
-      const trailerWins = Math.min(homeWins, awayWins)
-      const winProbability = leaderWins >= 4 ? 1 : Math.min(0.92, 0.5 + (leaderWins - trailerWins) * 0.14)
+  for (const event of events) {
+    const comp = event?.competitions?.[0]
+    const series = comp?.series
+    const competitors = comp?.competitors ?? []
+    if (!series || competitors.length < 2) continue
 
-      matchups.push({
-        teamA: awayTeam,
-        teamB: homeTeam,
-        projectedWinner,
-        winProbability,
-        seriesScore: `${awayWins}-${homeWins}`,
+    const home = competitors.find((c: any) => c.homeAway === 'home') ?? competitors[0]
+    const away = competitors.find((c: any) => c.homeAway === 'away') ?? competitors[1]
+    if (!home?.team || !away?.team) continue
+
+    const awayAbbr = normalizeESPN(away.team.abbreviation ?? '')
+    const homeAbbr = normalizeESPN(home.team.abbreviation ?? '')
+    if (!awayAbbr || !homeAbbr) continue
+
+    const roundName = getRoundName(series)
+    const roundNumber = getRoundNumber(series, roundName)
+    const [left, right] = [awayAbbr, homeAbbr].sort()
+    const key = `${roundNumber}_${roundName}_${left}_${right}`
+    const date = String(event.date ?? comp.date ?? '')
+
+    const winsAway = getSeriesWins(series, away)
+    const winsHome = getSeriesWins(series, home)
+
+    const existing = seriesMap.get(key)
+    if (!existing || new Date(date).getTime() >= new Date(existing.date).getTime()) {
+      seriesMap.set(key, {
+        teamA: awayAbbr,
+        teamB: homeAbbr,
+        teamASeed: getSeed(away),
+        teamBSeed: getSeed(home),
+        winsA: winsAway,
+        winsB: winsHome,
+        summary: series.summary ?? `${winsAway}-${winsHome}`,
+        roundName,
+        roundNumber,
+        date,
       })
-
-      const homeWeight = 1 + homeWins * 1.75 + (projectedWinner.shortName === homeTeam.shortName ? 1.1 : 0)
-      const awayWeight = 1 + awayWins * 1.75 + (projectedWinner.shortName === awayTeam.shortName ? 1.1 : 0)
-      teamWeights.set(homeTeam.shortName, { team: homeTeam, weight: (teamWeights.get(homeTeam.shortName)?.weight ?? 0) + homeWeight })
-      teamWeights.set(awayTeam.shortName, { team: awayTeam, weight: (teamWeights.get(awayTeam.shortName)?.weight ?? 0) + awayWeight })
     }
+  }
 
-    if (matchups.length === 0 || teamWeights.size === 0) return null
+  return Array.from(seriesMap.values())
+}
 
-    const titleDistribution = normalizeProbabilityWeights(Array.from(teamWeights.values()))
-    const champion = titleDistribution[0]
-    const matchupA = titleDistribution[0]?.team ?? matchups[0].teamA
-    const matchupB = titleDistribution.find((entry) => entry.team.shortName !== matchupA.shortName)?.team ?? matchups[0].teamB
+function buildLiveSummaryFromSeries(seriesList: ReconstructedSeries[]): SimulationSummaryResponse | null {
+  if (seriesList.length === 0) return null
 
-    const summary: SimulationSummaryResponse = {
-      status: 'ok',
-      mode: 'simulation',
-      data: {
-        projectedChampion: {
-          team: champion.team,
-          titleProbability: champion.probability,
-        },
-        mostLikelyFinalsMatchup: {
-          teamA: matchupA,
-          teamB: matchupB,
-          probability: Math.min(0.42, champion.probability + 0.06),
-        },
-        titleDistribution,
-        bracket: {
-          rounds: [
-            { roundName: 'Live NBA Playoff Series', matchups },
-            { roundName: 'Conference Semifinals', matchups: [] },
-            { roundName: 'Conference Finals', matchups: [] },
-            { roundName: 'Finals', matchups: [] },
-          ],
-        },
-        validation: {
-          mode: 'live_projection',
-          overallAccuracy: null,
-          notes: 'Live playoff agent reconstruction from ESPN postseason series state. Probabilities are provisional until the projection worker snapshot is available.',
-        },
+  const roundsMap = new Map<string, PlayoffSimulationSummary['bracket']['rounds'][number]['matchups']>()
+  const titleWeights = new Map<string, { team: TeamRef; weight: number }>()
+
+  for (const series of seriesList) {
+    if (!roundsMap.has(series.roundName)) roundsMap.set(series.roundName, [])
+
+    const teamA = teamRef('NBA', series.teamA, series.teamASeed)
+    const teamB = teamRef('NBA', series.teamB, series.teamBSeed)
+    const projectedWinner = series.winsA >= series.winsB ? teamA : teamB
+    const leaderWins = Math.max(series.winsA, series.winsB)
+    const trailerWins = Math.min(series.winsA, series.winsB)
+    const winProbability = leaderWins >= 4 ? 1 : Math.min(0.94, 0.5 + (leaderWins - trailerWins) * 0.13)
+
+    roundsMap.get(series.roundName)!.push({
+      teamA,
+      teamB,
+      projectedWinner,
+      winProbability,
+      seriesScore: series.summary ?? `${series.winsA}-${series.winsB}`,
+      winsA: series.winsA,
+      winsB: series.winsB,
+      conference: series.roundName.toLowerCase().includes('eastern') ? 'East' : series.roundName.toLowerCase().includes('western') ? 'West' : 'Finals',
+      round: series.roundNumber,
+    })
+
+    const weightA = 1 + series.winsA * 1.75 + (projectedWinner.shortName === teamA.shortName ? 1.1 : 0)
+    const weightB = 1 + series.winsB * 1.75 + (projectedWinner.shortName === teamB.shortName ? 1.1 : 0)
+    titleWeights.set(teamA.shortName, { team: teamA, weight: (titleWeights.get(teamA.shortName)?.weight ?? 0) + weightA })
+    titleWeights.set(teamB.shortName, { team: teamB, weight: (titleWeights.get(teamB.shortName)?.weight ?? 0) + weightB })
+  }
+
+  const rounds = Array.from(roundsMap.entries())
+    .sort((a, b) => (a[1][0]?.round ?? 1) - (b[1][0]?.round ?? 1))
+    .map(([roundName, matchups]) => ({ roundName, matchups }))
+
+  const totalWeight = Array.from(titleWeights.values()).reduce((sum, entry) => sum + entry.weight, 0) || 1
+  const titleDistribution = Array.from(titleWeights.values())
+    .map((entry) => ({ team: entry.team, probability: entry.weight / totalWeight }))
+    .sort((a, b) => b.probability - a.probability)
+  const champion = titleDistribution[0]
+  const finalsA = titleDistribution[0]?.team ?? rounds[0]?.matchups[0]?.teamA ?? teamRef('NBA', 'TBD')
+  const finalsB = titleDistribution.find((entry) => entry.team.shortName !== finalsA.shortName)?.team ?? rounds[0]?.matchups[0]?.teamB ?? teamRef('NBA', 'TBD')
+
+  return {
+    status: 'ok',
+    mode: 'simulation',
+    data: {
+      projectedChampion: { team: champion.team, titleProbability: champion.probability },
+      mostLikelyFinalsMatchup: { teamA: finalsA, teamB: finalsB, probability: Math.min(0.42, champion.probability + 0.06) },
+      titleDistribution,
+      bracket: { rounds },
+      validation: {
+        mode: 'live_projection',
+        overallAccuracy: null,
+        notes: 'Reconstructed from ESPN scoreboard series data. Probabilities are provisional until the projection worker snapshot is available.',
       },
-      meta: {
-        league: 'NBA',
-        simulationRuns: 1,
-        generatedAt: new Date().toISOString(),
-        validationMode: 'live_projection',
-      },
-    }
-
-    return summary
-  } catch (err) {
-    console.error('[playoff-summary] Live NBA reconstruction failed:', err)
-    return null
+    },
+    meta: {
+      league: 'NBA',
+      simulationRuns: 1,
+      generatedAt: new Date().toISOString(),
+      validationMode: 'live_projection',
+    },
   }
 }
 
@@ -175,7 +260,7 @@ export async function GET(req: Request) {
   let snapshot: any = null
   try {
     snapshot = await (prisma as any).leagueProjectionSnapshot.findUnique({
-      where: { snapshotId: `latest_${league.toLowerCase()}` }
+      where: { snapshotId: `latest_${league.toLowerCase()}` },
     })
   } catch (err) {
     console.error('[playoff-summary] Database error:', err)
@@ -185,8 +270,9 @@ export async function GET(req: Request) {
   const isDemo = searchParams.get('demo') === '1'
 
   if (!snapshot && league === 'NBA') {
-    const liveReconstruction = await buildLiveNbaPlayoffSummary()
-    if (liveReconstruction) return NextResponse.json(liveReconstruction)
+    const events = await getESPNNBAPlayoffEvents()
+    const liveSummary = buildLiveSummaryFromSeries(reconstructSeries(events))
+    if (liveSummary) return NextResponse.json(liveSummary)
 
     if (isDev || isDemo) {
       const src = NBA_SIM_SUMMARY
@@ -211,7 +297,7 @@ export async function GET(req: Request) {
       return NextResponse.json(response)
     }
 
-    return NextResponse.json(pendingSummary('NBA', 'Playoff series sync pending'), { status: 200 })
+    return NextResponse.json(pendingSummary('NBA', 'Playoff series sync pending (no ESPN series data found)'), { status: 200 })
   }
 
   if (!snapshot) {
@@ -229,15 +315,15 @@ export async function GET(req: Request) {
       validation: {
         mode: snapshot.modelVersion === 'interim-determ-v1' ? 'unvalidated' : 'live_projection',
         overallAccuracy: 0.82,
-        notes: snapshot.dataStatus === 'DEGRADED' ? 'Data streams degraded. Interim projection active.' : 'Agency calibrated snapshot.'
-      }
+        notes: snapshot.dataStatus === 'DEGRADED' ? 'Data streams degraded. Interim projection active.' : 'Agency calibrated snapshot.',
+      },
     },
     meta: {
       league,
       simulationRuns: 10000,
       generatedAt: snapshot.generatedAt.toISOString(),
-      validationMode: snapshot.dataStatus === 'DEGRADED' ? 'unvalidated' : 'live_projection'
-    }
+      validationMode: snapshot.dataStatus === 'DEGRADED' ? 'unvalidated' : 'live_projection',
+    },
   }
 
   return NextResponse.json(response)
