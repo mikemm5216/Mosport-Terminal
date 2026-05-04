@@ -5,11 +5,9 @@ import '../styles/globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Mosport | Sports Quant Platform',
-  description: 'AI-driven world model and quantitative analysis for competitive sports.',
+  title: 'Mosport | Ingest Worker',
+  description: 'Data ingestion and analytical snapshot worker service.',
 }
-
-import AppShell from '../components/AppShell'
 
 export default function RootLayout({
   children,
@@ -18,10 +16,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-surface text-slate-300 min-h-screen font-body selection:bg-primary-container/30">
-        <AppShell>
-          {children}
-        </AppShell>
+      <body className={inter.className}>
+        {children}
       </body>
     </html>
   )
