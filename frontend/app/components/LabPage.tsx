@@ -76,6 +76,7 @@ export default function LabPage() {
               ))}
             </div>
           </div>
+        </div>
 
         {activeTab === 'DIAGNOSTICS' && (
           <>
