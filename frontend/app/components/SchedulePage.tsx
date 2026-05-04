@@ -141,9 +141,6 @@ function EngagementPanel({ m, onClose }: { m: Match; onClose: () => void }) {
     </div>
   )
 }
-    </div>
-  )
-}
 
 // ── Date helpers ─────────────────────────────────────────────
 function todayISO() {
