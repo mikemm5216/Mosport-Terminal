@@ -165,7 +165,7 @@ function LeagueBlock({ league, isMobile, matches, onTeam, onPlayoffs }: { league
       <div style={{ padding: isMobile ? "16px 20px 20px" : "20px 28px 24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
           <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 8, color: "#1e293b", letterSpacing: "0.35em", fontWeight: 900 }}>COMPETITION ROSTER</div>
-          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, fontWeight: 900, letterSpacing: "0.2em", color: "#fbbf24", padding: "2px 8px", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 4 }}>V12_TRACKER</span>
+          <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 7, fontWeight: 900, letterSpacing: "0.2em", color: "#fbbf24", padding: "2px 8px", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 4 }}>AGENCY_TRACKER</span>
         </div>
 
         {/* Table header */}
@@ -269,7 +269,7 @@ export default function LeaguesPage({ onTeam }: LeaguesPageProps = {}) {
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
             <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 800, letterSpacing: "0.32em", color: "#475569" }}>LEAGUE INTELLIGENCE</span>
             <span style={{ color: "#1e293b", fontFamily: "var(--font-mono), monospace", fontSize: 9 }}>//</span>
-            <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.28em", color: "#334155" }}>V12 COMPETITION TRACKER</span>
+            <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.28em", color: "#334155" }}>PROJECTION AGENT TRACKER</span>
           </div>
 
           <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "flex-end", justifyContent: "space-between", gap: 24 }}>
