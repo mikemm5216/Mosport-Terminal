@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { ShieldAlert, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Send } from 'lucide-react'
+import { useWindowWidth } from '../lib/useWindowWidth'
+import { BREAKPOINTS } from '../lib/ui'
 
 interface Props {
   matchId: string
@@ -28,6 +30,8 @@ export default function DataChallengePanel({ matchId, user, onAuthRequired }: Pr
   const [suggestedValue, setSuggestedValue] = useState('')
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const width = useWindowWidth()
+  const isMobile = width < BREAKPOINTS.mobile
 
   useEffect(() => {
     fetchReportCount()
