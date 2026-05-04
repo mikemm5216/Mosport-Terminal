@@ -1,37 +1,27 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type');
-
-    if (!type) {
-      return NextResponse.json({ error: "Missing type query parameter" }, { status: 400 });
-    }
-
-    const latestModel = await prisma.modelRegistry.findFirst({
-      where: { model_type: type },
-      orderBy: { created_at: 'desc' },
-      take: 1
-    });
-
-    if (!latestModel) {
-      return NextResponse.json({ error: "No model found" }, { status: 404 });
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        model_id: latestModel.model_id,
-        model_type: latestModel.model_type,
-        created_at: latestModel.created_at,
-        metrics: latestModel.metrics_json,
-        model: latestModel.model_json,
-      }
-    }, { status: 200 });
-
-  } catch (error: any) {
-    return NextResponse.json({ success: false, data: null });
-  }
+export async function GET() {
+  return Response.json(
+    {
+      ok: false,
+      service: "ingest-worker",
+      error: "STALE_ROUTE_DISABLED",
+      message: "This API route is not part of the ingest-worker production runtime."
+    },
+    { status: 410 }
+  );
 }
+
+export async function POST() {
+  return Response.json(
+    {
+      ok: false,
+      service: "ingest-worker",
+      error: "STALE_ROUTE_DISABLED",
+      message: "This API route is not part of the ingest-worker production runtime."
+    },
+    { status: 410 }
+  );
+}
+

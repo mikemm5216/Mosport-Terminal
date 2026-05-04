@@ -1,160 +1,27 @@
-﻿import { NextResponse } from "next/server";
-// Force rebuild: 2026-03-24T14:58:00Z
-import { prisma } from "@/lib/prisma";
-import { buildFeatureVector } from "@/lib/feature";
-import { validateCronAuth } from "@/lib/auth";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const TYPE_TO_MS = {
-  "T-24h": 24 * 60 * 60 * 1000,
-  "T-6h": 6 * 60 * 60 * 1000,
-  "T-1h": 1 * 60 * 60 * 1000,
-  "T-10min": 10 * 60 * 1000,
-} as const;
-
-type SnapshotType = keyof typeof TYPE_TO_MS;
-const ALL_SNAPSHOT_TYPES = Object.keys(TYPE_TO_MS) as SnapshotType[];
-
-async function upsertSnapshotForMatch(
-  match: any,
-  snapshot_type: SnapshotType,
-): Promise<"created" | "updated" | "error"> {
-  try {
-    const offsetMs = TYPE_TO_MS[snapshot_type];
-    const snapshotTime = new Date(match.match_date.getTime() - offsetMs);
-
-    const baseFakeFeatures = {
-      elo_diff: 125.5,
-      goal_avg_diff: 0.9,
-      form_strength_home: 75.0,
-      form_strength_away: 60.5,
-    };
-
-    const current_venue = match.home_team?.home_city || "Unknown";
-    
-    // Restoration: current_venue passed as 5th argument
-    const feature_vector = await buildFeatureVector(
-      baseFakeFeatures,
-      match.home_team_id,
-      match.away_team_id,
-      match.match_date,
-      current_venue
-    );
-
-    const existing = await prisma.eventSnapshot.findUnique({
-      where: { match_id_snapshot_type: { match_id: match.match_id, snapshot_type } }
-    });
-
-    if (existing) {
-      await prisma.eventSnapshot.update({
-        where: { match_id_snapshot_type: { match_id: match.match_id, snapshot_type } },
-        data: {
-          snapshot_time: snapshotTime,
-          state_json: { _v: 2, note: "rebuilt_bio_battery_v2" },
-          feature_json: feature_vector,
-        }
-      });
-      return "updated";
-    } else {
-      await prisma.eventSnapshot.create({
-        data: {
-          match_id: match.match_id,
-          snapshot_type,
-          snapshot_time: snapshotTime,
-          state_json: { _v: 2, note: "rebuilt_bio_battery_v2" },
-          feature_json: feature_vector,
-        }
-      });
-      return "created";
-    }
-  } catch (e: any) {
-    return "error";
-  }
+export async function GET() {
+  return Response.json(
+    {
+      ok: false,
+      service: "ingest-worker",
+      error: "STALE_ROUTE_DISABLED",
+      message: "This API route is not part of the ingest-worker production runtime."
+    },
+    { status: 410 }
+  );
 }
 
-export async function POST(request: Request) {
-  const startTime = Date.now();
-  try {
-    const error = await validateCronAuth(request.clone());
-    if (error) return error;
-
-    let body: { match_id?: string; snapshot_type?: string; rebuild?: boolean } = {};
-    try { body = await request.json(); } catch { /* Ignore body parse error */ }
-
-    const { match_id, snapshot_type, rebuild = false } = body;
-
-    // Single match processing
-    if (match_id) {
-      if (!snapshot_type || !(snapshot_type in TYPE_TO_MS)) {
-        return NextResponse.json({ 
-          status: "error",
-          error: "Missing or invalid snapshot_type",
-          latency: `${Date.now() - startTime}ms`
-        }, { status: 400 });
-      }
-      const match = await prisma.match.findUnique({
-        where: { match_id },
-        include: { home_team: true }
-      });
-      if (!match) return NextResponse.json({ 
-        status: "error",
-        error: "Match not found",
-        latency: `${Date.now() - startTime}ms`
-      }, { status: 404 });
-      const result = await upsertSnapshotForMatch(match, snapshot_type as SnapshotType);
-      
-      return NextResponse.json({
-        status: "ok",
-        timestamp: new Date().toISOString(),
-        latency: `${Date.now() - startTime}ms`,
-        data: { result }
-      });
-    }
-
-    // Restoration: Proper destructuring for Promise.all
-    const [total_matches, matches_without_any_snapshot] = await Promise.all([
-      prisma.match.count(),
-      prisma.match.count({ where: { snapshots: { none: {} } } }),
-    ]);
-
-    const whereClause = rebuild ? {} : { snapshots: { none: {} } };
-
-    const matches = await prisma.match.findMany({
-      where: whereClause,
-      include: { home_team: true },
-      take: 200,
-    });
-
-    let created = 0, updated = 0, errors = 0;
-
-    for (const match of matches) {
-      for (const sType of ALL_SNAPSHOT_TYPES) {
-        const result = await upsertSnapshotForMatch(match, sType);
-        if (result === "created") created++;
-        else if (result === "updated") updated++;
-        else errors++;
-      }
-    }
-
-    return NextResponse.json({
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      latency: `${Date.now() - startTime}ms`,
-      data: {
-        rebuild_mode: rebuild,
-        diagnostic: { total_matches, matches_without_any_snapshot },
-        scanned_count: matches.length,
-        created_count: created,
-        updated_count: updated,
-        error_count: errors
-      }
-    });
-
-  } catch (error: any) {
-    return NextResponse.json({
-      status: "error",
-      error: error.message,
-      latency: `${Date.now() - startTime}ms`,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
-  }
+export async function POST() {
+  return Response.json(
+    {
+      ok: false,
+      service: "ingest-worker",
+      error: "STALE_ROUTE_DISABLED",
+      message: "This API route is not part of the ingest-worker production runtime."
+    },
+    { status: 410 }
+  );
 }
+

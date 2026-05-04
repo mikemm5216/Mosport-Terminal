@@ -1,17 +1,27 @@
-import { NextRequest } from "next/server";
-import { validateInternalApiKey } from "@/lib/security/validateInternalApiKey";
-import { runSecurityAgent } from "@/security/agent";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
-  if (!validateInternalApiKey(req)) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const findings = runSecurityAgent();
-
-  return Response.json({
-    status: "ok",
-    generatedAt: new Date().toISOString(),
-    findings,
-  });
+export async function GET() {
+  return Response.json(
+    {
+      ok: false,
+      service: "ingest-worker",
+      error: "STALE_ROUTE_DISABLED",
+      message: "This API route is not part of the ingest-worker production runtime."
+    },
+    { status: 410 }
+  );
 }
+
+export async function POST() {
+  return Response.json(
+    {
+      ok: false,
+      service: "ingest-worker",
+      error: "STALE_ROUTE_DISABLED",
+      message: "This API route is not part of the ingest-worker production runtime."
+    },
+    { status: 410 }
+  );
+}
+

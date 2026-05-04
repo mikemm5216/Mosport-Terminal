@@ -1,68 +1,27 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { qstashClient, INGEST_WORKER_URL } from "@/lib/ingest/qstash";
-import { validateInternalApiKey } from "@/lib/security/validateInternalApiKey";
-import { rateLimit } from "@/lib/security/rateLimit";
-import { isSecurityKillSwitchEnabled } from "@/lib/security/killSwitch";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
-    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-    if (!rateLimit(ip, 30, 60_000)) {
-      return Response.json({ error: "Too Many Requests" }, { status: 429 });
-    }
-    if (!validateInternalApiKey(req)) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (isSecurityKillSwitchEnabled()) {
-      return Response.json({ error: "Security kill switch enabled" }, { status: 503 });
-    }
-    try {
-        // 1. Find the next pending/failed job across all providers
-        // Priority: TheSportsDB first, then The Odds API
-        const job = await prisma.ingestionState.findFirst({
-            where: {
-                status: { in: ["pending", "failed"] },
-            },
-            orderBy: [
-                { provider: "asc" }, // "thesportsdb" before "theoddsapi"
-                { lastRunAt: "asc" },
-            ],
-        });
-
-        if (!job) {
-            return NextResponse.json({ message: "No pending ingestion jobs found." });
-        }
-
-        // 2. Enqueue via QStash
-        if (qstashClient) {
-            await qstashClient.publishJSON({
-                url: INGEST_WORKER_URL,
-                body: {
-                    provider: job.provider,
-                    sport: job.sport,
-                    league: job.league,
-                    page: job.currentPage,
-                },
-            });
-
-            // Update state to running
-            await prisma.ingestionState.update({
-                where: { id: job.id },
-                data: { status: "running", lastRunAt: new Date() },
-            });
-
-            return NextResponse.json({
-                message: "Ingestion triggered.",
-                job: { provider: job.provider, sport: job.sport, league: job.league },
-            });
-        }
-
-        return NextResponse.json(
-            { error: "QStash client not configured." },
-            { status: 500 }
-        );
-    } catch (error: any) {
-        console.error("Dispatcher error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+export async function GET() {
+  return Response.json(
+    {
+      ok: false,
+      service: "ingest-worker",
+      error: "STALE_ROUTE_DISABLED",
+      message: "This API route is not part of the ingest-worker production runtime."
+    },
+    { status: 410 }
+  );
 }
+
+export async function POST() {
+  return Response.json(
+    {
+      ok: false,
+      service: "ingest-worker",
+      error: "STALE_ROUTE_DISABLED",
+      message: "This API route is not part of the ingest-worker production runtime."
+    },
+    { status: 410 }
+  );
+}
+
