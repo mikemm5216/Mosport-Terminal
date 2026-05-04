@@ -18,15 +18,9 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10)
 }
 
-function getMatchDate(m: Match): string {
-  const parts = m.id.split('_')
-  const last = parts[parts.length - 1]
-  return /^\d{4}-\d{2}-\d{2}$/.test(last) ? last : todayISO()
-}
-
 function formatStatus(m: Match) {
   if (m.status === 'FINAL') return '✓ FINAL'
-  if (m.status === 'LIVE') return m.period ? `● LIVE ${m.period}` : '● LIVE'
+  if (m.status === 'LIVE') return m.time ? `● LIVE ${m.time}` : '● LIVE'
   return 'SCHEDULED'
 }
 
