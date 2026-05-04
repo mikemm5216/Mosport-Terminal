@@ -248,15 +248,20 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
   const liveLeaguePlayoffGames = useMemo(() => allMatches.filter(m => m.league === selectedLeague && m.status === 'FINAL' && m.playoff != null), [allMatches, selectedLeague])
   const liveSeriesMap = useMemo(() => getSeriesStateFromCompletedGames(liveLeaguePlayoffGames), [liveLeaguePlayoffGames])
   const hydratedSeries: BracketSeries[] = useMemo(() => {
-    if (selectedLeague !== 'NBA') return []
-    return NBA_BRACKET_2026.map(s => {
+    const baseBracket = selectedLeague === 'NBA' ? NBA_BRACKET_2026 : []
+    if (baseBracket.length === 0) return []
+    return baseBracket.map(s => {
       const { winsHome, winsAway, source } = resolveSeriesWins(s.home.abbr, s.away.abbr, s.winsHome, s.winsAway, liveSeriesMap)
       return { ...s, winsHome, winsAway, _source: source } as BracketSeries & { _source: string }
     })
   }, [liveSeriesMap, selectedLeague])
 
   const hasLiveSeriesData = liveSeriesMap.size > 0
-  const allSeries = useMemo(() => simulateBracket(hydratedSeries, league), [hydratedSeries, league])
+  const allSeries = useMemo(() => {
+    if (hydratedSeries.length > 0) return simulateBracket(hydratedSeries, league)
+    return []
+  }, [hydratedSeries, league])
+  
   const finals = allSeries.find(s => s.round === 4)
   const displayChampion = summary?.data.projectedChampion.team.shortName ?? (finals ? predictSeries(finals).winner : "")
   const titleProb = summary?.data.projectedChampion.titleProbability ?? 0
@@ -299,7 +304,7 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
     )
   }
 
-  if (selectedLeague !== 'NBA') {
+  if (!loading && !summary && selectedLeague !== 'NBA') {
     return (
       <div style={embedded ? { width: "100%" } : PAGE_SHELL_STYLE}>
         <div style={{ padding: "80px 24px", border: "1px dashed rgba(148,163,184,0.1)", borderRadius: 12, textAlign: "center" }}>
@@ -307,7 +312,7 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
             [ {selectedLeague} BRACKET PENDING ]
           </div>
           <div style={{ fontFamily: "var(--font-inter)", fontSize: 13, color: "#64748b" }}>
-            The {selectedLeague} bracket structure will be initialized as the post-season logic is calibrated.
+            The {selectedLeague} projection snapshots are currently being calibrated by the Projection Agent.
           </div>
         </div>
       </div>
@@ -329,9 +334,9 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
                 {selectedLeague} 2026 <span style={{ color: t.hex, fontStyle: "normal" }}>PLAYOFF PROJECTION</span>
               </h1>
               <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 20 }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", letterSpacing: "0.2em", fontWeight: 800 }}>{(summary?.meta.simulationRuns ?? 10000000).toLocaleString()} model simulations · projection only</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", letterSpacing: "0.2em", fontWeight: 800 }}>{(summary?.meta.simulationRuns ?? 10000).toLocaleString()} model iterations · projection only</div>
                 <DataFreshnessBadge freshness={dataFreshness} />
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#64748b", letterSpacing: "0.15em", fontWeight: 900 }}>PROJECTION ONLY · NOT LIVE BRACKET</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#64748b", letterSpacing: "0.15em", fontWeight: 900 }}>PROJECTION ONLY · AGENT CALIBRATED</span>
               </div>
             </div>
           </div>
@@ -357,7 +362,7 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
         <div style={{ marginTop: 24, padding: "24px 32px", background: "rgba(15,23,42,0.6)", borderRadius: 8, border: "1px solid rgba(148,163,184,0.1)", display: "flex", justifyContent: "center", gap: 80 }}>
           <div style={{ textAlign: "center" }}><div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.3em", fontWeight: 800 }}>PROJECTED CHAMPION</div><div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: "#fbbf24", fontSize: 24, marginTop: 4 }}>{displayChampion || "—"}</div></div>
           <div style={{ textAlign: "center" }}><div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.3em", fontWeight: 800 }}>TITLE PROBABILITY</div><div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: loading ? "#475569" : "#34d399", fontSize: 24, marginTop: 4 }}>{loading ? "—" : `${(titleProb * 100).toFixed(2)}%`}</div></div>
-          <div style={{ textAlign: "center" }}><div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.3em", fontWeight: 800 }}>SIMULATION RUNS</div><div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: t.hex, fontSize: 24, marginTop: 4 }}>{(summary?.meta.simulationRuns ?? 10000000).toLocaleString()}</div></div>
+          <div style={{ textAlign: "center" }}><div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.3em", fontWeight: 800 }}>MODEL ITERATIONS</div><div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: t.hex, fontSize: 24, marginTop: 4 }}>{(summary?.meta.simulationRuns ?? 10000).toLocaleString()}</div></div>
         </div>
       </div>
     </div>

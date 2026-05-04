@@ -14,9 +14,27 @@ export const TEAM_LOGO_FALLBACK =
 export function getTeamLogo(league: string, rawCode: string | null | undefined): string {
   const safeLeague = league?.trim().toUpperCase()
   const safeRawCode = rawCode?.trim()
-  const normalizedCode = safeLeague && safeRawCode ? normalizeTeamCode(safeLeague, safeRawCode) : ''
-  const canonicalKey = safeLeague && safeRawCode ? getCanonicalTeamLogoKey(safeLeague, safeRawCode) : ''
-  const resolvedPath = safeLeague && safeRawCode
+
+  const LOGO_ALIASES: Record<string, Record<string, string>> = {
+    EPL: {
+      'MAN': 'MCI', // Ambiguous, but default to MCI as it's common in older feeds
+      'MUN': 'MUN',
+      'MCI': 'MCI',
+      'BOU': 'BOU',
+    }
+  }
+
+  let finalCode = safeRawCode
+  if (safeLeague && LOGO_ALIASES[safeLeague]?.[safeRawCode]) {
+    if (safeRawCode === 'MAN') {
+      console.warn('[logo-alias] alias_ambiguous: MAN mapping to MCI for EPL');
+    }
+    finalCode = LOGO_ALIASES[safeLeague][safeRawCode]
+  }
+
+  const normalizedCode = safeLeague && finalCode ? normalizeTeamCode(safeLeague, finalCode) : ''
+  const canonicalKey = safeLeague && finalCode ? getCanonicalTeamLogoKey(safeLeague, finalCode) : ''
+  const resolvedPath = safeLeague && finalCode
     ? (TEAM_LOGOS[canonicalKey] ?? TEAM_LOGO_FALLBACK)
     : TEAM_LOGO_FALLBACK
 

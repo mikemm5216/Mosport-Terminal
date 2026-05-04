@@ -16,15 +16,15 @@ import { getTeamRosterSnapshot } from '../../lib/providers/rosterProvider'
 // single provider has data for any league.
 // ────────────────────────────────────────────────────────────────────────────
 
-const ODDS_API_KEY = process.env.ODDS_API_KEY
+const RAW_ODDS_KEY = process.env.ODDS_API_KEY || process.env.THE_ODDS_API_KEY
+const ODDS_API_KEY = RAW_ODDS_KEY?.trim()
 const TSDB_KEY = process.env.THESPORTSDB_API_KEY ?? '3'
 
-// ── Env-var sanity warnings (no secret values printed) ────────────────────────
+// ── Env-var sanity diagnostics (no secret values printed) ─────────────────────
 if (!ODDS_API_KEY) {
-  console.warn('[api-governor] ODDS_API_KEY not configured — OddsAPI provider disabled')
-}
-if (!ODDS_API_KEY && process.env.THE_ODDS_API_KEY) {
-  console.warn('[api-governor] THE_ODDS_API_KEY is set but ODDS_API_KEY is missing; ingest pipeline and games route use different env vars')
+  console.warn('[api-governor] ODDS_API_KEY_MISSING: No key found in environment.')
+} else {
+  console.info(`[api-governor] ODDS_API_KEY detected (len: ${ODDS_API_KEY.length}).`)
 }
 
 const SPORT_CONFIGS: { league: League; oddsKey: string; espnPath: string; tsdbId: string }[] = [
@@ -359,6 +359,9 @@ async function fetchLeagueWithFallback(
         // Parse HTTP status from error message: 'OddsAPI {oddsKey} {status}'
         const statusMatch = msg.match(/(\d{3})$/)
         const status = statusMatch ? parseInt(statusMatch[1], 10) : 0
+        if (status === 401) {
+          console.error(`[games] ODDS_API_KEY_INVALID_401 for ${cfg.league}`);
+        }
         recordProviderError({ provider: 'odds-api', league: cfg.league, endpoint: cfg.oddsKey, status })
       }
     }
