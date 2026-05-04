@@ -57,7 +57,7 @@ export async function POST(req: Request) {
 
   try {
     const { DataIngestionAgent } = await import(
-      "@/lib/agents/data-ingestion/DataIngestionAgent"
+      "../../../../../lib/agents/data-ingestion/DataIngestionAgent"
     );
 
     const agent = new DataIngestionAgent();
