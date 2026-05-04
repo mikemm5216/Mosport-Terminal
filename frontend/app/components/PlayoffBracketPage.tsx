@@ -64,6 +64,42 @@ function StatusShell({ league, title, message, embedded }: { league: League; tit
   )
 }
 
+function LiveSeriesStrip({ league, seriesMap }: { league: League; seriesMap: ReturnType<typeof getSeriesStateFromCompletedGames> }) {
+  const t = leagueTheme(league)
+  const series = Array.from(seriesMap.entries())
+  if (series.length === 0) return null
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 24 }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#64748b', letterSpacing: '0.28em', fontWeight: 900 }}>LIVE SERIES RECONSTRUCTION</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
+        {series.map(([key, state]) => {
+          const complete = state.teamAWins >= 4 || state.teamBWins >= 4
+          const winner = complete ? (state.teamAWins >= 4 ? state.teamA : state.teamB) : null
+          return (
+            <div key={key} style={{ padding: 14, background: 'rgba(2,6,23,0.72)', border: `1px solid ${complete ? t.hex + '66' : 'rgba(148,163,184,0.14)'}`, borderRadius: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <TeamLogo teamAbbr={state.teamA} league={league} size={22} accentColor={winner === state.teamA ? t.hex : '#64748b'} />
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 900, color: winner === state.teamA ? '#fff' : '#94a3b8' }}>{state.teamA}</span>
+                </div>
+                <span style={{ fontFamily: 'var(--font-inter)', fontSize: 18, fontWeight: 900, color: complete ? t.hex : '#f8fafc' }}>{state.teamAWins}:{state.teamBWins}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 900, color: winner === state.teamB ? '#fff' : '#94a3b8' }}>{state.teamB}</span>
+                  <TeamLogo teamAbbr={state.teamB} league={league} size={22} accentColor={winner === state.teamB ? t.hex : '#64748b'} />
+                </div>
+              </div>
+              <div style={{ marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 8, color: complete ? t.hex : '#64748b', letterSpacing: '0.18em', fontWeight: 800 }}>
+                {complete ? `WINNER: ${winner}` : 'ACTIVE SERIES'} · LIVE_COMPLETED_GAMES
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function SeriesCard({ matchup, league, compact = false }: { matchup: BracketMatchup; league: League; compact?: boolean }) {
   const t = leagueTheme(league)
   const winsA = matchup.winsA
