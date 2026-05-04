@@ -8,6 +8,7 @@ import type {
   DataIngestionAgentReport,
   AgentProviderResult,
   DataProvider,
+  AgentLeague,
 } from "./types";
 
 function shouldFallback(result: AgentProviderResult | null, error?: unknown): boolean {
@@ -16,6 +17,10 @@ function shouldFallback(result: AgentProviderResult | null, error?: unknown): bo
   if (!Array.isArray(result.rawEvents)) return true;
   if (result.rawEvents.length === 0) return true;
   return false;
+}
+
+function shouldRefreshProjection(league: AgentLeague): boolean {
+  return league === "NBA" || league === "MLB";
 }
 
 function initReport(input: DataIngestionAgentInput): DataIngestionAgentReport {
@@ -107,10 +112,12 @@ export class DataIngestionAgent {
         const upserted = await routeColdHot({ mode: input.mode, matches: canonical });
         report.upsertedCount += upserted;
 
-        // Trigger projection refresh for this league if upserted data
-        if (upserted > 0 && (league === 'NBA' || league === 'NHL' || league === 'MLB')) {
+        // Trigger projection refresh for leagues currently supported by the ingestion agent.
+        // NHL is not part of AgentLeague/provider coverage yet, so keep this guard aligned
+        // with the typed ingestion surface to avoid impossible comparisons.
+        if (upserted > 0 && shouldRefreshProjection(league)) {
           const { ProjectionAgent } = await import("../../services/projectionAgent");
-          await ProjectionAgent.refreshSnapshot(league as any, 'data_ingestion_agent_hot');
+          await ProjectionAgent.refreshSnapshot(league as any, "data_ingestion_agent_hot");
         }
 
         report.fallbackUsed = report.fallbackUsed || fallbackUsed;
