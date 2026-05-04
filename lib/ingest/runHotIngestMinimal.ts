@@ -70,7 +70,6 @@ export async function runHotIngestMinimal(params: {
         sourceProvider: "minimal",
         projectedChampion,
         titleDistribution,
-        finalsMatchup: null,
         bracketState,
         warnings: ["MATCH_INGESTION_MINIMAL_MODE"],
         refreshReason: reason
@@ -85,7 +84,6 @@ export async function runHotIngestMinimal(params: {
         sourceProvider: "minimal",
         projectedChampion,
         titleDistribution,
-        finalsMatchup: null,
         bracketState,
         warnings: ["MATCH_INGESTION_MINIMAL_MODE"],
         refreshReason: reason
