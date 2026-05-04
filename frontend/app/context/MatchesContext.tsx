@@ -9,6 +9,7 @@ export type DataFreshness = 'live' | 'recent' | 'stale' | 'offline'
 type MatchesState = {
   matches: Match[]
   loading: boolean
+  error: string | null
   dataFreshness: DataFreshness
   sourceProvider: string | null
   fallbackUsed: boolean
@@ -18,6 +19,7 @@ type MatchesState = {
 const MatchesContext = createContext<MatchesState>({
   matches: [],
   loading: true,
+  error: null,
   dataFreshness: 'offline',
   sourceProvider: null,
   fallbackUsed: false,
