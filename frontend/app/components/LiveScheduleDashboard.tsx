@@ -1,7 +1,7 @@
 'use client'
 
 import type { Match } from '../data/mockData'
-import SchedulePage from './SchedulePage'
+import HomeSchedulePage from './HomeSchedulePage'
 
 interface Props {
   onOpen: (m: Match) => void
@@ -9,5 +9,5 @@ interface Props {
 }
 
 export default function LiveScheduleDashboard({ onOpen, onOpenLab }: Props) {
-  return <SchedulePage onOpen={onOpen} onOpenLab={onOpenLab} />
+  return <HomeSchedulePage onOpen={onOpen} onOpenLab={onOpenLab} />
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { NBA_SIM_SUMMARY } from '../../../data/playoffSimSummary'
-import type { SimulationSummaryResponse, TeamRef } from '../../../contracts/product'
+import type { PlayoffSimulationSummary, SimulationSummaryResponse, TeamRef } from '../../../contracts/product'
 import type { LeagueCode } from '../../../contracts/product'
 import { toCanonicalTeamKey } from '../../../config/teamCodeNormalization'
 import { getTeamLogo } from '../../../lib/teamLogoResolver'
@@ -9,13 +9,23 @@ import { prisma } from '../../../lib/prisma'
 export const revalidate = 3600
 export const dynamic = 'force-dynamic'
 
-function teamRef(league: LeagueCode, code: string, seed?: number | null): TeamRef {
+const ESPN_NBA_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard'
+
+const ESPN_ABBR: Record<string, string> = {
+  GS: 'GSW', NY: 'NYK', NO: 'NOP', SA: 'SAS', UTAH: 'UTA', WSH: 'WAS',
+}
+
+function normalizeESPN(abbr: string): string {
+  return ESPN_ABBR[abbr] ?? abbr
+}
+
+function teamRef(league: LeagueCode, code: string, seed?: number | null, displayName?: string): TeamRef {
   const normalized = code.toUpperCase()
   return {
     id: `${league}-${normalized}`,
     code: normalized,
     canonicalKey: toCanonicalTeamKey(league, normalized),
-    displayName: normalized,
+    displayName: displayName ?? normalized,
     shortName: normalized,
     logoUrl: getTeamLogo(league, normalized),
     seed,
@@ -40,7 +50,7 @@ async function getESPNNBAPlayoffs() {
   const startStr = formatDate(start)
   const endStr = formatDate(end)
   // ESPN supports date ranges like YYYYMMDD-YYYYMMDD
-  const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${startStr}-${endStr}`
+  const url = `${ESPN_NBA_SCOREBOARD}?dates=${startStr}-${endStr}`
 
   try {
     const res = await fetch(url, { next: { revalidate: 300 } })
@@ -93,6 +103,37 @@ function reconstructSeries(events: any[]) {
     }
   }
   return Array.from(seriesMap.values())
+}
+
+function pendingSummary(league: LeagueCode, message: string): SimulationSummaryResponse {
+  return {
+    status: 'pending',
+    mode: 'simulation',
+    message,
+    data: null,
+    meta: {
+      league,
+      simulationRuns: 0,
+      generatedAt: null,
+      validationMode: 'unvalidated',
+    },
+  }
+}
+
+function errorSummary(league: LeagueCode, message: string): SimulationSummaryResponse {
+  return {
+    status: 'error',
+    mode: 'simulation',
+    message,
+    data: null,
+    meta: {
+      league,
+      simulationRuns: 0,
+      generatedAt: null,
+      validationMode: 'unvalidated',
+    },
+  }
+}
 }
 
 export async function GET(req: Request) {
@@ -172,8 +213,6 @@ export async function GET(req: Request) {
       }
       return NextResponse.json(response)
     }
-
-    // Fallback to mock only in dev/demo
     if (isDev || isDemo) {
       const src = NBA_SIM_SUMMARY
       const rounds = [
@@ -196,16 +235,15 @@ export async function GET(req: Request) {
       }
       return NextResponse.json(response)
     } else {
-      return NextResponse.json({ 
-        status: 'pending', 
-        message: 'Playoff series sync pending (no ESPN series data found)',
-        data: null 
-      }, { status: 200 })
+      return NextResponse.json(pendingSummary('NBA', 'Playoff series sync pending (no ESPN series data found)'), { status: 200 })
     }
+    }
+
+    return NextResponse.json(pendingSummary('NBA', 'Playoff series sync pending'), { status: 200 })
   }
 
   if (!snapshot) {
-    return NextResponse.json({ status: 'error', message: `No projection snapshot found for ${league}` }, { status: 404 })
+    return NextResponse.json(errorSummary(league, `No projection snapshot found for ${league}`), { status: 404 })
   }
 
   const response: SimulationSummaryResponse = {
@@ -223,7 +261,7 @@ export async function GET(req: Request) {
       }
     },
     meta: {
-      league: league as any,
+      league,
       simulationRuns: 10000,
       generatedAt: snapshot.generatedAt.toISOString(),
       validationMode: snapshot.dataStatus === 'DEGRADED' ? 'unvalidated' : 'live_projection'

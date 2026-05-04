@@ -77,6 +77,10 @@ function adaptLiveCard(card: LiveMatchCard): Match {
     matchup_complexity: 0.5,
     recovery_away: 0.72,
     recovery_home: 0.72,
+    playoff: card.playoff,
+    season: card.season,
+    seasonYear: card.seasonYear,
+    seasonType: card.seasonType,
     rosters: card.rosters,
   }
 }
@@ -89,10 +93,8 @@ export function MatchesProvider({ children }: { children: React.ReactNode }) {
   const [sourceProvider, setSourceProvider] = useState<string | null>(null)
   const [fallbackUsed, setFallbackUsed] = useState(false)
 
-  // Tracks when the last auto-refresh (focus/visibility) was triggered.
-  // Manual refresh via refresh() bypasses this.
   const lastAutoFetchAt = useRef<number>(0)
-  const AUTO_REFRESH_THROTTLE_MS = 60_000  // 60 seconds
+  const AUTO_REFRESH_THROTTLE_MS = 60_000
 
   const fetchMatches = useCallback(async () => {
     setLoading(true)
@@ -116,7 +118,6 @@ export function MatchesProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    // Initial load — always fetch
     fetchMatches()
     lastAutoFetchAt.current = Date.now()
 
@@ -146,10 +147,10 @@ export function MatchesProvider({ children }: { children: React.ReactNode }) {
   const dataFreshness = computeFreshness(matches, loading, error, lastSuccessAt)
 
   return (
-    <MatchesContext.Provider value={{ 
-      matches, loading, error, dataFreshness, 
+    <MatchesContext.Provider value={{
+      matches, loading, error, dataFreshness,
       sourceProvider, fallbackUsed,
-      refresh: fetchMatches 
+      refresh: fetchMatches,
     }}>
       {children}
     </MatchesContext.Provider>
