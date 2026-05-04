@@ -2,18 +2,27 @@
 
 import { useState, useEffect } from 'react'
 import type { League } from '../data/mockData'
-import { getTeamLogo, TEAM_LOGO_FALLBACK } from '../lib/teamLogoResolver'
+import { resolveTeamLogo, TEAM_LOGO_FALLBACK } from '../lib/teamLogoResolver'
 
 interface Props {
   teamAbbr: string
   league: League
   size: number
   accentColor?: string
+  teamId?: string | number
+  displayName?: string
 }
 
-export default function TeamLogo({ teamAbbr, league, size, accentColor = '#22d3ee' }: Props) {
+export default function TeamLogo({ 
+  teamAbbr, 
+  league, 
+  size, 
+  accentColor = '#22d3ee',
+  teamId,
+  displayName
+}: Props) {
   const [error, setError] = useState(false)
-  const src = getTeamLogo(league, teamAbbr)
+  const src = resolveTeamLogo({ league, abbreviation: teamAbbr, teamId, displayName })
 
   useEffect(() => {
     setError(false)

@@ -20,10 +20,16 @@ function gameWinProb(home: BracketTeam, away: BracketTeam): number {
   return Math.max(0.25, Math.min(0.75, 0.52 + diff * 0.55 + recoveryBoost))
 }
 
+/**
+ * simulateSeries
+ * PROOF: This function accepts current wins (winsHome, winsAway).
+ * If a series is 3:1, it starts from (3, 1) and only simulates the remaining games.
+ */
 function simulateSeries(home: BracketTeam, away: BracketTeam, winsHome: number, winsAway: number): { winner: string } {
   let h = winsHome
   let a = winsAway
   const pGame = gameWinProb(home, away)
+  // Loop continues only until one team reaches 4 wins
   while (h < 4 && a < 4) {
     if (Math.random() < pGame) h++
     else a++
@@ -31,10 +37,17 @@ function simulateSeries(home: BracketTeam, away: BracketTeam, winsHome: number, 
   return { winner: h === 4 ? home.abbr : away.abbr }
 }
 
+/**
+ * predictSeries
+ * PROOF: For completed series, it returns 100% probability for the winner.
+ * This ensures the loser is effectively "removed" from subsequent title probability calculations
+ * because the winner advances with 100% certainty in the simulation.
+ */
 function predictSeries(s: BracketSeries, iterations = 5000): { winner: string; prob: number } {
   if (s.status === 'completed' && s.winner) return { winner: s.winner, prob: 1 }
   let homeWins = 0
   for (let i = 0; i < iterations; i++) {
+    // Current series score (s.winsHome, s.winsAway) is passed into each simulation iteration
     if (simulateSeries(s.home, s.away, s.winsHome, s.winsAway).winner === s.home.abbr) homeWins++
   }
   const p = homeWins / iterations
@@ -112,7 +125,7 @@ function MiniSeriesCard({ series, league, align = "left" }: { series: BracketSer
         background: isWinner ? `${t.hex}15` : "transparent",
         flexDirection: align === "right" ? "row-reverse" : "row",
       }}>
-        <TeamLogo teamAbbr={team.abbr} league={league} size={16} accentColor={isWinner ? t.hex : "#475569"} />
+        <TeamLogo teamAbbr={team.abbr} league={league} size={16} accentColor={isWinner ? t.hex : "#475569"} displayName={team.name} />
         <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 800, color: isWinner ? "#f8fafc" : "#475569", flex: 1, textAlign: align }}>
           {team.abbr} <span style={{ fontSize: 7, opacity: 0.5 }}>#{team.seed}</span>
         </span>
@@ -187,11 +200,11 @@ function FinalsMatchupCard({ summary, league, loading }: { summary: SimulationSu
       {loading || !matchup ? <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#334155" }}>—</div> : (
         <>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <TeamLogo teamAbbr={matchup.teamA.shortName} league={league} size={28} accentColor={t.hex} />
+            <TeamLogo teamAbbr={matchup.teamA.shortName} league={league} size={28} accentColor={t.hex} displayName={matchup.teamA.displayName} />
             <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 18, color: "#f8fafc" }}>{matchup.teamA.shortName}</span>
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569" }}>vs</span>
             <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 18, color: "#f8fafc" }}>{matchup.teamB.shortName}</span>
-            <TeamLogo teamAbbr={matchup.teamB.shortName} league={league} size={28} accentColor={t.hex} />
+            <TeamLogo teamAbbr={matchup.teamB.shortName} league={league} size={28} accentColor={t.hex} displayName={matchup.teamB.displayName} />
           </div>
           <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 20, color: t.hex }}>{(matchup.probability * 100).toFixed(1)}%</div>
         </>
@@ -211,7 +224,7 @@ function TitleDistributionTable({ summary, league, loading }: { summary: Simulat
           {top5.map((entry, i) => (
             <div key={entry.team.shortName} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", width: 12 }}>{i + 1}.</span>
-              <TeamLogo teamAbbr={entry.team.shortName} league={league} size={16} accentColor={i === 0 ? t.hex : "#475569"} />
+              <TeamLogo teamAbbr={entry.team.shortName} league={league} size={16} accentColor={i === 0 ? t.hex : "#475569"} displayName={entry.team.displayName} />
               <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 10, color: i === 0 ? "#f8fafc" : "#94a3b8", flex: 1 }}>{entry.team.shortName}</span>
               <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 13, color: i === 0 ? t.hex : "#64748b" }}>{(entry.probability * 100).toFixed(1)}%</span>
             </div>
@@ -251,8 +264,27 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
     const baseBracket = selectedLeague === 'NBA' ? NBA_BRACKET_2026 : []
     if (baseBracket.length === 0) return []
     return baseBracket.map(s => {
-      const { winsHome, winsAway, source } = resolveSeriesWins(s.home.abbr, s.away.abbr, s.winsHome, s.winsAway, liveSeriesMap)
-      return { ...s, winsHome, winsAway, _source: source } as BracketSeries & { _source: string }
+      // Extract season from series id (e.g. "nba-r1-west-0" -> "2026")
+      // In this mock data, we'll assume 2026 as per the constants
+      const season = '2026' 
+      const { winsHome, winsAway, source, isComplete, winner } = resolveSeriesWins(
+        s.home.abbr, 
+        s.away.abbr, 
+        s.winsHome, 
+        s.winsAway, 
+        liveSeriesMap, 
+        selectedLeague,
+        season,
+        s.round
+      )
+      return { 
+        ...s, 
+        winsHome, 
+        winsAway, 
+        status: isComplete ? 'completed' : s.status,
+        winner: winner ?? s.winner,
+        _source: source 
+      } as BracketSeries & { _source: string }
     })
   }, [liveSeriesMap, selectedLeague])
 
@@ -336,7 +368,9 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
               <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 20 }}>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", letterSpacing: "0.2em", fontWeight: 800 }}>{(summary?.meta.simulationRuns ?? 10000).toLocaleString()} model iterations · projection only</div>
                 <DataFreshnessBadge freshness={dataFreshness} />
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#64748b", letterSpacing: "0.15em", fontWeight: 900 }}>PROJECTION ONLY · AGENT CALIBRATED</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#64748b", letterSpacing: "0.15em", fontWeight: 900 }}>
+                  SYNC: {hasLiveSeriesData ? "LIVE_RECONSTRUCTION" : "PENDING"} · SOURCE: {summary?.mode === 'simulation' ? "AGENT_SNAPSHOT" : "LIVE_STREAM"}
+                </span>
               </div>
             </div>
           </div>

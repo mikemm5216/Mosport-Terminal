@@ -36,27 +36,38 @@ export async function GET(req: Request) {
     console.error('[playoff-summary] Database error:', err)
   }
 
+  const isDev = process.env.NODE_ENV === 'development'
+  const isDemo = searchParams.get('demo') === '1'
+
   if (!snapshot && league === 'NBA') {
-    const src = NBA_SIM_SUMMARY
-    const rounds = [
-      { roundName: 'Round 1', matchups: [...src.bracket_projection.west.round_1, ...src.bracket_projection.east.round_1] },
-      { roundName: 'Conference Semifinals', matchups: [...src.bracket_projection.west.semifinals, ...src.bracket_projection.east.semifinals] },
-      { roundName: 'Conference Finals', matchups: [...src.bracket_projection.west.conference_finals, ...src.bracket_projection.east.conference_finals] },
-      { roundName: 'Finals', matchups: src.bracket_projection.championship },
-    ]
-    const response: SimulationSummaryResponse = {
-      status: 'ok',
-      mode: 'simulation',
-      data: {
-        projectedChampion: { team: teamRef('NBA', src.projected_champion.team), titleProbability: src.projected_champion.probability },
-        mostLikelyFinalsMatchup: { teamA: teamRef('NBA', src.most_likely_finals_matchup.home_team), teamB: teamRef('NBA', src.most_likely_finals_matchup.away_team), probability: src.most_likely_finals_matchup.probability },
-        titleDistribution: src.champion_distribution.map((entry) => ({ team: teamRef('NBA', entry.team), probability: entry.probability })),
-        bracket: { rounds: rounds.map((round) => ({ roundName: round.roundName, matchups: round.matchups.map((m) => ({ teamA: teamRef('NBA', m.team_a), teamB: teamRef('NBA', m.team_b), projectedWinner: teamRef('NBA', m.winner), winProbability: m.winner_probability, seriesScore: m.series_score_prediction })) })) },
-        validation: { mode: src.validation.mode as any, overallAccuracy: src.validation.overall_bracket_accuracy, notes: src.validation.notes },
-      },
-      meta: { league: 'NBA', simulationRuns: src.simulation_runs, generatedAt: src.metadata.generated_at, validationMode: src.validation.mode as any },
+    if (isDev || isDemo) {
+      const src = NBA_SIM_SUMMARY
+      const rounds = [
+        { roundName: 'Round 1', matchups: [...src.bracket_projection.west.round_1, ...src.bracket_projection.east.round_1] },
+        { roundName: 'Conference Semifinals', matchups: [...src.bracket_projection.west.semifinals, ...src.bracket_projection.east.semifinals] },
+        { roundName: 'Conference Finals', matchups: [...src.bracket_projection.west.conference_finals, ...src.bracket_projection.east.conference_finals] },
+        { roundName: 'Finals', matchups: src.bracket_projection.championship },
+      ]
+      const response: SimulationSummaryResponse = {
+        status: 'ok',
+        mode: 'simulation',
+        data: {
+          projectedChampion: { team: teamRef('NBA', src.projected_champion.team), titleProbability: src.projected_champion.probability },
+          mostLikelyFinalsMatchup: { teamA: teamRef('NBA', src.most_likely_finals_matchup.home_team), teamB: teamRef('NBA', src.most_likely_finals_matchup.away_team), probability: src.most_likely_finals_matchup.probability },
+          titleDistribution: src.champion_distribution.map((entry) => ({ team: teamRef('NBA', entry.team), probability: entry.probability })),
+          bracket: { rounds: rounds.map((round) => ({ roundName: round.roundName, matchups: round.matchups.map((m) => ({ teamA: teamRef('NBA', m.team_a), teamB: teamRef('NBA', m.team_b), projectedWinner: teamRef('NBA', m.winner), winProbability: m.winner_probability, seriesScore: m.series_score_prediction })) })) },
+          validation: { mode: src.validation.mode as any, overallAccuracy: src.validation.overall_bracket_accuracy, notes: src.validation.notes },
+        },
+        meta: { league: 'NBA', simulationRuns: src.simulation_runs, generatedAt: src.metadata.generated_at, validationMode: src.validation.mode as any },
+      }
+      return NextResponse.json(response)
+    } else {
+      return NextResponse.json({ 
+        status: 'pending', 
+        message: 'Playoff series sync pending',
+        data: null 
+      }, { status: 200 }) // Return 200 with pending status as requested
     }
-    return NextResponse.json(response)
   }
 
   if (!snapshot) {

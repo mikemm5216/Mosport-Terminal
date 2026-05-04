@@ -55,6 +55,9 @@ export interface Match {
   recovery_away: number      // 0–1
   recovery_home: number      // 0–1
   playoff?: PlayoffInfo      // present during postseason
+  season?: string            // e.g. "2025-26"
+  seasonYear?: number        // e.g. 2026
+  seasonType?: 'regular' | 'postseason' | 'preseason'
   featured?: boolean
   settled?: boolean
   settled_accurate?: boolean

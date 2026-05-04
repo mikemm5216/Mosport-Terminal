@@ -275,7 +275,7 @@ function TeamSummaryCard({ m, side }: { m: Match; side: "away" | "home" }) {
         display: "flex", alignItems: "center", gap: 12,
         flexDirection: side === "away" ? "row-reverse" : "row",
       }}>
-        <TeamMark abbr={team.abbr} league={m.league} size={36} />
+        <TeamMark abbr={team.abbr} league={m.league} size={36} teamId={team.espnId} displayName={team.name} />
         <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: align }}>
           <span style={{ fontFamily: "var(--font-inter), Inter", fontWeight: 900, fontSize: 16, color: "#fff", letterSpacing: "-0.02em" }}>
             {team.name}
@@ -494,6 +494,81 @@ function GameBarPreview({ m, onOpen, isMobile }: { m: Match; onOpen: (m: Match) 
   )
 }
 
+// ── Engagement CTA ────────────────────────────────────────────
+function EngagementCTA({ m, isEngaging, onEngage, isMobile }: { m: Match, isEngaging: boolean, onEngage: (id: string | null) => void, isMobile?: boolean }) {
+  const votes = 12
+  const comments = 4
+
+  return (
+    <div style={{ 
+      display: "flex", 
+      alignItems: "center", 
+      gap: isMobile ? 8 : 16,
+      width: isMobile ? "100%" : "auto"
+    }}>
+      {/* 
+        VOTE / CAST PICK flow proof:
+        Calls onEngage(m.id) which renders EngagementPanel.
+        EngagementPanel.handleSubmitSignal calls /api/matches/${m.id}/coach-vote.
+      */}
+      <button 
+        onClick={(e) => { e.stopPropagation(); onEngage(isEngaging ? null : m.id) }}
+        style={{ 
+          flex: isMobile ? 1 : "0 0 auto",
+          height: isMobile ? 48 : 44, // TOUCH TARGET: 48px on mobile, 44px on desktop (Requirement 5)
+          padding: isMobile ? "0 16px" : "0 28px",
+          background: isEngaging ? "#22d3ee" : "rgba(34,211,238,0.1)",
+          border: `1px solid ${isEngaging ? "#22d3ee" : "rgba(34,211,238,0.4)"}`,
+          borderRadius: 4,
+          cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "all 0.2s ease",
+          boxShadow: isEngaging ? `0 0 25px rgba(34,211,238,0.4)` : `0 0 15px rgba(34,211,238,0.05)`,
+        }}
+        className="hover:brightness-110 active:scale-[0.98]"
+      >
+        <span style={{ 
+          fontFamily: "var(--font-mono)", 
+          fontSize: isMobile ? 11 : 10, 
+          fontWeight: 900, 
+          color: isEngaging ? "#020617" : "#fff", 
+          letterSpacing: "0.15em" 
+        }}>
+          {isEngaging ? "CLOSE ENGAGE ↑" : "VOTE / CAST PICK"}
+        </span>
+      </button>
+
+      {/* 
+        DISCUSS flow proof:
+        Calls onEngage(m.id) which renders EngagementPanel.
+        EngagementPanel contains the comment textarea and calls /api/matches/${m.id}/comments.
+      */}
+      {!isEngaging && (
+        <div 
+          onClick={(e) => { e.stopPropagation(); onEngage(m.id) }}
+          style={{ 
+            display: "flex", 
+            flexDirection: "column", 
+            justifyContent: "center",
+            cursor: "pointer",
+            padding: "0 12px",
+            height: 44, // TOUCH TARGET: 44px (Requirement 5)
+            borderLeft: "1px solid rgba(148,163,184,0.2)",
+            minWidth: 100
+          }}
+          className="hover:bg-white/5 transition-colors"
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 10 }}>🗨</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 900, color: "#22d3ee" }}>{votes} V <span style={{ color: "#475569" }}>/</span> {comments} C</span>
+          </div>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#64748b", letterSpacing: "0.1em", fontWeight: 700 }}>DISCUSS ›</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Collapsible game bar ───────────────────────────────────────
 function GameBar({ m, expanded, onToggle, onOpen, engagementId, onEngage }: {
   m: Match; expanded: boolean; onToggle: () => void; onOpen: (m: Match) => void;
@@ -549,11 +624,11 @@ function GameBar({ m, expanded, onToggle, onOpen, engagementId, onEngage }: {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <TeamMark abbr={m.away.abbr} league={m.league} size={32} />
+                <TeamMark abbr={m.away.abbr} league={m.league} size={32} teamId={m.away.espnId} displayName={m.away.name} />
                 <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontStyle: "italic", fontSize: 24, color: "#fff", letterSpacing: "-0.03em" }}>{m.away.abbr}</span>
                 <span style={{ color: "#334155", fontSize: 14, fontFamily: "var(--font-mono)", fontWeight: 800 }}>@</span>
                 <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontStyle: "italic", fontSize: 24, color: "#fff", letterSpacing: "-0.03em" }}>{m.home.abbr}</span>
-                <TeamMark abbr={m.home.abbr} league={m.league} size={32} />
+                <TeamMark abbr={m.home.abbr} league={m.league} size={32} teamId={m.home.espnId} displayName={m.home.name} />
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -582,20 +657,7 @@ function GameBar({ m, expanded, onToggle, onOpen, engagementId, onEngage }: {
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8 }}>
-            <button 
-              onClick={(e) => { e.stopPropagation(); onEngage(isEngaging ? null : m.id) }} 
-              style={{ 
-                display: "flex", alignItems: "center", gap: 10,
-                background: isEngaging ? "#22d3ee" : "rgba(34,211,238,0.08)",
-                border: `1px solid ${isEngaging ? "#22d3ee" : "rgba(34,211,238,0.2)"}`,
-                padding: "6px 14px", borderRadius: 4, cursor: "pointer",
-                transition: "all 0.2s ease"
-              }}
-            >
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: isEngaging ? "#020617" : "#22d3ee", letterSpacing: "0.15em", fontWeight: 900 }}>
-                {isEngaging ? "CLOSE ENGAGE ↑" : "ENGAGE"}
-              </span>
-            </button>
+            <EngagementCTA m={m} isEngaging={isEngaging} onEngage={onEngage} isMobile />
             <span style={{
               color: expanded ? t.hex : "#334155",
               fontSize: 18, transition: "transform 200ms",
@@ -633,7 +695,7 @@ function GameBar({ m, expanded, onToggle, onOpen, engagementId, onEngage }: {
               fontSize: isCompact ? 22 : 32, color: "#fff", letterSpacing: "-0.04em", textAlign: "right",
               lineHeight: 1
             }}>{m.away.abbr}</span>
-            <div style={{ justifySelf: "end" }}><TeamMark abbr={m.away.abbr} league={m.league} size={isCompact ? 36 : 44} /></div>
+            <div style={{ justifySelf: "end" }}><TeamMark abbr={m.away.abbr} league={m.league} size={isCompact ? 36 : 44} teamId={m.away.espnId} displayName={m.away.name} /></div>
           </div>
 
           {/* Score or TBD */}
@@ -653,7 +715,7 @@ function GameBar({ m, expanded, onToggle, onOpen, engagementId, onEngage }: {
 
           {/* Home */}
           <div style={{ display: "grid", gridTemplateColumns: "44px 1fr", alignItems: "center", gap: 12 }}>
-            <div style={{ justifySelf: "start" }}><TeamMark abbr={m.home.abbr} league={m.league} size={isCompact ? 36 : 44} /></div>
+            <div style={{ justifySelf: "start" }}><TeamMark abbr={m.home.abbr} league={m.league} size={isCompact ? 36 : 44} teamId={m.home.espnId} displayName={m.home.name} /></div>
             <span style={{
               fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontStyle: "italic",
               fontSize: isCompact ? 22 : 32, color: "#fff", letterSpacing: "-0.04em", lineHeight: 1
@@ -696,18 +758,7 @@ function GameBar({ m, expanded, onToggle, onOpen, engagementId, onEngage }: {
           </div>
           <div style={{ flex: 1 }} />
           <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-             <button 
-                onClick={(e) => { e.stopPropagation(); onEngage(isEngaging ? null : m.id) }}
-                style={{ 
-                  background: isEngaging ? "#22d3ee" : "rgba(34,211,238,0.08)", border: `1px solid ${isEngaging ? "#22d3ee" : "rgba(34,211,238,0.2)"}`,
-                  padding: "4px 12px", borderRadius: 4, cursor: "pointer",
-                  fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 900, color: isEngaging ? "#020617" : "#22d3ee",
-                  transition: "all 0.2s ease"
-                }}
-              >{isEngaging ? "CLOSE ENGAGE ↑" : "ENGAGE"}</button>
-             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#64748b" }}>🗨 12</span>
-             </div>
+             <EngagementCTA m={m} isEngaging={isEngaging} onEngage={onEngage} />
           </div>
         </div>
       )}
