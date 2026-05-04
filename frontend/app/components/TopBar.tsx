@@ -57,7 +57,7 @@ interface Props {
 
 import { BREAKPOINTS, PAGE_SHELL_STYLE } from '../lib/ui'
 
-export default function TopBar({ onHome, activeTab = 'SCHEDULE', onTabChange, mode, onModeChange, hideModeToggle = false, children }: Props) {
+export default function TopBar({ onHome, activeTab = 'HOME', onTabChange, mode, onModeChange, hideModeToggle = false, children }: Props) {
   const [time, setTime] = useState<Date | null>(null)
   const width = useWindowWidth()
   const isMobile = width < BREAKPOINTS.mobile
@@ -105,7 +105,7 @@ export default function TopBar({ onHome, activeTab = 'SCHEDULE', onTabChange, mo
 
           {!isMobile && mode === 'live' && (
             <nav style={{ display: 'flex', gap: 4 }}>
-              {(['SCHEDULE', 'LEAGUES', 'PLAYERS', 'LAB'] as const).map((n) => {
+              {(['HOME', 'LEAGUES', 'PLAYERS', 'LAB', 'COMMUNITY'] as const).map((n) => {
                 const isActive = activeTab === n
                 return (
                   <div

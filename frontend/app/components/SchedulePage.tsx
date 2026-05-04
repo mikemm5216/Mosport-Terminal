@@ -8,6 +8,7 @@ import { useWindowWidth } from '../lib/useWindowWidth'
 import { useMatchesContext, DataFreshnessBadge } from '../context/MatchesContext'
 import { getCoachMetricLabels } from '../lib/coachMetricLabels'
 import { PAGE_SHELL_STYLE, BREAKPOINTS } from '../lib/ui'
+import { leagueToSport } from '../lib/coachMetricLabels'
 
 // ── Date helpers ─────────────────────────────────────────────
 function todayISO() {
@@ -372,7 +373,24 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
   const t = leagueTheme(m.league)
   const isLive = m.status === "LIVE"
   const isFinal = m.status === "FINAL"
-  const statusColor = isLive ? "#ef4444" : isFinal ? "#64748b" : "#22d3ee"
+  const sport = leagueToSport(m.league)
+  
+  // Sport-specific progress formatting
+  let displayTime = m.time
+  if (isLive) {
+    if (sport === 'BASEBALL') {
+      // Expecting something like "Top 9" or "Bot 7"
+      displayTime = m.time.includes('Top') || m.time.includes('Bot') ? m.time : `LIVE ${m.time}`
+    } else if (sport === 'BASKETBALL' || sport === 'HOCKEY') {
+      // Expecting something like "Q3 07:42" or "P2 12:00"
+      displayTime = m.time
+    } else if (sport === 'SOCCER') {
+      // Expecting something like "67'"
+      displayTime = m.time.includes("'") ? m.time : `${m.time}'`
+    }
+  }
+
+  const statusColor = isLive ? "#ef4444" : isFinal ? "#34d399" : "#22d3ee"
   const statusLabel = isLive ? "● IN_PLAY" : isFinal ? "✓ FINAL" : "SCHEDULED"
 
   const containerStyle: React.CSSProperties = {
@@ -404,7 +422,7 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 900, color: isLive ? "#ef4444" : "#e2e8f0" }}>{m.time}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 900, color: isLive ? "#ef4444" : "#e2e8f0" }}>{displayTime}</div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", letterSpacing: "0.15em", fontWeight: 800 }}>{m.league} · {statusLabel}</div>
             </div>
           </div>
@@ -437,7 +455,13 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8 }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: t.hex, letterSpacing: "0.25em", fontWeight: 900 }}>ACCESS INTELLIGENCE →</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: t.hex, letterSpacing: "0.25em", fontWeight: 900 }}>ACCESS INTELLIGENCE →</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(148,163,184,0.1)", padding: "2px 6px", borderRadius: 4 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#94a3b8" }}>🗨</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#94a3b8", fontWeight: 800 }}>12</span>
+              </div>
+            </div>
             <span style={{
               color: expanded ? t.hex : "#334155",
               fontSize: 18, transition: "transform 200ms",
@@ -462,7 +486,7 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
               fontSize: isCompact ? 16 : 20, fontWeight: 900,
               color: isLive ? "#ef4444" : isFinal ? "#64748b" : "#e2e8f0",
               letterSpacing: "-0.04em", lineHeight: 1,
-            }}>{m.time}</div>
+            }}>{displayTime}</div>
             <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 900, color: statusColor, letterSpacing: "0.3em" }}>
               {statusLabel}
             </div>
@@ -525,6 +549,38 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
             transition: "all 200ms ease",
             transform: expanded ? "rotate(90deg)" : "none",
           }}>›</div>
+        </div>
+      )}
+
+      {/* Prediction Snapshot Bar (Visible when not expanded) */}
+      {!expanded && (
+        <div style={{ 
+          padding: "8px 24px", 
+          background: "rgba(15,23,42,0.4)", 
+          borderTop: "1px solid rgba(148,163,184,0.05)",
+          display: isMobile ? "none" : "flex",
+          alignItems: "center",
+          gap: 32
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.1em" }}>WIN PROB</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 900, color: t.hex }}>{(m.physio_adjusted * 100).toFixed(1)}%</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.1em" }}>DECISION SCORE</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 900, color: wpaColor(m.tactical_label) }}>{Math.abs(m.wpa).toFixed(2)}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.1em" }}>TACTICAL DRIVER</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 900, color: "#e2e8f0" }}>{m.tactical_label.replace('_', ' ')}</span>
+          </div>
+          <div style={{ flex: 1 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+             <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569" }}>LATEST INTEL: "Line divergence detected in early movement..."</span>
+             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#64748b" }}>🗨 12</span>
+             </div>
+          </div>
         </div>
       )}
 

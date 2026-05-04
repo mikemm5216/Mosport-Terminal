@@ -110,89 +110,80 @@ export default function KeyboardCoachesPanel({ matchId, league, user, onAuthRequ
   }
 
   return (
-    <div className="bg-[#050b16] border border-[#1e293b] rounded-lg overflow-hidden shadow-2xl mt-8">
+    <div style={{ background: '#050b16', border: '1px solid #1e293b', borderRadius: 8, overflow: 'hidden', marginTop: 32 }}>
       {/* 1. Header Row */}
       <div 
-        className="flex items-center justify-between px-5 py-4 bg-[#0a1224] border-b border-[#1e293b] cursor-pointer group"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#0a1224', borderBottom: '1px solid #1e293b', cursor: 'pointer' }}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 bg-[#3b82f6]/10 rounded border border-[#3b82f6]/20">
-            <MessageSquare className="w-4 h-4 text-[#3b82f6]" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ padding: '6px', background: 'rgba(59,130,246,0.1)', borderRadius: 4, border: '1px solid rgba(59,130,246,0.2)' }}>
+            <MessageSquare size={14} color="#3b82f6" />
           </div>
           <div>
-            <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Keyboard Coaches</h3>
+            <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.25em', margin: 0 }}>Keyboard Coaches</h3>
             {voteSummary && (
-              <div className="text-[9px] text-[#475569] font-bold mt-0.5 uppercase tracking-wider">
-                {voteSummary.total} ANALYTICAL SIGNALS RECEIVED
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#475569', fontWeight: 800, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                {voteSummary.total} ANALYTICAL SIGNALS
               </div>
             )}
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           {!user && (
             <button 
-              onClick={(e) => {
-                e.stopPropagation()
-                onAuthRequired()
-              }}
-              className="px-3 py-1.5 bg-[#1e293b] hover:bg-[#334155] border border-[#334155] text-[#3b82f6] text-[9px] font-black uppercase tracking-widest rounded transition-colors hidden sm:block"
+              onClick={(e) => { e.stopPropagation(); onAuthRequired(); }}
+              style={{ padding: '6px 12px', background: '#1e293b', border: '1px solid #334155', color: '#3b82f6', fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', borderRadius: 4, cursor: 'pointer' }}
             >
               Login to Participate
             </button>
           )}
-          {isExpanded ? <ChevronUp className="w-4 h-4 text-[#475569]" /> : <ChevronDown className="w-4 h-4 text-[#475569]" />}
+          {isExpanded ? <ChevronUp size={16} color="#475569" /> : <ChevronDown size={16} color="#475569" />}
         </div>
       </div>
 
       {isExpanded && (
-        <div className="p-6 space-y-8">
-          {/* 2. Vote Actions 區 */}
-          <div className="space-y-4">
-            <h4 className="text-[9px] font-black text-[#64748b] uppercase tracking-[0.25em] px-1">Tactical Stance</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div style={{ padding: 24 }}>
+          {/* 2. Vote Actions Section */}
+          <div style={{ marginBottom: 32 }}>
+            <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.3em', marginBottom: 16 }}>Tactical Stance</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
               {[
                 { id: 'AGREE', label: 'Agree', icon: ThumbsUp, color: '#34d399' },
                 { id: 'DISAGREE', label: 'Disagree', icon: ThumbsDown, color: '#f43f5e' },
                 { id: 'ALTERNATIVE', label: 'Alternative', icon: Zap, color: '#3b82f6' },
                 { id: 'WATCH_ONLY', label: 'Watch Only', icon: ShieldAlert, color: '#94a3b8' },
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => {
-                    setStance(s.id as any)
-                    handleVote(s.id as any)
-                  }}
-                  className={`flex flex-col items-center justify-center min-h-[72px] rounded border transition-all relative group ${
-                    (userVote?.stance === s.id || stance === s.id)
-                      ? `bg-[${s.color}]22 border-[${s.color}] shadow-[0_0_15px_${s.color}22]` 
-                      : 'bg-[#030812] border-[#1e293b] hover:border-[#334155]'
-                  }`}
-                  style={{
-                    backgroundColor: (userVote?.stance === s.id || stance === s.id) ? `${s.color}15` : undefined,
-                    borderColor: (userVote?.stance === s.id || stance === s.id) ? s.color : undefined
-                  }}
-                >
-                  <s.icon className={`w-5 h-5 mb-2 transition-transform group-hover:scale-110`} style={{ color: s.color }} />
-                  <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: s.color }}>{s.label}</span>
-                  {(userVote?.stance === s.id) && (
-                    <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.color }} />
-                  )}
-                </button>
-              ))}
+              ].map((s) => {
+                const isActive = (userVote?.stance === s.id || stance === s.id)
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => { setStance(s.id as any); handleVote(s.id as any); }}
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px',
+                      borderRadius: 6, border: '1px solid', transition: 'all 0.2s ease', cursor: 'pointer',
+                      background: isActive ? `${s.color}15` : '#030812',
+                      borderColor: isActive ? s.color : '#1e293b',
+                      boxShadow: isActive ? `0 0 15px ${s.color}22` : 'none',
+                    }}
+                  >
+                    <s.icon size={20} color={s.color} style={{ marginBottom: 8 }} />
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 900, color: s.color, textTransform: 'uppercase', letterSpacing: '0.2em' }}>{s.label}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
           {/* Alternative Action Select */}
           {stance === 'ALTERNATIVE' && (
-            <div className="space-y-3 animate-in slide-in-from-top-2 duration-300 bg-[#3b82f6]/5 p-4 rounded border border-[#3b82f6]/20">
-              <label className="text-[9px] font-black text-[#3b82f6] uppercase tracking-[0.2em] block">Proposed Tactical Shift</label>
+            <div style={{ marginBottom: 32, padding: 16, background: 'rgba(59,130,246,0.05)', borderRadius: 6, border: '1px solid rgba(59,130,246,0.2)' }}>
+              <label style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 900, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.2em', display: 'block', marginBottom: 12 }}>Proposed Tactical Shift</label>
               <select
                 value={coachAction}
                 onChange={(e) => setCoachAction(e.target.value as CoachDecisionAction)}
-                className="w-full bg-[#030812] border border-[#1e293b] rounded py-2.5 px-4 text-[11px] text-white focus:outline-none focus:border-[#3b82f6] font-mono appearance-none"
-                style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23475569\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
+                style={{ width: '100%', background: '#030812', border: '1px solid #1e293b', borderRadius: 4, padding: '10px 16px', color: '#fff', fontFamily: 'var(--font-mono)', fontSize: 11, outline: 'none' }}
               >
                 {availableActions.map(action => (
                   <option key={action} value={action}>{action.replace(/_/g, ' ')}</option>
@@ -201,35 +192,33 @@ export default function KeyboardCoachesPanel({ matchId, league, user, onAuthRequ
             </div>
           )}
 
-          {/* 3. Auth Hint / Comment Form */}
-          <div className="space-y-4">
+          {/* 3. Comment Form */}
+          <div style={{ marginBottom: 40 }}>
             {!user ? (
-              <div className="bg-[#1e293b]/20 border border-[#1e293b] p-4 rounded-lg flex items-center justify-between gap-4">
-                <p className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-wider">
+              <div style={{ background: 'rgba(30,41,59,0.2)', border: '1px solid #1e293b', padding: 16, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0 }}>
                   Log in to post tactical signals and reasoning.
                 </p>
                 <button 
                   onClick={onAuthRequired}
-                  className="whitespace-nowrap px-4 py-2 bg-[#3b82f6] text-white text-[10px] font-black uppercase tracking-widest rounded hover:bg-[#2563eb] transition-all shadow-lg"
+                  style={{ padding: '8px 16px', background: '#3b82f6', border: 'none', color: '#fff', fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', borderRadius: 4, cursor: 'pointer' }}
                 >
-                  Login Now
+                  Login
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSubmitComment} className="space-y-4 bg-[#030812] border border-[#1e293b] p-5 rounded-lg shadow-inner">
-                <div className="flex justify-between items-center px-1">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#1e293b] border border-[#334155] flex items-center justify-center">
-                      <User className="w-4 h-4 text-[#64748b]" />
+              <form onSubmit={handleSubmitComment} style={{ background: '#030812', border: '1px solid #1e293b', padding: 20, borderRadius: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#1e293b', border: '1px solid #334155', display: 'grid', placeItems: 'center' }}>
+                      <User size={14} color="#64748b" />
                     </div>
                     <div>
-                      <div className="text-[10px] font-black text-white tracking-widest">{user.displayName}</div>
-                      <div className="text-[8px] text-[#475569] font-black uppercase tracking-[0.2em]">REP_CRED: {user.reputation}</div>
+                      <div style={{ fontFamily: 'var(--font-inter)', fontSize: 11, fontWeight: 900, color: '#fff', letterSpacing: '0.05em' }}>{user.displayName}</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#475569', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em' }}>CREDIT: {user.reputation}</div>
                     </div>
                   </div>
-                  <div className="text-[9px] text-[#3b82f6] font-mono tracking-tighter bg-[#3b82f6]/10 px-2 py-0.5 rounded border border-[#3b82f6]/20">
-                    STATUS: READY
-                  </div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(59,130,246,0.2)' }}>READY</div>
                 </div>
 
                 <textarea
@@ -237,14 +226,14 @@ export default function KeyboardCoachesPanel({ matchId, league, user, onAuthRequ
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Enter tactical reasoning for your signal..."
                   disabled={loading}
-                  className="w-full bg-[#050b16] border border-[#1e293b] rounded p-4 text-[12px] text-[#e2e8f0] placeholder-[#334155] focus:outline-none focus:border-[#3b82f6] min-h-[100px] resize-none leading-relaxed transition-all"
+                  style={{ width: '100%', background: '#050b16', border: '1px solid #1e293b', borderRadius: 4, padding: 16, fontSize: 12, color: '#e2e8f0', minHeight: 100, resize: 'none', fontFamily: 'var(--font-inter)', outline: 'none' }}
                 />
                 
-                <div className="flex justify-end pt-1">
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
                   <button
                     type="submit"
                     disabled={loading || !commentText.trim()}
-                    className="bg-[#3b82f6] hover:bg-[#2563eb] disabled:opacity-30 text-white font-black py-2.5 px-10 rounded text-[11px] uppercase tracking-[0.2em] transition-all shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+                    style={{ background: '#3b82f6', border: 'none', color: '#fff', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 900, textTransform: 'uppercase', padding: '10px 32px', borderRadius: 4, cursor: 'pointer', opacity: (loading || !commentText.trim()) ? 0.3 : 1, transition: 'all 0.2s ease' }}
                   >
                     {loading ? 'TRANSMITTING...' : 'EMIT SIGNAL'}
                   </button>
@@ -253,56 +242,53 @@ export default function KeyboardCoachesPanel({ matchId, league, user, onAuthRequ
             )}
           </div>
 
-          {/* 4. Signal Stream 區 */}
-          <div className="space-y-6 pt-2">
-            <div className="flex items-center gap-4">
-              <h4 className="text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.3em] whitespace-nowrap">Signal Stream</h4>
-              <div className="h-px w-full bg-gradient-to-r from-[#1e293b] to-transparent" />
+          {/* 4. Signal Stream Section */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+              <h4 style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.3em', whiteSpace: 'nowrap', margin: 0 }}>Signal Stream</h4>
+              <div style={{ height: 1, width: '100%', background: 'linear-gradient(90deg, #1e293b, transparent)' }} />
             </div>
 
             {comments.length === 0 ? (
-              <div className="bg-[#030812] border border-[#1e293b] rounded-xl py-12 flex flex-col items-center justify-center space-y-3 opacity-60">
-                <MessageSquare className="w-8 h-8 text-[#1e293b]" />
-                <p className="text-[10px] text-[#475569] font-black uppercase tracking-[0.25em]">No active signals for this match.</p>
+              <div style={{ padding: '40px 0', textAlign: 'center', opacity: 0.5 }}>
+                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#475569', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em' }}>No active signals detected.</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {comments.map((comment) => (
-                  <div key={comment.id} className="bg-[#030812] border border-[#1e293b] rounded-xl p-5 space-y-3 relative overflow-hidden group hover:border-[#334155] transition-all hover:shadow-xl">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#0a1224] border border-[#1e293b] flex items-center justify-center text-[10px] font-black text-[#3b82f6]">
+                  <div key={comment.id} style={{ background: '#030812', border: '1px solid #1e293b', borderRadius: 8, padding: 20, transition: 'all 0.2s ease' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#0a1224', border: '1px solid #1e293b', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 900, color: '#3b82f6' }}>
                           {comment.user.displayName[0].toUpperCase()}
                         </div>
                         <div>
-                          <span className="text-[11px] font-black text-white tracking-tight">{comment.user.displayName}</span>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[8px] bg-[#1e293b] text-[#64748b] px-1.5 py-0.5 rounded uppercase font-black tracking-widest border border-[#334155]">REP: {comment.user.reputation}</span>
-                          </div>
+                          <div style={{ fontFamily: 'var(--font-inter)', fontSize: 11, fontWeight: 900, color: '#fff' }}>{comment.user.displayName}</div>
+                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#475569', fontWeight: 900, marginTop: 2 }}>CRED: {comment.user.reputation}</div>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1.5">
-                         <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${
-                           comment.stance === 'AGREE' ? 'bg-[#34d399]/5 border-[#34d399]/30 text-[#34d399]' :
-                           comment.stance === 'DISAGREE' ? 'bg-[#f43f5e]/5 border-[#f43f5e]/30 text-[#f43f5e]' :
-                           comment.stance === 'ALTERNATIVE' ? 'bg-[#3b82f6]/5 border-[#3b82f6]/30 text-[#3b82f6]' :
-                           'bg-[#475569]/5 border-[#475569]/30 text-[#475569]'
-                         }`}>
-                           {comment.stance}
-                         </span>
-                         <span className="text-[8px] text-[#475569] font-mono font-bold">
-                           {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                         </span>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{
+                          display: 'inline-block', padding: '3px 10px', borderRadius: 10, fontSize: 9, fontWeight: 900, border: '1px solid', textTransform: 'uppercase', letterSpacing: '0.1em',
+                          color: comment.stance === 'AGREE' ? '#34d399' : comment.stance === 'DISAGREE' ? '#f43f5e' : '#3b82f6',
+                          borderColor: comment.stance === 'AGREE' ? 'rgba(52,211,153,0.3)' : comment.stance === 'DISAGREE' ? 'rgba(244,63,94,0.3)' : 'rgba(59,130,246,0.3)',
+                          background: comment.stance === 'AGREE' ? 'rgba(52,211,153,0.05)' : comment.stance === 'DISAGREE' ? 'rgba(244,63,94,0.05)' : 'rgba(59,130,246,0.05)',
+                        }}>
+                          {comment.stance}
+                        </span>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#334155', marginTop: 4 }}>
+                          {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
                     </div>
                     
                     {comment.coachAction && (
-                       <div className="text-[9px] text-[#3b82f6] font-mono font-black tracking-[0.1em] bg-[#3b82f6]/5 px-3 py-1.5 rounded-lg border border-[#3b82f6]/10 inline-block">
+                       <div style={{ marginBottom: 12, padding: '4px 10px', background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.1)', borderRadius: 4, display: 'inline-block', fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 900, color: '#3b82f6', letterSpacing: '0.05em' }}>
                          ACTION: {comment.coachAction.replace(/_/g, ' ')}
                        </div>
                     )}
 
-                    <p className="text-[12px] text-[#94a3b8] leading-relaxed font-medium">
+                    <p style={{ margin: 0, fontSize: 12, color: '#94a3b8', lineHeight: 1.6, fontFamily: 'var(--font-inter)' }}>
                       {comment.commentText}
                     </p>
                   </div>

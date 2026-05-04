@@ -79,109 +79,104 @@ export default function DataChallengePanel({ matchId, user, onAuthRequired }: Pr
   }
 
   return (
-    <div className="bg-[#050b16] border border-[#1e293b] rounded-lg overflow-hidden shadow-2xl mt-12 mb-12">
+    <div style={{ background: '#050b16', border: '1px solid #1e293b', borderRadius: 8, overflow: 'hidden', marginTop: 32, marginBottom: 32 }}>
       <div 
-        className="flex items-center justify-between px-5 py-5 bg-[#0a1224] border-b border-[#1e293b] cursor-pointer group hover:bg-[#0c162b] transition-colors"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#0a1224', borderBottom: '1px solid #1e293b', cursor: 'pointer' }}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 bg-[#f43f5e]/10 rounded border border-[#f43f5e]/20">
-            <ShieldAlert className="w-4 h-4 text-[#f43f5e]" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ padding: '6px', background: 'rgba(244,63,94,0.1)', borderRadius: 4, border: '1px solid rgba(244,63,94,0.2)' }}>
+            <ShieldAlert size={14} color="#f43f5e" />
           </div>
           <div>
-            <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Data Challenge</h3>
+            <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.25em', margin: 0 }}>Data Challenge</h3>
             {reportCount > 0 && (
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#f43f5e] animate-pulse" />
-                <span className="text-[9px] font-black text-[#f43f5e] uppercase tracking-widest">{reportCount} PENDING ANOMALIES REPORTED</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#f43f5e', boxShadow: '0 0 8px #f43f5e' }} />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#f43f5e', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em' }}>{reportCount} PENDING ANOMALIES</span>
               </div>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-[9px] text-[#475569] font-black uppercase tracking-[0.2em] group-hover:text-[#64748b] transition-colors hidden sm:block">
-            Found an integrity issue?
-          </span>
-          {isExpanded ? <ChevronUp className="w-4 h-4 text-[#475569]" /> : <ChevronDown className="w-4 h-4 text-[#475569]" />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {!isMobile && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#475569', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Found an integrity issue?</span>
+          )}
+          {isExpanded ? <ChevronUp size={16} color="#475569" /> : <ChevronDown size={16} color="#475569" />}
         </div>
       </div>
 
       {isExpanded && (
-        <div className="p-6 space-y-6 bg-[#030812]/50">
+        <div style={{ padding: 24, background: 'rgba(3,8,18,0.5)' }}>
           {submitted ? (
-            <div className="py-12 flex flex-col items-center justify-center space-y-4 animate-in fade-in zoom-in duration-500">
-              <div className="p-4 bg-[#34d399]/10 rounded-full border border-[#34d399]/20">
-                <CheckCircle2 className="w-12 h-12 text-[#34d399]" />
+            <div style={{ padding: '48px 0', textAlign: 'center', animation: 'fade-in 0.5s ease' }}>
+              <div style={{ width: 64, height: 64, background: 'rgba(52,211,153,0.1)', borderRadius: '50%', border: '1px solid rgba(52,211,153,0.2)', display: 'grid', placeItems: 'center', margin: '0 auto 24px' }}>
+                <CheckCircle2 size={32} color="#34d399" />
               </div>
-              <div className="text-center">
-                <p className="text-[12px] font-black text-white uppercase tracking-[0.3em]">Integrity Signal Transmitted</p>
-                <p className="text-[10px] text-[#64748b] font-bold uppercase tracking-widest mt-2">Analysis engine will recalibrate data confidence.</p>
-              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.3em' }}>Integrity Signal Transmitted</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', marginTop: 8 }}>Recalibrating data confidence...</div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-[#64748b] uppercase tracking-[0.2em] px-1">Issue Classification</label>
-                  <div className="relative">
-                    <select
-                      value={reportType}
-                      onChange={(e) => setReportType(e.target.value as ReportType)}
-                      className="w-full bg-[#050b16] border border-[#1e293b] rounded-lg py-3 px-4 text-[11px] text-white focus:outline-none focus:border-[#f43f5e] appearance-none transition-all"
-                      style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23475569\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
-                    >
-                      <option value="WRONG_PLAYER_TEAM">Wrong Player/Team Mapping</option>
-                      <option value="WRONG_ROSTER">Roster Integrity Error</option>
-                      <option value="WRONG_SCORE_STATUS">Score / Clock Sync Issue</option>
-                      <option value="WRONG_JERSEY">Jersey Number Mismatch</option>
-                      <option value="WRONG_LOGO">Visual Asset Error</option>
-                      <option value="BAD_COACH_DECISION">Nonsensical Coach Suggestion</option>
-                      <option value="UI_BUG">Interface Anomaly</option>
-                      <option value="OTHER">Other System Integrity Issue</option>
-                    </select>
-                  </div>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.2em' }}>Issue Classification</label>
+                  <select
+                    value={reportType}
+                    onChange={(e) => setReportType(e.target.value as ReportType)}
+                    style={{ background: '#050b16', border: '1px solid #1e293b', borderRadius: 4, padding: '12px 16px', color: '#fff', fontFamily: 'var(--font-mono)', fontSize: 11, outline: 'none' }}
+                  >
+                    <option value="WRONG_PLAYER_TEAM">Wrong Player/Team Mapping</option>
+                    <option value="WRONG_ROSTER">Roster Integrity Error</option>
+                    <option value="WRONG_SCORE_STATUS">Score / Clock Sync Issue</option>
+                    <option value="WRONG_JERSEY">Jersey Number Mismatch</option>
+                    <option value="WRONG_LOGO">Visual Asset Error</option>
+                    <option value="BAD_COACH_DECISION">Nonsensical Coach Suggestion</option>
+                    <option value="UI_BUG">Interface Anomaly</option>
+                    <option value="OTHER">Other System Integrity Issue</option>
+                  </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-[#64748b] uppercase tracking-[0.2em] px-1">Subject (Optional)</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <label style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.2em' }}>Subject (Optional)</label>
                   <input
                     type="text"
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
                     placeholder="e.g. LeBron James / Team / Action ID"
-                    className="w-full bg-[#050b16] border border-[#1e293b] rounded-lg py-3 px-4 text-[11px] text-white placeholder-[#334155] focus:outline-none focus:border-[#f43f5e] transition-all"
+                    style={{ background: '#050b16', border: '1px solid #1e293b', borderRadius: 4, padding: '12px 16px', color: '#fff', fontFamily: 'var(--font-mono)', fontSize: 11, outline: 'none' }}
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-[#64748b] uppercase tracking-[0.2em] px-1">Integrity Payload / Correction</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.2em' }}>Integrity Payload / Correction</label>
                 <input
                   type="text"
                   value={suggestedValue}
                   onChange={(e) => setSuggestedValue(e.target.value)}
                   placeholder="e.g. Current score 112-108, expected 112-110"
-                  className="w-full bg-[#050b16] border border-[#1e293b] rounded-lg py-3 px-4 text-[11px] text-white placeholder-[#334155] focus:outline-none focus:border-[#f43f5e] transition-all"
+                  style={{ background: '#050b16', border: '1px solid #1e293b', borderRadius: 4, padding: '12px 16px', color: '#fff', fontFamily: 'var(--font-mono)', fontSize: 11, outline: 'none' }}
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-[#64748b] uppercase tracking-[0.2em] px-1">Discrepancy Description (Required)</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <label style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.2em' }}>Discrepancy Description (Required)</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   required
                   placeholder="Describe the data anomaly in detail for arbitration..."
-                  className="w-full bg-[#050b16] border border-[#1e293b] rounded-lg p-4 text-[12px] text-[#e2e8f0] placeholder-[#334155] focus:outline-none focus:border-[#f43f5e] min-h-[120px] resize-none leading-relaxed transition-all"
+                  style={{ background: '#050b16', border: '1px solid #1e293b', borderRadius: 4, padding: 16, fontSize: 12, color: '#e2e8f0', minHeight: 120, resize: 'none', fontFamily: 'var(--font-inter)', outline: 'none' }}
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-4 border-t border-[#1e293b]">
-                <div className="flex items-center gap-3 text-[#475569]">
-                  <div className="p-1 bg-[#f43f5e]/5 rounded border border-[#f43f5e]/10">
-                    <AlertTriangle className="w-4 h-4 text-[#f43f5e]" />
+              <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 24, paddingTop: 24, borderTop: '1px solid #1e293b' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#475569' }}>
+                  <div style={{ padding: '4px', background: 'rgba(244,63,94,0.05)', borderRadius: 4, border: '1px solid rgba(244,63,94,0.1)' }}>
+                    <AlertTriangle size={14} color="#f43f5e" />
                   </div>
-                  <span className="text-[9px] uppercase tracking-[0.15em] font-black max-w-[280px]">
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', maxWidth: 300 }}>
                     Note: Challenges trigger a lower data confidence flag for this match across the network.
                   </span>
                 </div>
@@ -189,20 +184,20 @@ export default function DataChallengePanel({ matchId, user, onAuthRequired }: Pr
                 <button
                   type="submit"
                   disabled={loading || !description.trim() || !user}
-                  className="bg-[#f43f5e] hover:bg-[#e11d48] disabled:opacity-30 text-white font-black py-3 px-10 rounded-lg text-[11px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(244,63,94,0.2)]"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f43f5e', border: 'none', color: '#fff', fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', padding: '12px 24px', borderRadius: 4, cursor: 'pointer', opacity: (loading || !description.trim() || !user) ? 0.3 : 1, transition: 'all 0.2s ease' }}
                 >
                   {loading ? 'TRANSMITTING...' : 'SUBMIT CHALLENGE'}
-                  <Send className="w-3.5 h-3.5" />
+                  <Send size={12} />
                 </button>
               </div>
 
               {!user && (
-                <div className="bg-[#f43f5e]/5 border border-[#f43f5e]/10 p-5 rounded-xl text-center shadow-inner">
-                  <p className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-widest mb-3">Authentication required to submit data integrity signals.</p>
+                <div style={{ background: 'rgba(244,63,94,0.05)', border: '1px solid rgba(244,63,94,0.1)', padding: 20, borderRadius: 8, textAlign: 'center' }}>
+                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Authentication required to submit data integrity signals.</p>
                   <button 
                     type="button"
                     onClick={onAuthRequired}
-                    className="text-[11px] text-[#f43f5e] font-black uppercase tracking-[0.25em] hover:text-[#fb7185] transition-colors"
+                    style={{ background: 'none', border: 'none', color: '#f43f5e', fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', cursor: 'pointer' }}
                   >
                     LOGIN TO CONTRIBUTE →
                   </button>
@@ -214,9 +209,9 @@ export default function DataChallengePanel({ matchId, user, onAuthRequired }: Pr
       )}
 
       {reportCount > 5 && (
-        <div className="bg-[#f43f5e]/10 px-5 py-3 flex items-center gap-3 border-t border-[#f43f5e]/20">
-          <AlertTriangle className="w-4 h-4 text-[#f43f5e] shrink-0" />
-          <p className="text-[9px] text-[#f43f5e] uppercase font-black tracking-[0.15em] leading-relaxed">
+        <div style={{ background: 'rgba(244,63,94,0.1)', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 12, borderTop: '1px solid rgba(244,63,94,0.2)' }}>
+          <AlertTriangle size={14} color="#f43f5e" />
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#f43f5e', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
              ARBITRATION ALERT: Data layer for this match is under active review due to high signal density.
           </p>
         </div>
