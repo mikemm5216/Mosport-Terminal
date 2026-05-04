@@ -8,12 +8,10 @@ import { useMatchesContext, DataFreshnessBadge } from '../context/MatchesContext
 import { getCoachMetricLabels, leagueToSport } from '../lib/coachMetricLabels'
 import { PAGE_SHELL_STYLE, BREAKPOINTS } from '../lib/ui'
 import { leagueTheme, TeamMark, LeagueBadge, wpaColor, LiveDot, BioBar, RingGauge, TacticalLabel } from './ui'
-import { useAuth } from '../context/AuthContext'
 import AuthModal from './AuthModal'
 
 // ── Engagement Panel ───────────────────────────────────────────
 function EngagementPanel({ m, onClose }: { m: Match; onClose: () => void }) {
-  const { user } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
   const [view, setView] = useState<'PREDICT' | 'COMMENT'>('PREDICT')
   const [prediction, setPrediction] = useState<'HOME' | 'AWAY' | null>(null)
@@ -23,16 +21,24 @@ function EngagementPanel({ m, onClose }: { m: Match; onClose: () => void }) {
   const [success, setSuccess] = useState(false)
 
   const handlePredict = async () => {
-    if (!user) { setShowAuth(true); return }
-    if (!prediction) return
+    // For now, trigger AuthModal if we need a login context, 
+    // but allow the attempt to proceed if the user wants to test.
+    // Real auth check should happen via API response or session cookie.
     setSubmitting(true)
     try {
       const stance = prediction === 'HOME' ? 'AGREE' : 'DISAGREE'
       const confMap = { LOW: 33, MEDIUM: 66, HIGH: 99 }
-      await fetch(`/api/matches/${m.id}/coach-vote`, {
+      const res = await fetch(`/api/matches/${m.id}/coach-vote`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stance, confidence: confMap[confidence] })
       })
+      
+      if (res.status === 401 || res.status === 403) {
+        setShowAuth(true)
+        return
+      }
+
       setSuccess(true)
       setTimeout(onClose, 1500)
     } catch (err) {
@@ -43,18 +49,23 @@ function EngagementPanel({ m, onClose }: { m: Match; onClose: () => void }) {
   }
 
   const handleComment = async () => {
-    if (!user) { setShowAuth(true); return }
-    if (!commentText.trim()) return
     setSubmitting(true)
     try {
-      await fetch(`/api/matches/${m.id}/comments`, {
+      const res = await fetch(`/api/matches/${m.id}/comments`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           stance: 'WATCH_ONLY', 
           commentText: commentText.trim(),
           confidence: 50
         })
       })
+
+      if (res.status === 401 || res.status === 403) {
+        setShowAuth(true)
+        return
+      }
+
       setSuccess(true)
       setTimeout(onClose, 1500)
     } catch (err) {
@@ -841,8 +852,10 @@ export default function SchedulePage({ onOpen, onOpenLab }: { onOpen: (m: Match)
               key={m.id}
               m={m}
               expanded={expandedId === m.id}
-              onToggle={() => setExpandedId(expandedId === m.id ? null : m.id)}
+              onToggle={() => { setExpandedId(expandedId === m.id ? null : m.id); setEngagementId(null) }}
               onOpen={onOpen}
+              engagementId={engagementId}
+              onEngage={setEngagementId}
             />
           ))}
         </div>
