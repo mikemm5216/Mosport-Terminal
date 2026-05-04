@@ -16,5 +16,6 @@ data/
 backtest_results.txt
 *.json
 !package.json
-prisma/
+!package-lock.json
+# prisma/
 tmp/
