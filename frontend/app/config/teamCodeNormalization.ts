@@ -11,7 +11,7 @@ const TEAM_CODE_NORMALIZATION: Record<LeagueCode, Record<string, string>> = {
   EPL: {
     NFO: 'NFO', NOT: 'NFO', NOTTINGHAM_FOREST: 'NFO',
     SUN: 'SUN', MUN: 'MUN', MAN_UNITED: 'MUN', MANCHESTER_UNITED: 'MUN',
-    MCI: 'MCI', MAN_CITY: 'MCI', MANCHESTER_CITY: 'MCI',
+    MCI: 'MCI', MNC: 'MCI', MAN_CITY: 'MCI', MANCHESTER_CITY: 'MCI',
     TOT: 'TOT', SPURS: 'TOT', TOTTENHAM: 'TOT',
     ARS: 'ARS', LIV: 'LIV', CHE: 'CHE',
   },

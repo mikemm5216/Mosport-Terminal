@@ -33,14 +33,7 @@ function normalizePair(a: string, b: string): [string, string] {
  * getSeriesStateFromCompletedGames
  *
  * Given a list of Match objects, count wins per team for each series
- * identified by the (teamA, teamB) pair.
- *
- * Rules:
- *  - Only considers status === 'FINAL' games (score is authoritative)
- *  - A game is won by whoever scored more
- *  - Ties are skipped (shouldn't happen in NBA/NHL)
- *
- * Returns a map keyed by `${normalizedTeamA}_${normalizedTeamB}`.
+ * identified by the (teamA, teamB) pair and league.
  */
 export function getSeriesStateFromCompletedGames(
   games: Match[]
@@ -48,11 +41,11 @@ export function getSeriesStateFromCompletedGames(
   const map = new Map<string, SeriesState>()
 
   const completed = games.filter(
-    (g) => g.status === 'FINAL' && g.score != null
+    (g) => g.status === 'FINAL' && g.score != null && (g.seasonType === 'postseason' || g.playoff != null)
   )
 
   for (const game of completed) {
-    const { home, away, score } = game
+    const { home, away, score, league } = game
     if (!score) continue
 
     const homeWon = score.home > score.away
@@ -60,10 +53,23 @@ export function getSeriesStateFromCompletedGames(
     if (!homeWon && !awayWon) continue   // tie — skip
 
     const winner = homeWon ? home.abbr : away.abbr
-    const loser  = homeWon ? away.abbr : home.abbr
-
     const [a, b] = normalizePair(home.abbr, away.abbr)
-    const key = `${a}_${b}`
+    
+    // Priority Season Extraction: game.season -> game.seasonYear -> parse ID -> default
+    let season = game.season || game.seasonYear?.toString()
+    
+    if (!season) {
+      // Fallback: parse ID if format league_year_... is detected
+      const parts = game.id.split('_')
+      if (parts[1]?.length === 4 && !isNaN(Number(parts[1]))) {
+        season = parts[1]
+      } else {
+        season = '2026' // documented default
+      }
+    }
+    
+    const playoffRound = game.playoff?.round || '1'
+    const key = `${league}_${season}_${playoffRound}_${a}_${b}`
 
     if (!map.has(key)) {
       map.set(key, {
@@ -79,7 +85,8 @@ export function getSeriesStateFromCompletedGames(
     const state = map.get(key)!
     if (winner === a) state.teamAWins++
     else state.teamBWins++
-    // keep the id of last game seen (games aren't dated so we use id as proxy)
+    
+    // keep the id of last game seen
     state.lastUpdated = game.id
   }
 
@@ -91,38 +98,42 @@ export function getSeriesStateFromCompletedGames(
  *
  * Given a BracketSeries-like key and the completed-games map,
  * return the real wins if available, else fall back to the seed values.
- *
- * @param homeAbbr   - home team abbreviation
- * @param awayAbbr   - away team abbreviation
- * @param seedHome   - winsHome from static bracket data (fallback)
- * @param seedAway   - winsAway from static bracket data (fallback)
- * @param liveMap    - result of getSeriesStateFromCompletedGames
  */
 export function resolveSeriesWins(
   homeAbbr: string,
   awayAbbr: string,
   seedHome: number,
   seedAway: number,
-  liveMap: Map<string, SeriesState>
-): { winsHome: number; winsAway: number; source: SeriesState['source'] } {
+  liveMap: Map<string, SeriesState>,
+  league: string,
+  season: string = '2026',
+  round: string | number = '1'
+): { winsHome: number; winsAway: number; source: SeriesState['source']; isComplete: boolean; winner?: string } {
   const [a, b] = normalizePair(homeAbbr, awayAbbr)
-  const key = `${a}_${b}`
+  const key = `${league}_${season}_${round}_${a}_${b}`
   const live = liveMap.get(key)
+
+  let winsHome = seedHome
+  let winsAway = seedAway
+  let source: SeriesState['source'] = 'simulation_seed'
 
   if (live) {
     // map teamA/B back to home/away
-    const winsHome = homeAbbr === a ? live.teamAWins : live.teamBWins
-    const winsAway = awayAbbr === b ? live.teamBWins : live.teamAWins
-    return { winsHome, winsAway, source: 'live_completed_games' }
+    winsHome = homeAbbr === a ? live.teamAWins : live.teamBWins
+    winsAway = awayAbbr === b ? live.teamBWins : live.teamAWins
+    source = 'live_completed_games'
   }
 
-  return { winsHome: seedHome, winsAway: seedAway, source: 'simulation_seed' }
+  const isComplete = winsHome >= 4 || winsAway >= 4
+  const winner = isComplete ? (winsHome >= 4 ? homeAbbr : awayAbbr) : undefined
+
+  return { winsHome, winsAway, source, isComplete, winner }
 }
 
 // ── Smoke test (pure functions, runs at import time in dev) ───────────────
 
 if (process.env.NODE_ENV !== 'production') {
-  function makeGame(id: string, homeAbbr: string, awayAbbr: string, homeScore: number, awayScore: number): Match {
+  function makeGame(id: string, homeAbbr: string, awayAbbr: string, homeScore: number, awayScore: number, round: string = '1'): Match {
     return {
       id,
       league: 'NBA',
@@ -131,6 +142,8 @@ if (process.env.NODE_ENV !== 'production') {
       home: { abbr: homeAbbr, name: homeAbbr, city: homeAbbr },
       away: { abbr: awayAbbr, name: awayAbbr, city: awayAbbr },
       score: { home: homeScore, away: awayScore },
+      seasonType: 'postseason',
+      playoff: { round, summary: '', seriesWins: { home: 0, away: 0 } },
       baseline_win: 0.5,
       physio_adjusted: 0.5,
       wpa: 0,
@@ -144,13 +157,13 @@ if (process.env.NODE_ENV !== 'production') {
 
   // Test 1: OKC vs PHX — OKC wins 2, PHX wins 2 → series 2-2
   const test1Games: Match[] = [
-    makeGame('g1', 'OKC', 'PHX', 110, 100),  // OKC wins
-    makeGame('g2', 'OKC', 'PHX', 95, 102),   // PHX wins
-    makeGame('g3', 'PHX', 'OKC', 108, 101),  // PHX wins (home = PHX)
-    makeGame('g4', 'PHX', 'OKC', 99, 115),   // OKC wins (away)
+    makeGame('nba_2026_okc_phx_g1', 'OKC', 'PHX', 110, 100),  // OKC wins
+    makeGame('nba_2026_okc_phx_g2', 'OKC', 'PHX', 95, 102),   // PHX wins
+    makeGame('nba_2026_phx_okc_g3', 'PHX', 'OKC', 108, 101),  // PHX wins (home = PHX)
+    makeGame('nba_2026_phx_okc_g4', 'PHX', 'OKC', 99, 115),   // OKC wins (away)
   ]
   const map1 = getSeriesStateFromCompletedGames(test1Games)
-  const r1 = resolveSeriesWins('OKC', 'PHX', 0, 0, map1)
+  const r1 = resolveSeriesWins('OKC', 'PHX', 0, 0, map1, 'NBA', '2026', '1')
   console.assert(r1.winsHome === 2 && r1.winsAway === 2,
     `[seriesState] FAIL test1: OKC-PHX expected 2-2, got ${r1.winsHome}-${r1.winsAway}`)
   if (r1.winsHome === 2 && r1.winsAway === 2)
@@ -158,14 +171,14 @@ if (process.env.NODE_ENV !== 'production') {
 
   // Test 2: DET vs ORL — DET wins 3, ORL wins 2 → series 3-2
   const test2Games: Match[] = [
-    makeGame('g1', 'DET', 'ORL', 102, 95),   // DET wins
-    makeGame('g2', 'DET', 'ORL', 88, 97),    // ORL wins
-    makeGame('g3', 'ORL', 'DET', 103, 99),   // ORL wins (home = ORL)
-    makeGame('g4', 'ORL', 'DET', 91, 108),   // DET wins (away)
-    makeGame('g5', 'DET', 'ORL', 115, 104),  // DET wins
+    makeGame('nba_2026_det_orl_g1', 'DET', 'ORL', 102, 95),   // DET wins
+    makeGame('nba_2026_det_orl_g2', 'DET', 'ORL', 88, 97),    // ORL wins
+    makeGame('nba_2026_orl_det_g3', 'ORL', 'DET', 103, 99),   // ORL wins (home = ORL)
+    makeGame('nba_2026_orl_det_g4', 'ORL', 'DET', 91, 108),   // DET wins (away)
+    makeGame('nba_2026_det_orl_g5', 'DET', 'ORL', 115, 104),  // DET wins
   ]
   const map2 = getSeriesStateFromCompletedGames(test2Games)
-  const r2 = resolveSeriesWins('DET', 'ORL', 0, 0, map2)
+  const r2 = resolveSeriesWins('DET', 'ORL', 0, 0, map2, 'NBA', '2026', '1')
   console.assert(r2.winsHome === 3 && r2.winsAway === 2,
     `[seriesState] FAIL test2: DET-ORL expected 3-2, got ${r2.winsHome}-${r2.winsAway}`)
   if (r2.winsHome === 3 && r2.winsAway === 2)

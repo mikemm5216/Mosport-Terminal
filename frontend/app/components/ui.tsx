@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { League, TacticalLabel } from '../data/mockData'
 import { LEAGUE_THEMES, TEAM_COLORS } from '../data/mockData'
-import { getTeamLogo, TEAM_LOGO_FALLBACK } from '../lib/teamLogoResolver'
+import { resolveTeamLogo, TEAM_LOGO_FALLBACK } from '../lib/teamLogoResolver'
 
 // ── League theme helper ────────────────────────────────────────
 export function leagueTheme(league: League) {
@@ -60,10 +60,22 @@ function logoPath(league: League | undefined, abbr: string): string | null {
 }
 
 // ── Team mark (real logo or monogram tile) ─────────────────────
-export function TeamMark({ abbr, league, size = 48 }: { abbr: string; league?: League; size?: number }) {
+export function TeamMark({ 
+  abbr, 
+  league, 
+  size = 48,
+  teamId,
+  displayName
+}: { 
+  abbr: string; 
+  league?: League; 
+  size?: number;
+  teamId?: string | number;
+  displayName?: string;
+}) {
   const [imageError, setImageError] = useState(false)
   const color = teamColor(abbr)
-  const src = league ? getTeamLogo(league, abbr) : null
+  const src = league ? resolveTeamLogo({ league, abbreviation: abbr, teamId, displayName }) : null
 
   useEffect(() => {
     setImageError(false)
@@ -81,7 +93,8 @@ export function TeamMark({ abbr, league, size = 48 }: { abbr: string; league?: L
           console.warn('[logo-missing]', {
             league,
             rawCode: abbr,
-            normalizedCode: abbr,
+            teamId,
+            displayName,
             canonicalKey: league ? `${league}_${abbr}` : '',
             expectedPath: src,
           })
