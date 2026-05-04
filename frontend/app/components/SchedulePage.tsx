@@ -627,9 +627,20 @@ function GameBar({ m, expanded, onToggle, onOpen, engagementId, onEngage }: {
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8 }}>
-            <div onClick={(e) => { e.stopPropagation(); onEngage(isEngaging ? null : m.id) }} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: isEngaging ? "#fff" : t.hex, letterSpacing: "0.25em", fontWeight: 900 }}>{isEngaging ? "CLOSE ENGAGE ↑" : "ENGAGE INTEL →"}</span>
-            </div>
+            <button 
+              onClick={(e) => { e.stopPropagation(); onEngage(isEngaging ? null : m.id) }} 
+              style={{ 
+                display: "flex", alignItems: "center", gap: 10,
+                background: isEngaging ? "#22d3ee" : "rgba(34,211,238,0.08)",
+                border: `1px solid ${isEngaging ? "#22d3ee" : "rgba(34,211,238,0.2)"}`,
+                padding: "6px 14px", borderRadius: 4, cursor: "pointer",
+                transition: "all 0.2s ease"
+              }}
+            >
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: isEngaging ? "#020617" : "#22d3ee", letterSpacing: "0.15em", fontWeight: 900 }}>
+                {isEngaging ? "CLOSE ENGAGE ↑" : "ENGAGE"}
+              </span>
+            </button>
             <span style={{
               color: expanded ? t.hex : "#334155",
               fontSize: 18, transition: "transform 200ms",
@@ -760,7 +771,7 @@ export default function SchedulePage({ onOpen, onOpenLab }: { onOpen: (m: Match)
   const [engagementId, setEngagementId] = useState<string | null>(null)
   const [filter, setFilter] = useState<"ALL" | League>("ALL")
   const [selectedDate, setSelectedDate] = useState(todayISO())
-  const { matches: allMatches, loading, error, dataFreshness } = useMatchesContext()
+  const { matches: allMatches, loading, error, dataFreshness, fallbackUsed, sourceProvider, refresh } = useMatchesContext()
   const w = useWindowWidth()
   const isMobile = w < BREAKPOINTS.mobile
 
@@ -818,6 +829,13 @@ export default function SchedulePage({ onOpen, onOpenLab }: { onOpen: (m: Match)
               background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)",
               color: "#f97316", fontWeight: 900, fontSize: 9
             }}>ARCHIVE_MODE</span>
+          )}
+          {fallbackUsed && (
+            <span style={{
+              padding: "4px 12px", borderRadius: 4,
+              background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
+              color: "#ef4444", fontWeight: 900, fontSize: 9
+            }}>DEGRADED_MODE: {sourceProvider?.toUpperCase()} ONLY</span>
           )}
         </div>
 
@@ -881,12 +899,53 @@ export default function SchedulePage({ onOpen, onOpenLab }: { onOpen: (m: Match)
 
         {filtered.length === 0 && (
           <div style={{
-            padding: "100px 24px", border: "1px dashed rgba(148,163,184,0.15)",
+            padding: "80px 24px", border: "1px dashed rgba(148,163,184,0.15)",
             borderRadius: 12, textAlign: "center",
-            fontFamily: "var(--font-mono), monospace", fontSize: 12,
-            color: "#475569", letterSpacing: "0.4em", fontWeight: 900,
+            background: "rgba(15,23,42,0.2)",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 24
           }}>
-            [ NO SIGNAL DATA FOR THIS DATE ]
+            <div style={{
+              fontFamily: "var(--font-mono), monospace", fontSize: 12,
+              color: "#475569", letterSpacing: "0.4em", fontWeight: 900,
+            }}>
+              [ {loading ? "INITIALIZING DATA STREAM..." : "NO SIGNAL DATA FOR THIS DATE"} ]
+            </div>
+            
+            {!loading && (
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 16 }}>
+                {availableDates.length > 0 && selectedDate !== availableDates[availableDates.length - 1] && (
+                  <button 
+                    onClick={() => setSelectedDate(availableDates[availableDates.length - 1])}
+                    style={{
+                      padding: "10px 20px", background: "rgba(34,211,238,0.1)", border: "1px solid rgba(34,211,238,0.3)",
+                      borderRadius: 6, color: "#22d3ee", fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 900, cursor: "pointer"
+                    }}
+                  >JUMP TO LATEST DATA</button>
+                )}
+                <button 
+                  onClick={() => refresh()}
+                  style={{
+                    padding: "10px 20px", background: "rgba(148,163,184,0.1)", border: "1px solid rgba(148,163,184,0.3)",
+                    borderRadius: 6, color: "#94a3b8", fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 900, cursor: "pointer"
+                  }}
+                >RETRY CONNECTION</button>
+                <button 
+                  onClick={() => onOpenLab?.()}
+                  style={{
+                    padding: "10px 20px", background: "none", border: "1px solid rgba(71,85,105,0.3)",
+                    borderRadius: 6, color: "#475569", fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 900, cursor: "pointer"
+                  }}
+                >OPEN LAB DIAGNOSTICS</button>
+              </div>
+            )}
+
+            {fallbackUsed && !loading && (
+              <div style={{ maxWidth: 500, fontFamily: "var(--font-inter)", fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>
+                <span style={{ color: "#ef4444", fontWeight: 800 }}>NOTICE:</span> Primary intelligence feeds (OddsAPI) are currently unavailable. 
+                The terminal is running in <span style={{ color: "#e2e8f0" }}>DEGRADED MODE</span> using ESPN baseline data only. 
+                Some tactical projections may be limited.
+              </div>
+            )}
           </div>
         )}
       </div>

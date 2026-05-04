@@ -9,16 +9,18 @@ export type DataFreshness = 'live' | 'recent' | 'stale' | 'offline'
 type MatchesState = {
   matches: Match[]
   loading: boolean
-  error: string | null
   dataFreshness: DataFreshness
+  sourceProvider: string | null
+  fallbackUsed: boolean
   refresh: () => void
 }
 
 const MatchesContext = createContext<MatchesState>({
   matches: [],
   loading: true,
-  error: null,
   dataFreshness: 'offline',
+  sourceProvider: null,
+  fallbackUsed: false,
   refresh: () => {},
 })
 
@@ -82,6 +84,8 @@ export function MatchesProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastSuccessAt, setLastSuccessAt] = useState<number | null>(null)
+  const [sourceProvider, setSourceProvider] = useState<string | null>(null)
+  const [fallbackUsed, setFallbackUsed] = useState(false)
 
   // Tracks when the last auto-refresh (focus/visibility) was triggered.
   // Manual refresh via refresh() bypasses this.
@@ -97,6 +101,8 @@ export function MatchesProvider({ children }: { children: React.ReactNode }) {
       const data: LiveMatchesResponse = await res.json()
       const live = (data.data ?? []).map(adaptLiveCard)
       setMatches(live)
+      setSourceProvider(data.meta?.sourceProvider ?? 'unknown')
+      setFallbackUsed(data.meta?.fallbackUsed ?? false)
       if (live.length > 0) setLastSuccessAt(Date.now())
       if (data.status === 'error') setError('Live endpoint returned error status')
     } catch (err: any) {
@@ -137,7 +143,15 @@ export function MatchesProvider({ children }: { children: React.ReactNode }) {
 
   const dataFreshness = computeFreshness(matches, loading, error, lastSuccessAt)
 
-  return <MatchesContext.Provider value={{ matches, loading, error, dataFreshness, refresh: fetchMatches }}>{children}</MatchesContext.Provider>
+  return (
+    <MatchesContext.Provider value={{ 
+      matches, loading, error, dataFreshness, 
+      sourceProvider, fallbackUsed,
+      refresh: fetchMatches 
+    }}>
+      {children}
+    </MatchesContext.Provider>
+  )
 }
 
 export function useMatchesContext() {

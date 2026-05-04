@@ -236,13 +236,12 @@ function ValidationSummaryCard({ summary, loading }: { summary: SimulationSummar
   )
 }
 
-export default function PlayoffBracketPage({ embedded = false }: { embedded?: boolean } = {}) {
+export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }: { embedded?: boolean, league?: League } = {}) {
   const width = useWindowWidth()
   const isMobile = width < BREAKPOINTS.mobile
   const isTablet = width < BREAKPOINTS.tablet
-  const [selectedLeague] = useState<'NBA'>('NBA')
-  const league = selectedLeague
-  const t = leagueTheme(league)
+  const selectedLeague = league
+  const t = leagueTheme(selectedLeague)
   const { summary, loading } = useSummary(selectedLeague)
   const { matches: allMatches, dataFreshness } = useMatchesContext()
 
@@ -271,7 +270,7 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                 <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 800, letterSpacing: "0.32em", color: "#475569" }}>PLAYOFF INTELLIGENCE</span>
                 <span style={{ color: "#1e293b", fontFamily: "var(--font-mono), monospace", fontSize: 9 }}>//</span>
-                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.28em", color: "#334155" }}>V12 SIMULATION ENGINE</span>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.28em", color: "#334155" }}>PROJECTION AGENT ENGINE</span>
               </div>
               <h1 style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontSize: "clamp(32px, 8vw, 48px)", color: "#fff", margin: 0, letterSpacing: "-0.03em", lineHeight: 0.9, fontStyle: "italic" }}>
                 {selectedLeague} 2026 <span style={{ color: t.hex, fontStyle: "normal" }}>PROJECTION</span>
@@ -308,7 +307,7 @@ export default function PlayoffBracketPage({ embedded = false }: { embedded?: bo
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                 <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 800, letterSpacing: "0.32em", color: "#475569" }}>PLAYOFF INTELLIGENCE</span>
                 <span style={{ color: "#1e293b", fontFamily: "var(--font-mono), monospace", fontSize: 9 }}>//</span>
-                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.28em", color: "#334155" }}>V12 SIMULATION ENGINE</span>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.28em", color: "#334155" }}>PROJECTION AGENT ENGINE</span>
               </div>
               <h1 style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontWeight: 900, fontSize: "clamp(36px, 6vw, 56px)", color: "#fff", letterSpacing: "-0.04em", margin: 0, lineHeight: 0.85, fontStyle: "italic" }}>
                 {selectedLeague} 2026 <span style={{ color: t.hex, fontStyle: "normal" }}>PLAYOFF PROJECTION</span>

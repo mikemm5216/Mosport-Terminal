@@ -3,8 +3,11 @@
 import { useState } from 'react'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import { RingGauge, BioBar, LiveDot } from './ui'
-import PlayoffBracketPage from './PlayoffBracketPage'
+import PlayoffBracketPage, { useSummary } from './PlayoffBracketPage'
 import { PAGE_SHELL_STYLE, BREAKPOINTS } from '../lib/ui'
+import type { LeagueFilter } from '../contracts/product'
+import TeamLogo from './TeamLogo'
+import type { League } from '../data/mockData'
 
 const RING_METRICS = [
   { label: "EDGE CAPTURE", value: 0.684, color: "#22d3ee", sublabel: "RATE"     },
@@ -43,92 +46,103 @@ function SectionTitle({ text }: { text: string }) {
   )
 }
 
-import { useSummary } from './PlayoffBracketPage'
-import TeamLogo from './TeamLogo'
-
-function ProjectionsView() {
-  const { summary, loading } = useSummary('NBA')
+function ProjectionsView({ selectedLeague }: { selectedLeague: LeagueFilter }) {
+  const { summary, loading } = useSummary(selectedLeague)
   const width = useWindowWidth()
   const isMobile = width < BREAKPOINTS.mobile
-  const lastUpdated = summary?.meta?.generatedAt ? new Date(summary.meta.generatedAt).toLocaleString() : 'Loading...'
+  const lastUpdated = summary?.meta?.generatedAt ? new Date(summary.meta.generatedAt).toLocaleString() : 'DAILY MODEL SNAPSHOT'
 
   return (
     <div style={{ animation: "fade-in 0.3s ease" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-        <SectionTitle text="V12 PROJECTION ENGINE — NBA 2026" />
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", fontWeight: 700 }}>
-          LAST_UPDATED: {lastUpdated}
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: 24, marginBottom: 32 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#22d3ee", fontWeight: 800, letterSpacing: "0.2em", marginBottom: 8 }}>LEAGUE PROJECTION AGENT</div>
+          <h2 style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 32, color: "#fff", margin: 0 }}>{selectedLeague} <span style={{ color: "rgba(255,255,255,0.3)" }}>DAILY SNAPSHOT</span></h2>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 24, marginBottom: 48 }}>
-        {/* Champion Card */}
-        <div style={{ padding: 24, background: "rgba(15,23,42,0.6)", border: "1px solid #fbbf24", borderRadius: 8, textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#fbbf24", letterSpacing: "0.2em", marginBottom: 16 }}>PROJECTED CHAMPION</div>
-          {loading ? <div style={{ height: 100, display: "grid", placeItems: "center", color: "#334155" }}>...</div> : (
-            <>
-              <TeamLogo teamAbbr={summary?.data.projectedChampion.team.shortName ?? ''} league="NBA" size={64} accentColor="#fbbf24" />
-              <div style={{ marginTop: 12, fontFamily: "var(--font-inter)", fontWeight: 900, color: "#fff", fontSize: 24 }}>{summary?.data.projectedChampion.team.shortName}</div>
-              <div style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: 18, color: "#fbbf24", fontWeight: 900 }}>{(summary?.data.projectedChampion.titleProbability! * 100).toFixed(1)}%</div>
-              <div style={{ marginTop: 12, padding: "4px 8px", background: "rgba(251,191,36,0.1)", borderRadius: 4, display: "inline-block" }}>
-                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#fbbf24", fontWeight: 900 }}>SIMULATION DATA</span>
-              </div>
-            </>
-          )}
+      {!loading && !summary?.data ? (
+        <div style={{ padding: "100px 24px", border: "1px dashed rgba(148,163,184,0.15)", borderRadius: 12, textAlign: "center", marginBottom: 48 }}>
+           <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#475569", letterSpacing: "0.4em", fontWeight: 900, marginBottom: 16 }}>
+              [ AGENT-READY PIPELINE CONFIGURED ]
+           </div>
+           <div style={{ fontFamily: "var(--font-inter)", fontSize: 14, color: "#64748b" }}>
+              Awaiting {selectedLeague} model output for daily snapshot.
+           </div>
         </div>
-
-        {/* Finals Matchup */}
-        <div style={{ padding: 24, background: "rgba(15,23,42,0.6)", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 8 }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#22d3ee", letterSpacing: "0.2em", marginBottom: 16 }}>LIKELY FINALS MATCHUP</div>
-          {loading ? <div style={{ height: 100, display: "grid", placeItems: "center", color: "#334155" }}>...</div> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
-               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <TeamLogo teamAbbr={summary?.data.mostLikelyFinalsMatchup.teamA.shortName ?? ''} league="NBA" size={40} />
-                  <span style={{ color: "#475569", fontFamily: "var(--font-mono)", fontSize: 12 }}>VS</span>
-                  <TeamLogo teamAbbr={summary?.data.mostLikelyFinalsMatchup.teamB.shortName ?? ''} league="NBA" size={40} />
-               </div>
-               <div style={{ textAlign: "center" }}>
-                  <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: "#fff", fontSize: 20 }}>{summary?.data.mostLikelyFinalsMatchup.teamA.shortName} / {summary?.data.mostLikelyFinalsMatchup.teamB.shortName}</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, color: "#22d3ee", fontWeight: 900, marginTop: 4 }}>{(summary?.data.mostLikelyFinalsMatchup.probability! * 100).toFixed(1)}%</div>
-               </div>
-               <div style={{ padding: "4px 8px", background: "rgba(34,211,238,0.1)", borderRadius: 4, display: "inline-block" }}>
-                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#22d3ee", fontWeight: 900 }}>SIMULATION DATA</span>
-               </div>
+      ) : (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 24, marginBottom: 48 }}>
+            {/* Champion Card */}
+            <div style={{ padding: 24, background: "rgba(15,23,42,0.6)", border: "1px solid #fbbf24", borderRadius: 8, textAlign: "center" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#fbbf24", letterSpacing: "0.2em", marginBottom: 16 }}>PROJECTED CHAMPION</div>
+              {loading ? <div style={{ height: 100, display: "grid", placeItems: "center", color: "#334155" }}>...</div> : (
+                <>
+                  <TeamLogo teamAbbr={summary?.data.projectedChampion.team.shortName ?? ''} league={selectedLeague as League} size={64} accentColor="#fbbf24" />
+                  <div style={{ marginTop: 12, fontFamily: "var(--font-inter)", fontWeight: 900, color: "#fff", fontSize: 24 }}>{summary?.data.projectedChampion.team.shortName}</div>
+                  <div style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: 18, color: "#fbbf24", fontWeight: 900 }}>{(summary?.data.projectedChampion.titleProbability! * 100).toFixed(1)}%</div>
+                  <div style={{ marginTop: 12, padding: "4px 8px", background: "rgba(251,191,36,0.1)", borderRadius: 4, display: "inline-block" }}>
+                     <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#fbbf24", fontWeight: 900 }}>MODEL PROJECTION</span>
+                  </div>
+                </>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Distribution Table */}
-        <div style={{ padding: 24, background: "rgba(15,23,42,0.6)", border: "1px solid rgba(148,163,184,0.1)", borderRadius: 8 }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#94a3b8", letterSpacing: "0.2em", marginBottom: 16 }}>TITLE DISTRIBUTION</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {summary?.data.titleDistribution.slice(0, 5).map((entry, i) => (
-              <div key={entry.team.shortName} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", width: 14 }}>{i+1}.</span>
-                 <TeamLogo teamAbbr={entry.team.shortName} league="NBA" size={18} />
-                 <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 11, color: i === 0 ? "#fff" : "#94a3b8", flex: 1 }}>{entry.team.shortName}</span>
-                 <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 14, color: i === 0 ? "#fbbf24" : "#64748b" }}>{(entry.probability * 100).toFixed(1)}%</span>
+            {/* Finals Matchup */}
+            <div style={{ padding: 24, background: "rgba(15,23,42,0.6)", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 8 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#22d3ee", letterSpacing: "0.2em", marginBottom: 16 }}>LIKELY FINALS MATCHUP</div>
+              {loading ? <div style={{ height: 100, display: "grid", placeItems: "center", color: "#334155" }}>...</div> : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center" }}>
+                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <TeamLogo teamAbbr={summary?.data.mostLikelyFinalsMatchup.teamA.shortName ?? ''} league={selectedLeague as League} size={40} />
+                      <span style={{ color: "#475569", fontFamily: "var(--font-mono)", fontSize: 12 }}>VS</span>
+                      <TeamLogo teamAbbr={summary?.data.mostLikelyFinalsMatchup.teamB.shortName ?? ''} league={selectedLeague as League} size={40} />
+                   </div>
+                   <div style={{ textAlign: "center" }}>
+                      <div style={{ fontFamily: "var(--font-inter)", fontWeight: 900, color: "#fff", fontSize: 20 }}>{summary?.data.mostLikelyFinalsMatchup.teamA.shortName} / {summary?.data.mostLikelyFinalsMatchup.teamB.shortName}</div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, color: "#22d3ee", fontWeight: 900, marginTop: 4 }}>{(summary?.data.mostLikelyFinalsMatchup.probability! * 100).toFixed(1)}%</div>
+                   </div>
+                   <div style={{ padding: "4px 8px", background: "rgba(34,211,238,0.1)", borderRadius: 4, display: "inline-block" }}>
+                     <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#22d3ee", fontWeight: 900 }}>MODEL PROJECTION</span>
+                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* Distribution Table */}
+            <div style={{ padding: 24, background: "rgba(15,23,42,0.6)", border: "1px solid rgba(148,163,184,0.1)", borderRadius: 8 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#94a3b8", letterSpacing: "0.2em", marginBottom: 16 }}>TITLE DISTRIBUTION</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {summary?.data.titleDistribution.slice(0, 5).map((entry, i) => (
+                  <div key={entry.team.shortName} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                     <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", width: 14 }}>{i+1}.</span>
+                     <TeamLogo teamAbbr={entry.team.shortName} league={selectedLeague as League} size={18} />
+                     <span style={{ fontFamily: "var(--font-mono)", fontWeight: 800, fontSize: 11, color: i === 0 ? "#fff" : "#94a3b8", flex: 1 }}>{entry.team.shortName}</span>
+                     <span style={{ fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 14, color: i === 0 ? "#fbbf24" : "#64748b" }}>{(entry.probability * 100).toFixed(1)}%</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      </div>
-      
-      {/* Simulation Context */}
-      <div style={{ padding: 20, background: "rgba(15,23,42,0.4)", borderRadius: 6, border: "1px dashed rgba(148,163,184,0.1)" }}>
-         <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", letterSpacing: "0.1em", lineHeight: 1.6 }}>
-            {">"} SOURCE: V12 PROJECTION KERNEL [SNAPSHOT_NBA_2026]<br />
-            {">"} METHOD: MONTE CARLO (10M ITERATIONS)<br />
-            {">"} CONFIDENCE: {(summary?.data.validation.overallAccuracy ?? 0.89 * 100).toFixed(1)}% (HISTORICAL BACKTEST)<br />
-            {">"} <span style={{ color: "#f97316" }}>NOTICE: DATA IS SIMULATED FOR PLATFORM VALIDATION.</span>
-         </div>
-      </div>
+          
+          {/* Simulation Context */}
+          <div style={{ padding: 20, background: "rgba(15,23,42,0.4)", borderRadius: 6, border: "1px dashed rgba(148,163,184,0.1)" }}>
+             <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#475569", letterSpacing: "0.1em", lineHeight: 1.6 }}>
+                {">"} SOURCE: {selectedLeague} PROJECTION KERNEL [SNAPSHOT_{selectedLeague}_2026]<br />
+                {">"} METHOD: MONTE CARLO (10M ITERATIONS)<br />
+                {">"} CONFIDENCE: {(summary?.data.validation.overallAccuracy ?? 0.89 * 100).toFixed(1)}% (HISTORICAL BACKTEST)<br />
+                {">"} DATA STATUS: <span style={{ color: "#34d399" }}>OPTIMIZED MODEL SNAPSHOT</span>
+             </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
 
 export default function LabPage() {
-  const [activeTab, setActiveTab] = useState<'DIAGNOSTICS' | 'PROJECTIONS' | 'PLAYOFFS'>('DIAGNOSTICS')
+  const [activeTab, setActiveTab] = useState<'DIAGNOSTICS' | 'PROJECTIONS' | 'PLAYOFFS'>('PROJECTIONS')
+  const [selectedLeague, setSelectedLeague] = useState<LeagueFilter>('NBA')
   const width = useWindowWidth()
   const isMobile = width < BREAKPOINTS.mobile
 
@@ -137,28 +151,48 @@ export default function LabPage() {
       <div className="py-8 sm:py-12 lg:py-16">
         
         {/* Header */}
-        <div style={{ marginBottom: 48 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-            <LiveDot color="#22d3ee" size={6} />
-            <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 800, letterSpacing: "0.32em", color: "#22d3ee" }}>SYSTEM LAB</span>
-            <span style={{ color: "#1e293b", fontFamily: "var(--font-mono), monospace", fontSize: 9 }}>//</span>
-            <div style={{ display: "flex", gap: 12 }}>
-              {(['DIAGNOSTICS', 'PROJECTIONS', 'PLAYOFFS'] as const).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setActiveTab(t)}
-                  style={{
-                    fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 800, letterSpacing: "0.28em",
-                    color: activeTab === t ? "#f8fafc" : "#475569",
-                    background: "none", border: "none", cursor: "pointer",
-                    textDecoration: activeTab === t ? "underline" : "none",
-                    textUnderlineOffset: "4px"
-                  }}
-                >
-                  {t}
-                </button>
-              ))}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: 20, marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <LiveDot color="#22d3ee" size={6} />
+              <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 800, letterSpacing: "0.32em", color: "#22d3ee" }}>SYSTEM LAB</span>
+              <span style={{ color: "#1e293b", fontFamily: "var(--font-mono), monospace", fontSize: 9 }}>//</span>
+              <div style={{ display: "flex", gap: 12 }}>
+                {(['DIAGNOSTICS', 'PROJECTIONS', 'PLAYOFFS'] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setActiveTab(t)}
+                    style={{
+                      fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 800, letterSpacing: "0.28em",
+                      color: activeTab === t ? "#f8fafc" : "#475569",
+                      background: "none", border: "none", cursor: "pointer",
+                      textDecoration: activeTab === t ? "underline" : "none",
+                      textUnderlineOffset: "4px"
+                    }}
+                  >
+                    {t === 'PROJECTIONS' ? 'PROJECTION AGENT' : t === 'PLAYOFFS' ? 'BRACKET' : t}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {activeTab !== 'DIAGNOSTICS' && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {(['NBA', 'MLB', 'NHL', 'EPL', 'UCL'] as LeagueFilter[]).map(l => (
+                  <button 
+                    key={l}
+                    onClick={() => setSelectedLeague(l)}
+                    style={{
+                      padding: "6px 12px", background: selectedLeague === l ? "rgba(34,211,238,0.15)" : "rgba(15,23,42,0.4)",
+                      border: `1px solid ${selectedLeague === l ? "#22d3ee" : "rgba(148,163,184,0.1)"}`,
+                      borderRadius: 4, color: selectedLeague === l ? "#fff" : "#475569",
+                      fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 900, cursor: "pointer",
+                      transition: "all 0.2s ease"
+                    }}
+                  >{l}</button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -212,7 +246,7 @@ export default function LabPage() {
                 <>
                   <div style={{ width: 1, height: 60, background: "rgba(148,163,184,0.1)" }} />
                   <div>
-                    <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 28, fontWeight: 900, color: "#f97316", letterSpacing: "-0.02em" }}>V12 CALIBRATED</div>
+                    <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 28, fontWeight: 900, color: "#f97316", letterSpacing: "-0.02em" }}>AGENCY CALIBRATED</div>
                     <div style={{ fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 800, letterSpacing: "0.3em", color: "#475569", marginTop: 8 }}>BACKTEST STABILITY</div>
                   </div>
                 </>
@@ -282,13 +316,13 @@ export default function LabPage() {
           </>
         )}
 
-        {activeTab === 'PROJECTIONS' && <ProjectionsView />}
+        {activeTab === 'PROJECTIONS' && <ProjectionsView selectedLeague={selectedLeague} />}
 
         {activeTab === 'PLAYOFFS' && (
           <div style={{ animation: "fade-in 0.3s ease" }}>
-            <SectionTitle text="V12 BRACKET PREDICTION — 2026" />
+            <SectionTitle text={`V12 BRACKET PREDICTION — ${selectedLeague} 2026`} />
             <div style={{ marginBottom: 64 }}>
-              <PlayoffBracketPage embedded={true} />
+              <PlayoffBracketPage embedded={true} league={selectedLeague as League} />
             </div>
           </div>
         )}
