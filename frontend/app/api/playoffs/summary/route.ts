@@ -4,8 +4,10 @@ import type { SimulationSummaryResponse, TeamRef } from '../../../contracts/prod
 import type { LeagueCode } from '../../../contracts/product'
 import { toCanonicalTeamKey } from '../../../config/teamCodeNormalization'
 import { getTeamLogo } from '../../../lib/teamLogoResolver'
+import { prisma } from '../../../../../lib/prisma'
 
 export const revalidate = 3600
+export const dynamic = 'force-dynamic'
 
 function teamRef(league: LeagueCode, code: string, seed?: number | null): TeamRef {
   const normalized = code.toUpperCase()
@@ -21,15 +23,10 @@ function teamRef(league: LeagueCode, code: string, seed?: number | null): TeamRe
   }
 }
 
-import { prisma } from '../../../../lib/prisma'
-
-export const dynamic = 'force-dynamic'
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const league = (searchParams.get('league') || 'NBA').toUpperCase() as LeagueCode
 
-  // Attempt to fetch from database
   let snapshot: any = null
   try {
     snapshot = await (prisma as any).leagueProjectionSnapshot.findUnique({
@@ -40,7 +37,6 @@ export async function GET(req: Request) {
   }
 
   if (!snapshot && league === 'NBA') {
-    // Legacy fallback for NBA only
     const src = NBA_SIM_SUMMARY
     const rounds = [
       { roundName: 'Round 1', matchups: [...src.bracket_projection.west.round_1, ...src.bracket_projection.east.round_1] },
