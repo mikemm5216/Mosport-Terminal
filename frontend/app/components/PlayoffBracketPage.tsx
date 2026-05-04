@@ -245,14 +245,15 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
   const { summary, loading } = useSummary(selectedLeague)
   const { matches: allMatches, dataFreshness } = useMatchesContext()
 
-  const liveNbaPlayoffGames = useMemo(() => allMatches.filter(m => m.league === 'NBA' && m.status === 'FINAL' && m.playoff != null), [allMatches])
-  const liveSeriesMap = useMemo(() => getSeriesStateFromCompletedGames(liveNbaPlayoffGames), [liveNbaPlayoffGames])
+  const liveLeaguePlayoffGames = useMemo(() => allMatches.filter(m => m.league === selectedLeague && m.status === 'FINAL' && m.playoff != null), [allMatches, selectedLeague])
+  const liveSeriesMap = useMemo(() => getSeriesStateFromCompletedGames(liveLeaguePlayoffGames), [liveLeaguePlayoffGames])
   const hydratedSeries: BracketSeries[] = useMemo(() => {
+    if (selectedLeague !== 'NBA') return []
     return NBA_BRACKET_2026.map(s => {
       const { winsHome, winsAway, source } = resolveSeriesWins(s.home.abbr, s.away.abbr, s.winsHome, s.winsAway, liveSeriesMap)
       return { ...s, winsHome, winsAway, _source: source } as BracketSeries & { _source: string }
     })
-  }, [liveSeriesMap])
+  }, [liveSeriesMap, selectedLeague])
 
   const hasLiveSeriesData = liveSeriesMap.size > 0
   const allSeries = useMemo(() => simulateBracket(hydratedSeries, league), [hydratedSeries, league])
@@ -292,6 +293,21 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
               <FinalsMatchupCard summary={summary} league={league} loading={loading} />
               <TitleDistributionTable summary={summary} league={league} loading={loading} />
             </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (selectedLeague !== 'NBA') {
+    return (
+      <div style={embedded ? { width: "100%" } : PAGE_SHELL_STYLE}>
+        <div style={{ padding: "80px 24px", border: "1px dashed rgba(148,163,184,0.1)", borderRadius: 12, textAlign: "center" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#475569", letterSpacing: "0.4em", fontWeight: 900, marginBottom: 12 }}>
+            [ {selectedLeague} BRACKET PENDING ]
+          </div>
+          <div style={{ fontFamily: "var(--font-inter)", fontSize: 13, color: "#64748b" }}>
+            The {selectedLeague} bracket structure will be initialized as the post-season logic is calibrated.
           </div>
         </div>
       </div>
