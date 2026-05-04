@@ -3,11 +3,12 @@ import { getCurrentDataMode } from "../../frontend/app/lib/apiGovernor";
 import { LeagueCode, PlayoffSimulationSummary, TeamRef } from "../../frontend/app/contracts/product";
 import { NBA_BRACKET_2026, NHL_BRACKET_2026 } from "../../frontend/app/data/mockData";
 import { getTeamLogo } from "../teamLogoResolver";
+import { toCanonicalTeamKey } from "../../frontend/app/config/teamCodeNormalization";
 
 /**
  * ProjectionAgent Service
- * 
- * Handles deterministic interim projection updates when the full Monte Carlo model 
+ *
+ * Handles deterministic interim projection updates when the full Monte Carlo model
  * is pending or when pipeline data is degraded.
  */
 export class ProjectionAgent {
@@ -20,35 +21,27 @@ export class ProjectionAgent {
     const dataMode = getCurrentDataMode();
     const now = new Date();
 
-    // 1. Fetch latest match results for this league
     const recentMatches = await prisma.match.findMany({
       where: {
         league: league,
         status: { in: ['COMPLETED', 'FINAL', 'live'] },
         match_date: {
-          gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
+          gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
         }
       },
       orderBy: { match_date: 'desc' }
     });
 
-    // 2. Map existing bracket structure (interim: use mock as baseline)
-    // In a real implementation, this would pull from the previous snapshot or seed data.
     const baseBracket = league === 'NBA' ? NBA_BRACKET_2026 : (league === 'NHL' ? NHL_BRACKET_2026 : []);
-    
-    // 3. Apply deterministic updates based on recent matches
     const rounds = this.generateDeterministicRounds(league, baseBracket, recentMatches);
-
-    // 4. Calculate championship distribution (interim: simple seed-based + momentum)
     const titleDistribution = this.calculateTitleDistribution(league, rounds);
 
-    // 5. Build full snapshot
     const snapshot: Partial<PlayoffSimulationSummary> = {
       projectedChampion: titleDistribution[0] ? { team: titleDistribution[0].team, titleProbability: titleDistribution[0].probability } : undefined,
       mostLikelyFinalsMatchup: {
         teamA: titleDistribution[0]?.team,
         teamB: titleDistribution[1]?.team,
-        probability: 0.15, // Stub
+        probability: 0.15,
       },
       titleDistribution: titleDistribution,
       bracket: {
@@ -70,7 +63,6 @@ export class ProjectionAgent {
       }
     };
 
-    // 6. Persist to database
     await (prisma as any).leagueProjectionSnapshot.upsert({
       where: { snapshotId: `latest_${league.toLowerCase()}` },
       update: {
@@ -106,9 +98,7 @@ export class ProjectionAgent {
     console.info(`[projection-agent] Successfully saved snapshot for ${league}`);
   }
 
-  private static generateDeterministicRounds(league: string, baseBracket: any[], recentMatches: any[]) {
-    // For interim, we'll return a structured round object
-    // In a full implementation, this would walk the tree and update status/scores
+  private static generateDeterministicRounds(league: LeagueCode, baseBracket: any[], recentMatches: any[]) {
     return [
       {
         roundName: 'Conference Quarterfinals',
@@ -122,29 +112,30 @@ export class ProjectionAgent {
       },
       {
         roundName: 'Conference Semifinals',
-        matchups: [] // Pending
+        matchups: []
       }
     ];
   }
 
-  private static calculateTitleDistribution(league: string, rounds: any[]): Array<{ team: TeamRef, probability: number }> {
-    // Simple mock distribution for interim
+  private static calculateTitleDistribution(league: LeagueCode, rounds: any[]): Array<{ team: TeamRef, probability: number }> {
     const contenders = rounds[0]?.matchups.map((m: any) => m.teamA) || [];
-    return contenders.slice(0, 5).map((t: any, i: number) => ({
+    return contenders.slice(0, 5).map((t: TeamRef, i: number) => ({
       team: t,
       probability: 0.25 - (i * 0.04)
     }));
   }
 
-  private static toTeamRef(league: string, team: any): TeamRef {
+  private static toTeamRef(league: LeagueCode, team: any): TeamRef {
+    const code = String(team?.abbr ?? '').toUpperCase();
     return {
-      id: team.abbr,
-      code: team.abbr,
-      canonicalKey: `${league as any}_${team.abbr}`,
-      displayName: team.name,
-      shortName: team.abbr,
-      logoUrl: getTeamLogo(league, team.abbr),
-      seed: team.seed,
+      id: `${league}-${code}`,
+      code,
+      canonicalKey: toCanonicalTeamKey(league, code),
+      displayName: String(team?.name ?? code),
+      shortName: code,
+      logoUrl: getTeamLogo(league, code),
+      seed: team?.seed ?? null,
+      record: null,
     };
   }
 }
