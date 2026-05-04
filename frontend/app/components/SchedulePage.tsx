@@ -13,57 +13,37 @@ import AuthModal from './AuthModal'
 // ── Engagement Panel ───────────────────────────────────────────
 function EngagementPanel({ m, onClose }: { m: Match; onClose: () => void }) {
   const [showAuth, setShowAuth] = useState(false)
-  const [view, setView] = useState<'PREDICT' | 'COMMENT'>('PREDICT')
   const [prediction, setPrediction] = useState<'HOME' | 'AWAY' | null>(null)
   const [confidence, setConfidence] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM')
   const [commentText, setCommentText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  const handlePredict = async () => {
-    // For now, trigger AuthModal if we need a login context, 
-    // but allow the attempt to proceed if the user wants to test.
-    // Real auth check should happen via API response or session cookie.
+  const handleSubmitSignal = async () => {
+    if (!prediction) return
     setSubmitting(true)
     try {
       const stance = prediction === 'HOME' ? 'AGREE' : 'DISAGREE'
       const confMap = { LOW: 33, MEDIUM: 66, HIGH: 99 }
-      const res = await fetch(`/api/matches/${m.id}/coach-vote`, {
+      
+      // 1. Submit Vote
+      const voteRes = await fetch(`/api/matches/${m.id}/coach-vote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stance, confidence: confMap[confidence] })
       })
       
-      if (res.status === 401 || res.status === 403) {
-        setShowAuth(true)
-        return
+      if (voteRes.status === 401 || voteRes.status === 403) {
+        setShowAuth(true); setSubmitting(false); return
       }
 
-      setSuccess(true)
-      setTimeout(onClose, 1500)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleComment = async () => {
-    setSubmitting(true)
-    try {
-      const res = await fetch(`/api/matches/${m.id}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          stance: 'WATCH_ONLY', 
-          commentText: commentText.trim(),
-          confidence: 50
+      // 2. Submit Comment (optional)
+      if (commentText.trim()) {
+        await fetch(`/api/matches/${m.id}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stance, commentText: commentText.trim(), confidence: confMap[confidence] })
         })
-      })
-
-      if (res.status === 401 || res.status === 403) {
-        setShowAuth(true)
-        return
       }
 
       setSuccess(true)
@@ -78,111 +58,86 @@ function EngagementPanel({ m, onClose }: { m: Match; onClose: () => void }) {
   if (success) {
     return (
       <div style={{ padding: 24, textAlign: "center", background: "rgba(52,211,153,0.05)", borderTop: "1px solid rgba(52,211,153,0.2)" }}>
-        <div style={{ fontFamily: "var(--font-mono)", color: "#34d399", fontWeight: 900, fontSize: 12 }}>✓ ENGAGEMENT_RECORDED</div>
+        <div style={{ fontFamily: "var(--font-mono)", color: "#34d399", fontWeight: 900, fontSize: 12 }}>✓ SIGNAL_TRANSMITTED</div>
       </div>
     )
   }
 
   return (
     <div onClick={(e) => e.stopPropagation()} style={{ 
-      padding: "20px 24px", background: "rgba(2,6,23,0.4)", borderTop: "1px solid rgba(34,211,238,0.1)",
-      display: "flex", flexDirection: "column", gap: 20
+      padding: "24px", background: "rgba(2,6,23,0.6)", borderTop: "1px solid rgba(34,211,238,0.15)",
+      display: "flex", flexDirection: "column", gap: 24, position: "relative"
     }}>
       {showAuth && <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />}
       
-      <div style={{ display: "flex", gap: 16 }}>
-        <button 
-          onClick={() => setView('PREDICT')}
-          style={{ 
-            fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 900, letterSpacing: "0.2em",
-            color: view === 'PREDICT' ? "#22d3ee" : "#475569", background: "none", border: "none", cursor: "pointer",
-            borderBottom: view === 'PREDICT' ? "2px solid #22d3ee" : "2px solid transparent", paddingBottom: 4
-          }}
-        >PREDICT</button>
-        <button 
-          onClick={() => setView('COMMENT')}
-          style={{ 
-            fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 900, letterSpacing: "0.2em",
-            color: view === 'COMMENT' ? "#22d3ee" : "#475569", background: "none", border: "none", cursor: "pointer",
-            borderBottom: view === 'COMMENT' ? "2px solid #22d3ee" : "2px solid transparent", paddingBottom: 4
-          }}
-        >COMMENT</button>
+      {/* 1. Selection */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.2em", fontWeight: 900 }}>1. SELECT TACTICAL STANCE</div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button 
+            onClick={() => setPrediction('AWAY')}
+            style={{ 
+              flex: 1, padding: "14px", background: prediction === 'AWAY' ? "rgba(34,211,238,0.1)" : "rgba(15,23,42,0.6)",
+              border: `1px solid ${prediction === 'AWAY' ? "#22d3ee" : "rgba(148,163,184,0.1)"}`,
+              borderRadius: 4, color: prediction === 'AWAY' ? "#fff" : "#64748b",
+              fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 13, cursor: "pointer", transition: "all 0.2s"
+            }}
+          >{m.away.abbr} <span style={{ opacity: 0.5, fontSize: 10, fontWeight: 500, marginLeft: 4 }}>AWAY</span></button>
+          <button 
+            onClick={() => setPrediction('HOME')}
+            style={{ 
+              flex: 1, padding: "14px", background: prediction === 'HOME' ? "rgba(34,211,238,0.1)" : "rgba(15,23,42,0.6)",
+              border: `1px solid ${prediction === 'HOME' ? "#22d3ee" : "rgba(148,163,184,0.1)"}`,
+              borderRadius: 4, color: prediction === 'HOME' ? "#fff" : "#64748b",
+              fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 13, cursor: "pointer", transition: "all 0.2s"
+            }}
+          >{m.home.abbr} <span style={{ opacity: 0.5, fontSize: 10, fontWeight: 500, marginLeft: 4 }}>HOME</span></button>
+        </div>
+      </div>
+      
+      {/* 2. Confidence */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.2em", fontWeight: 900 }}>2. CONFIDENCE CALIBRATION</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {(['LOW', 'MEDIUM', 'HIGH'] as const).map(c => (
+            <button 
+              key={c}
+              onClick={() => setConfidence(c)}
+              style={{ 
+                flex: 1, padding: "10px", background: confidence === c ? "rgba(34,211,238,0.05)" : "none", borderRadius: 4,
+                border: `1px solid ${confidence === c ? "#22d3ee" : "rgba(148,163,184,0.1)"}`,
+                color: confidence === c ? "#22d3ee" : "#475569",
+                fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 900, cursor: "pointer", transition: "all 0.2s"
+              }}
+            >{c}</button>
+          ))}
+        </div>
       </div>
 
-      {view === 'PREDICT' ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", gap: 12 }}>
-            <button 
-              onClick={() => setPrediction('AWAY')}
-              style={{ 
-                flex: 1, padding: "12px", background: prediction === 'AWAY' ? "rgba(34,211,238,0.1)" : "rgba(15,23,42,0.6)",
-                border: `1px solid ${prediction === 'AWAY' ? "#22d3ee" : "rgba(148,163,184,0.1)"}`,
-                borderRadius: 4, color: prediction === 'AWAY' ? "#fff" : "#64748b",
-                fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 13, cursor: "pointer"
-              }}
-            >{m.away.abbr}</button>
-            <button 
-              onClick={() => setPrediction('HOME')}
-              style={{ 
-                flex: 1, padding: "12px", background: prediction === 'HOME' ? "rgba(34,211,238,0.1)" : "rgba(15,23,42,0.6)",
-                border: `1px solid ${prediction === 'HOME' ? "#22d3ee" : "rgba(148,163,184,0.1)"}`,
-                borderRadius: 4, color: prediction === 'HOME' ? "#fff" : "#64748b",
-                fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 13, cursor: "pointer"
-              }}
-            >{m.home.abbr}</button>
-          </div>
-          
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.1em" }}>CONFIDENCE</span>
-            <div style={{ display: "flex", gap: 8, flex: 1 }}>
-              {(['LOW', 'MEDIUM', 'HIGH'] as const).map(c => (
-                <button 
-                  key={c}
-                  onClick={() => setConfidence(c)}
-                  style={{ 
-                    flex: 1, padding: "6px", background: "none", borderRadius: 3,
-                    border: `1px solid ${confidence === c ? "#22d3ee" : "rgba(148,163,184,0.1)"}`,
-                    color: confidence === c ? "#22d3ee" : "#475569",
-                    fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 800, cursor: "pointer"
-                  }}
-                >{c}</button>
-              ))}
-            </div>
-          </div>
+      {/* 3. Comment */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.2em", fontWeight: 900 }}>3. QUICK ANALYSIS (OPTIONAL)</div>
+        <textarea 
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          placeholder="e.g. Starting pitcher mismatch, hrv recovery outlier..."
+          style={{ 
+            width: "100%", height: 60, background: "rgba(15,23,42,0.6)", border: "1px solid rgba(148,163,184,0.15)",
+            borderRadius: 4, padding: "12px", color: "#fff", fontFamily: "var(--font-inter)", fontSize: 13,
+            resize: "none", outline: "none", transition: "border 0.2s"
+          }}
+        />
+      </div>
 
-          <button 
-            disabled={!prediction || submitting}
-            onClick={handlePredict}
-            style={{ 
-              padding: "10px", background: "#22d3ee", borderRadius: 4, border: "none",
-              color: "#020617", fontFamily: "var(--font-mono)", fontWeight: 900, fontSize: 10,
-              letterSpacing: "0.1em", cursor: prediction ? "pointer" : "not-allowed", opacity: prediction ? 1 : 0.5
-            }}
-          >{submitting ? "RECORDING..." : "LOCK IN PREDICTION"}</button>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <textarea 
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Add quick tactical insight..."
-            style={{ 
-              width: "100%", height: 80, background: "rgba(15,23,42,0.6)", border: "1px solid rgba(148,163,184,0.1)",
-              borderRadius: 4, padding: 12, color: "#fff", fontFamily: "var(--font-inter)", fontSize: 13,
-              resize: "none", outline: "none"
-            }}
-          />
-          <button 
-            disabled={!commentText.trim() || submitting}
-            onClick={handleComment}
-            style={{ 
-              alignSelf: "flex-end", padding: "8px 20px", background: "#22d3ee", borderRadius: 4, border: "none",
-              color: "#020617", fontFamily: "var(--font-mono)", fontWeight: 900, fontSize: 10,
-              letterSpacing: "0.1em", cursor: "pointer"
-            }}
-          >{submitting ? "POSTING..." : "POST INSIGHT"}</button>
-        </div>
-      )}
+      <button 
+        disabled={!prediction || submitting}
+        onClick={handleSubmitSignal}
+        style={{ 
+          padding: "16px", background: prediction ? "#22d3ee" : "rgba(148,163,184,0.1)", borderRadius: 4, border: "none",
+          color: prediction ? "#020617" : "#475569", fontFamily: "var(--font-mono)", fontWeight: 900, fontSize: 11,
+          letterSpacing: "0.2em", cursor: prediction ? "pointer" : "not-allowed", transition: "all 0.2s"
+        }}
+      >{submitting ? "TRANSMITTING..." : "SUBMIT SIGNAL"}</button>
     </div>
   )
 }

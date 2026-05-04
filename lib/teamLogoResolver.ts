@@ -11,46 +11,65 @@ export const TEAM_LOGO_FALLBACK =
     '</svg>',
   )
 
-export function getTeamLogo(league: string, rawCode: string | null | undefined): string {
-  const safeLeague = league?.trim().toUpperCase()
-  const safeRawCode = rawCode?.trim()
-  const normalizedCode = safeLeague && safeRawCode ? normalizeTeamCode(safeLeague, safeRawCode) : ''
-  const canonicalKey = safeLeague && safeRawCode ? getCanonicalTeamLogoKey(safeLeague, safeRawCode) : ''
-  const resolvedPath = safeLeague && safeRawCode
-    ? (TEAM_LOGOS[canonicalKey] ?? TEAM_LOGO_FALLBACK)
-    : TEAM_LOGO_FALLBACK
+const LOGO_ALIASES: Record<string, Record<string, string>> = {
+  EPL: {
+    MAN: 'MCI',
+    MUN: 'MUN',
+    MCI: 'MCI',
+    BOU: 'BOU',
+  },
+}
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn('[logo-resolve]', {
-      league: safeLeague ?? league ?? '',
-      rawCode: safeRawCode ?? rawCode ?? '',
-      normalizedCode,
-      canonicalKey,
-      resolvedPath,
-      found: Boolean(resolvedPath && resolvedPath !== TEAM_LOGO_FALLBACK),
-    })
-  }
+export function getTeamLogo(league: string, rawCode: string | null | undefined): string {
+  const safeLeague = league?.trim().toUpperCase() || ''
+  const safeRawCode = rawCode?.trim().toUpperCase() || ''
 
   if (!safeLeague || !safeRawCode) {
-    const expectedPath = normalizedCode ? `/logos/${safeLeague?.toLowerCase() ?? "unknown"}/${normalizedCode.toLowerCase()}.png` : TEAM_LOGO_FALLBACK
     console.warn('[logo-missing]', {
-      league: safeLeague ?? league ?? '',
-      rawCode: safeRawCode ?? rawCode ?? '',
-      normalizedCode,
-      canonicalKey,
-      expectedPath,
+      league: safeLeague || league || '',
+      rawCode: safeRawCode || rawCode || '',
+      normalizedCode: '',
+      canonicalKey: '',
+      expectedPath: TEAM_LOGO_FALLBACK,
     })
     return TEAM_LOGO_FALLBACK
   }
 
+  const aliasesForLeague = LOGO_ALIASES[safeLeague]
+  let finalCode = safeRawCode
+
+  if (aliasesForLeague && Object.prototype.hasOwnProperty.call(aliasesForLeague, safeRawCode)) {
+    const alias = aliasesForLeague[safeRawCode]
+    if (alias) {
+      if (safeRawCode === 'MAN') {
+        console.warn('[logo-alias] alias_ambiguous: MAN mapping to MCI for EPL')
+      }
+      finalCode = alias
+    }
+  }
+
+  const normalizedCode = normalizeTeamCode(safeLeague, finalCode)
+  const canonicalKey = getCanonicalTeamLogoKey(safeLeague, finalCode)
+  const resolvedPath = TEAM_LOGOS[canonicalKey] ?? TEAM_LOGO_FALLBACK
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn('[logo-resolve]', {
+      league: safeLeague,
+      rawCode: safeRawCode,
+      normalizedCode,
+      canonicalKey,
+      resolvedPath,
+      found: resolvedPath !== TEAM_LOGO_FALLBACK,
+    })
+  }
+
   if (resolvedPath === TEAM_LOGO_FALLBACK) {
-    const expectedPath = `/logos/${safeLeague.toLowerCase()}/${normalizedCode.toLowerCase()}.png`
     console.warn('[logo-missing]', {
       league: safeLeague,
       rawCode: safeRawCode,
       normalizedCode,
       canonicalKey,
-      expectedPath,
+      expectedPath: `/logos/${safeLeague.toLowerCase()}/${normalizedCode.toLowerCase()}.png`,
     })
   }
 

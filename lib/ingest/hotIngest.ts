@@ -1,6 +1,7 @@
 import { runDataLifecyclePipeline } from "@/lib/pipeline";
 import { prisma } from "@/lib/prisma";
 import type { SportType } from "@/lib/ingest/types";
+import { ProjectionAgent } from "../services/projectionAgent";
 
 const MIN_INTERVAL_MS = 2 * 60 * 1000;
 
@@ -28,6 +29,11 @@ export async function ingestHotData() {
       const result = await runDataLifecyclePipeline({ sport, league, currentPage: 1 });
       totalProcessed += result.processed;
       if (result.fallbackUsed) fallbackUsed = true;
+      
+      // Trigger projection refresh for this league
+      if (league === 'NBA' || league === 'NHL') {
+        await ProjectionAgent.refreshSnapshot(league as any, 'hot_ingest_completion');
+      }
     } catch (err: any) {
       errors.push(`${league}: ${err.message}`);
     }

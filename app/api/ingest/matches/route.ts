@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -9,7 +9,14 @@ import { isSecurityKillSwitchEnabled } from "@/lib/security/killSwitch";
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-const ODDS_API_KEY = process.env.ODDS_API_KEY;
+const RAW_ODDS_KEY = process.env.ODDS_API_KEY || process.env.THE_ODDS_API_KEY;
+const ODDS_API_KEY = RAW_ODDS_KEY?.trim();
+
+if (!ODDS_API_KEY) {
+  console.warn('[ingest] ODDS_API_KEY_MISSING');
+} else {
+  console.info(`[ingest] ODDS_API_KEY present (len: ${ODDS_API_KEY.length})`);
+}
 
 interface UnifiedMatchData {
   match_id: string;
@@ -170,6 +177,10 @@ async function fetchOddsApiFallback(): Promise<UnifiedMatchData[]> {
     const targetUrl = `https://api.the-odds-api.com/v4/sports/${key}/scores/?daysFrom=3&apiKey=${ODDS_API_KEY}`;
     try {
       const res = await fetch(targetUrl);
+      if (res.status === 401) {
+        console.error('[ingest] ODDS_API_KEY_INVALID_401 - stopping provider cycle');
+        break;
+      }
       if (!res.ok) continue;
       
       const events = await res.json();

@@ -474,3 +474,25 @@ model DataChallengeReport {
   @@index([reportType])
   @@index([status])
 }
+// ─── Projection Agent ───────────────────────────────────────────────────────────
+
+model LeagueProjectionSnapshot {
+  id                String   @id @default(cuid())
+  league            String
+  snapshotId        String   @unique
+  generatedAt       DateTime @default(now())
+  dataCutoff        DateTime
+  modelVersion      String
+  dataStatus        String   // FULL, DEGRADED, ESPN_ONLY
+  sourceProvider    String
+  projectedChampion Json     // { team: TeamRef, probability: number }
+  titleDistribution Json     // Array<{ team: TeamRef, probability: number }>
+  finalsMatchup     Json?    // { teamA: TeamRef, teamB: TeamRef, probability: number }
+  bracketState      Json?    // Full bracket structure
+  warnings          String[]
+  refreshReason     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([league, generatedAt])
+}
