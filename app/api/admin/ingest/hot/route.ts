@@ -17,14 +17,42 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 export async function POST(req: Request) {
-  const secret = req.headers.get("x-ingest-secret") ?? "";
+  const routeVersion = "hot-ingest-diagnostic-v1";
+  const secret = req.headers.get("x-ingest-secret");
 
-  if (!process.env.INGEST_SECRET) {
-    return NextResponse.json({ error: "INGEST_SECRET is not configured" }, { status: 500 });
+  const expectedSecret = process.env.INGEST_SECRET;
+
+  if (!expectedSecret) {
+    console.error(`[${routeVersion}] SERVER_INGEST_SECRET_MISSING`);
+    return NextResponse.json({ 
+      ok: false,
+      error: "SERVER_INGEST_SECRET_MISSING",
+      routeVersion 
+    }, { status: 500 });
   }
 
-  if (!timingSafeEqual(secret, process.env.INGEST_SECRET)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!secret) {
+    console.warn(`[${routeVersion}] REQUEST_INGEST_SECRET_MISSING`);
+    return NextResponse.json({ 
+      ok: false,
+      error: "REQUEST_INGEST_SECRET_MISSING",
+      routeVersion 
+    }, { status: 401 });
+  }
+
+  console.log(`[${routeVersion}] Secret check - incoming: ${secret.length} chars, expected: ${expectedSecret.length} chars`);
+
+  if (!timingSafeEqual(secret, expectedSecret)) {
+    console.warn(`[${routeVersion}] INVALID_INGEST_SECRET (mismatch)`);
+    return NextResponse.json({ 
+      ok: false,
+      error: "INVALID_INGEST_SECRET",
+      routeVersion,
+      diagnostic: {
+        receivedLength: secret.length,
+        expectedLength: expectedSecret.length
+      }
+    }, { status: 403 });
   }
 
   try {
@@ -40,11 +68,18 @@ export async function POST(req: Request) {
       date: new Date().toISOString().slice(0, 10),
     });
 
-    return NextResponse.json(report);
+    return NextResponse.json({
+      ...report,
+      routeVersion
+    });
   } catch (err) {
-    console.error("[DataIngestionAgent] hot run failed", err);
+    console.error(`[${routeVersion}] hot run failed`, err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Unknown error" },
+      { 
+        ok: false,
+        error: err instanceof Error ? err.message : "Unknown error",
+        routeVersion
+      },
       { status: 500 },
     );
   }
