@@ -10,6 +10,8 @@ import { useMatchesContext, DataFreshnessBadge } from '../context/MatchesContext
 import { getSeriesStateFromCompletedGames } from '../lib/seriesState'
 import { PAGE_SHELL_STYLE, BREAKPOINTS } from '../lib/ui'
 
+type BracketMatchup = PlayoffSimulationSummary['bracket']['rounds'][number]['matchups'][number]
+
 export function useSummary(league: string) {
   const [summary, setSummary] = useState<SimulationSummaryResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -50,17 +52,7 @@ export function useSummary(league: string) {
   return { summary, loading }
 }
 
-function StatusShell({
-  league,
-  title,
-  message,
-  embedded,
-}: {
-  league: League
-  title: string
-  message: string
-  embedded?: boolean
-}) {
+function StatusShell({ league, title, message, embedded }: { league: League; title: string; message: string; embedded?: boolean }) {
   const t = leagueTheme(league)
   return (
     <div style={embedded ? { width: '100%' } : PAGE_SHELL_STYLE}>
@@ -79,7 +71,6 @@ function StatusShell({
 function LiveSeriesStrip({ league, seriesMap }: { league: League; seriesMap: ReturnType<typeof getSeriesStateFromCompletedGames> }) {
   const t = leagueTheme(league)
   const series = Array.from(seriesMap.entries())
-
   if (series.length === 0) return null
 
   return (
@@ -115,8 +106,39 @@ function LiveSeriesStrip({ league, seriesMap }: { league: League; seriesMap: Ret
   )
 }
 
-function ChampionCard({ summary, league, loading }: { summary: SimulationOkSummary | null; league: League; loading: boolean }) {
+function SeriesCard({ matchup, league, compact = false }: { matchup: BracketMatchup; league: League; compact?: boolean }) {
   const t = leagueTheme(league)
+  return (
+    <div style={{
+      minHeight: compact ? 58 : 70,
+      padding: compact ? '9px 12px' : '11px 14px',
+      background: 'linear-gradient(180deg, rgba(15,23,42,0.74), rgba(2,6,23,0.82))',
+      border: `1px solid ${matchup.seriesScore ? t.hex + '55' : 'rgba(148,163,184,0.13)'}`,
+      borderLeft: `3px solid ${t.hex}`,
+      borderRadius: 6,
+      boxShadow: matchup.seriesScore ? `0 0 18px ${t.hex}20` : 'none',
+    }}>
+      {[matchup.teamA, matchup.teamB].map(team => {
+        const isProjected = team.shortName === matchup.projectedWinner.shortName
+        return (
+          <div key={team.shortName} style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between', opacity: isProjected ? 1 : 0.58, marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+              <TeamLogo teamAbbr={team.shortName} league={league} size={compact ? 16 : 20} accentColor={isProjected ? t.hex : '#475569'} displayName={team.displayName} />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: compact ? 9 : 10, fontWeight: 900, color: isProjected ? '#f8fafc' : '#64748b', overflow: 'hidden', textOverflow: 'ellipsis' }}>{team.shortName}</span>
+            </div>
+            {isProjected && <span style={{ color: t.hex, fontSize: 10, fontWeight: 900 }}>›</span>}
+          </div>
+        )
+      })}
+      <div style={{ marginTop: 5, display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 7, color: '#64748b', letterSpacing: '0.12em', fontWeight: 800 }}>
+        <span>{matchup.seriesScore ? `SERIES ${matchup.seriesScore}` : 'PROJECTION'}</span>
+        <span style={{ color: t.hex }}>{(matchup.winProbability * 100).toFixed(1)}%</span>
+      </div>
+    </div>
+  )
+}
+
+function ChampionCard({ summary, league, loading }: { summary: SimulationOkSummary | null; league: League; loading: boolean }) {
   const champion = summary?.data.projectedChampion
   return (
     <div style={{ padding: '22px', background: 'rgba(251,191,36,0.05)', border: '2px solid #fbbf24', borderRadius: 8, boxShadow: '0 0 30px rgba(251,191,36,0.18)', textAlign: 'center', minWidth: 190 }}>
@@ -128,57 +150,43 @@ function ChampionCard({ summary, league, loading }: { summary: SimulationOkSumma
         PROJECTED CHAMPION
       </div>
       <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(251,191,36,0.2)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: '#64748b', letterSpacing: '0.15em', marginBottom: 2 }}>
-          TITLE PROBABILITY
-        </div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: '#64748b', letterSpacing: '0.15em', marginBottom: 2 }}>TITLE PROBABILITY</div>
         <div style={{ fontFamily: 'var(--font-inter)', fontWeight: 900, fontSize: 18, color: loading ? '#475569' : '#fbbf24' }}>
           {loading ? '—' : champion ? `${(champion.titleProbability * 100).toFixed(2)}%` : 'SYNC PENDING'}
         </div>
-      </div>
-      <div style={{ marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 8, color: t.hex, letterSpacing: '0.14em', fontWeight: 800 }}>
-        SNAPSHOT SOURCE ONLY
       </div>
     </div>
   )
 }
 
-function SnapshotBracket({ data, league }: { data: PlayoffSimulationSummary; league: League }) {
+function ButterflyBracket({ data, league }: { data: PlayoffSimulationSummary; league: League }) {
   const t = leagueTheme(league)
+  const rounds = data.bracket.rounds
+  const r1 = rounds[0]?.matchups ?? []
+  const r2 = rounds[1]?.matchups ?? []
+  const r3 = rounds[2]?.matchups ?? []
+  const finals = rounds[3]?.matchups?.[0]
+  const split = <T,>(items: T[]): [T[], T[]] => [items.slice(0, Math.ceil(items.length / 2)), items.slice(Math.ceil(items.length / 2))]
+  const [r1Left, r1Right] = split(r1)
+  const [r2Left, r2Right] = split(r2)
+  const [r3Left, r3Right] = split(r3)
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22, width: '100%' }}>
-      {data.bracket.rounds.map((round) => (
-        <div key={round.roundName} style={{ padding: '16px 18px', background: 'rgba(15,23,42,0.48)', border: `1px solid ${t.hex}26`, borderRadius: 8 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: t.hex, letterSpacing: '0.28em', fontWeight: 900, marginBottom: 12 }}>
-            {round.roundName.toUpperCase()}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10 }}>
-            {round.matchups.map((matchup, idx) => (
-              <div key={`${round.roundName}-${idx}`} style={{ padding: 12, background: 'rgba(2,6,23,0.72)', border: '1px solid rgba(148,163,184,0.12)', borderRadius: 6 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <TeamLogo teamAbbr={matchup.teamA.shortName} league={league} size={22} accentColor={t.hex} displayName={matchup.teamA.displayName} />
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 900, color: '#f8fafc' }}>{matchup.teamA.shortName}</span>
-                  </div>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#475569' }}>VS</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 900, color: '#f8fafc' }}>{matchup.teamB.shortName}</span>
-                    <TeamLogo teamAbbr={matchup.teamB.shortName} league={league} size={22} accentColor={t.hex} displayName={matchup.teamB.displayName} />
-                  </div>
-                </div>
-                <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'var(--font-mono)', fontSize: 8, color: '#64748b', letterSpacing: '0.12em', fontWeight: 800 }}>
-                  <span>PROJECTED: {matchup.projectedWinner.shortName}</span>
-                  <span>{(matchup.winProbability * 100).toFixed(1)}%</span>
-                </div>
-                {matchup.seriesScore ? (
-                  <div style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 8, color: t.hex, letterSpacing: '0.12em', fontWeight: 900 }}>
-                    SERIES: {matchup.seriesScore}
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
+    <div style={{ position: 'relative', minHeight: 520, padding: '28px 24px', border: `1px solid ${t.hex}18`, borderRadius: 10, background: 'radial-gradient(circle at center, rgba(34,211,238,0.08), rgba(2,6,23,0) 45%)', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', left: '50%', top: 70, bottom: 40, width: 1, background: `linear-gradient(180deg, transparent, ${t.hex}77, transparent)` }} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.9fr 220px 0.9fr 1fr 1.2fr', gap: 16, alignItems: 'center', height: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{r1Left.map((m, i) => <SeriesCard key={`l-r1-${i}`} matchup={m} league={league} compact />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}>{r2Left.map((m, i) => <SeriesCard key={`l-r2-${i}`} matchup={m} league={league} compact />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}>{r3Left.map((m, i) => <SeriesCard key={`l-r3-${i}`} matchup={m} league={league} />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#fbbf24', letterSpacing: '0.42em', fontWeight: 900 }}>FINALS</div>
+          {finals ? <SeriesCard matchup={finals} league={league} /> : <ChampionCard summary={{ status: 'ok', mode: 'simulation', data, meta: { league: league as any, simulationRuns: 0, generatedAt: null, validationMode: 'unvalidated' } }} league={league} loading={false} />}
+          <ChampionCard summary={{ status: 'ok', mode: 'simulation', data, meta: { league: league as any, simulationRuns: 0, generatedAt: null, validationMode: 'unvalidated' } }} league={league} loading={false} />
         </div>
-      ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}>{r3Right.map((m, i) => <SeriesCard key={`r-r3-${i}`} matchup={m} league={league} />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}>{r2Right.map((m, i) => <SeriesCard key={`r-r2-${i}`} matchup={m} league={league} compact />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{r1Right.map((m, i) => <SeriesCard key={`r-r1-${i}`} matchup={m} league={league} compact />)}</div>
+      </div>
     </div>
   )
 }
@@ -294,24 +302,20 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '220px 1fr', gap: 24, alignItems: 'start' }}>
-          <ChampionCard summary={summaryOk} league={selectedLeague} loading={loading} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {summaryOk ? (
-              <SnapshotBracket data={summaryOk.data} league={selectedLeague} />
-            ) : (
-              <div style={{ padding: '48px 24px', background: 'rgba(15,23,42,0.45)', border: '1px dashed rgba(148,163,184,0.16)', borderRadius: 10, textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: t.hex, letterSpacing: '0.24em', fontWeight: 900, marginBottom: 8 }}>
-                  PROJECTION RECALCULATING
-                </div>
-                <div style={{ fontFamily: 'var(--font-inter)', fontSize: 13, color: '#94a3b8' }}>
-                  No production mock bracket is displayed. Waiting for live playoff snapshot or reconstructed completed series.
-                </div>
-              </div>
-            )}
-            <LiveSeriesStrip league={selectedLeague} seriesMap={liveSeriesMap} />
+        {summaryOk ? (
+          <ButterflyBracket data={summaryOk.data} league={selectedLeague} />
+        ) : (
+          <div style={{ padding: '48px 24px', background: 'rgba(15,23,42,0.45)', border: '1px dashed rgba(148,163,184,0.16)', borderRadius: 10, textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: t.hex, letterSpacing: '0.24em', fontWeight: 900, marginBottom: 8 }}>
+              PROJECTION RECALCULATING
+            </div>
+            <div style={{ fontFamily: 'var(--font-inter)', fontSize: 13, color: '#94a3b8' }}>
+              No production mock bracket is displayed. Waiting for live playoff snapshot or reconstructed completed series.
+            </div>
           </div>
-        </div>
+        )}
+
+        <LiveSeriesStrip league={selectedLeague} seriesMap={liveSeriesMap} />
 
         <div style={{ display: 'flex', gap: 20, marginTop: 32, flexWrap: 'wrap' }}>
           <FinalsMatchupCard summary={summaryOk} league={selectedLeague} loading={loading} />
