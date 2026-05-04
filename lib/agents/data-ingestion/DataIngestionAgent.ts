@@ -107,6 +107,12 @@ export class DataIngestionAgent {
         const upserted = await routeColdHot({ mode: input.mode, matches: canonical });
         report.upsertedCount += upserted;
 
+        // Trigger projection refresh for this league if upserted data
+        if (upserted > 0 && (league === 'NBA' || league === 'NHL' || league === 'MLB')) {
+          const { ProjectionAgent } = await import("../../services/projectionAgent");
+          await ProjectionAgent.refreshSnapshot(league as any, 'data_ingestion_agent_hot');
+        }
+
         report.fallbackUsed = report.fallbackUsed || fallbackUsed;
 
         await updateProviderHealth({ provider: result.provider, league, status: "healthy" });

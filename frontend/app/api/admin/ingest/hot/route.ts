@@ -17,20 +17,18 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 /**
- * Hot Ingest Route (Frontend Bridge)
+ * Hot Ingest Route (Frontend Bridge - DEPRECATED)
  * 
- * This route exists in the frontend app to handle ingestion triggers from GitHub Actions.
- * Currently, the ingestion pipeline resides in the root/backend service.
+ * Ingestion has been moved to a dedicated 'ingest-worker' service.
+ * This route remains for diagnostic redirection.
  */
 export async function POST(req: Request) {
-  const routeVersion = "hot-ingest-diagnostic-v1";
+  const routeVersion = "hot-ingest-diagnostic-v2";
   const secret = req.headers.get("x-ingest-secret");
 
   const expectedSecret = process.env.INGEST_SECRET;
 
-  // 1. Validate server configuration
   if (!expectedSecret) {
-    console.error(`[${routeVersion}] SERVER_INGEST_SECRET_MISSING`);
     return NextResponse.json({ 
       ok: false,
       error: "SERVER_INGEST_SECRET_MISSING",
@@ -38,18 +36,7 @@ export async function POST(req: Request) {
     }, { status: 500 });
   }
 
-  // 2. Validate request authentication
-  if (!secret) {
-    console.warn(`[${routeVersion}] REQUEST_INGEST_SECRET_MISSING`);
-    return NextResponse.json({ 
-      ok: false,
-      error: "REQUEST_INGEST_SECRET_MISSING",
-      routeVersion 
-    }, { status: 401 });
-  }
-
-  if (!timingSafeEqual(secret, expectedSecret)) {
-    console.warn(`[${routeVersion}] INVALID_INGEST_SECRET (mismatch)`);
+  if (!secret || !timingSafeEqual(secret, expectedSecret)) {
     return NextResponse.json({ 
       ok: false,
       error: "INVALID_INGEST_SECRET",
@@ -57,16 +44,14 @@ export async function POST(req: Request) {
     }, { status: 403 });
   }
 
-  // 3. Attempt to trigger ingestion or report bridge status
-  // Note: On Railway, if the build root is 'frontend', the root lib/agents is unreachable.
   return NextResponse.json({
     ok: false,
     routeVersion,
-    error: "INGEST_PIPELINE_NOT_WIRED",
-    message: "Frontend app received trigger but ingestion pipeline is located in root service.",
+    error: "FRONTEND_INGEST_DISABLED",
+    message: "Ingestion has been moved to the dedicated 'ingest-worker' service. Update your INGEST_URL variable to point to the ingest-worker domain.",
     diagnostic: {
-      deployment: "frontend-only",
-      buildRoot: "frontend"
+      redirectRequired: true,
+      suggestedUrl: "https://<ingest-worker-domain>/api/admin/ingest/hot"
     }
-  }, { status: 501 }); // Not Implemented (as a bridge)
+  }, { status: 410 }); // Gone (for this purpose)
 }
