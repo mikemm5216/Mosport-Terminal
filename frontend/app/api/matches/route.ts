@@ -78,6 +78,10 @@ function toCard(m: Match, fallbackUsed: boolean): LiveMatchCard {
       home: m.score?.home ?? null,
       away: m.score?.away ?? null,
     },
+    season: m.season,
+    seasonYear: m.seasonYear,
+    seasonType: m.seasonType,
+    playoff: m.playoff,
     decision: parseDecision(m),
     rosters: m.rosters?.home && m.rosters?.away
       ? {
