@@ -16,6 +16,7 @@ import PlayerDetailPage from './components/PlayerDetailPage'
 import AuthModal from './components/AuthModal'
 import UserMenu from './components/UserMenu'
 import { useEffect } from 'react'
+import { PAGE_SHELL_STYLE } from './lib/ui'
 
 type PageState =
   | { screen: 'home' }
