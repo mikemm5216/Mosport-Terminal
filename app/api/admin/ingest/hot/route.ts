@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { runHotIngestMinimal } from "../../../../../lib/ingest/runHotIngestMinimal";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,6 +17,12 @@ function timingSafeEqual(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
+/**
+ * Hot Ingest Route (Worker Entry Point)
+ * 
+ * Uses a minimal runner to avoid build-time dependency resolution issues
+ * while the full ingestion agent is being consolidated.
+ */
 export async function POST(req: Request) {
   const routeVersion = "hot-ingest-diagnostic-v1";
   const secret = req.headers.get("x-ingest-secret");
@@ -40,38 +47,27 @@ export async function POST(req: Request) {
     }, { status: 401 });
   }
 
-  console.log(`[${routeVersion}] Secret check - incoming: ${secret.length} chars, expected: ${expectedSecret.length} chars`);
-
   if (!timingSafeEqual(secret, expectedSecret)) {
     console.warn(`[${routeVersion}] INVALID_INGEST_SECRET (mismatch)`);
     return NextResponse.json({ 
       ok: false,
       error: "INVALID_INGEST_SECRET",
-      routeVersion,
-      diagnostic: {
-        receivedLength: secret.length,
-        expectedLength: expectedSecret.length
-      }
+      routeVersion
     }, { status: 403 });
   }
 
   try {
-    const { DataIngestionAgent } = await import(
-      "../../../../../lib/agents/data-ingestion/DataIngestionAgent"
-    );
-
-    const agent = new DataIngestionAgent();
-
-    const report = await agent.run({
-      mode: "hot",
-      leagues: ["MLB", "NBA", "EPL"],
-      date: new Date().toISOString().slice(0, 10),
+    const result = await runHotIngestMinimal({
+      reason: "github_actions_hot_ingest",
+      date: new Date().toISOString().slice(0, 10)
     });
 
     return NextResponse.json({
-      ...report,
-      routeVersion
-    });
+      ok: result.ok,
+      routeVersion,
+      result
+    }, { status: result.ok ? 200 : 500 });
+
   } catch (err) {
     console.error(`[${routeVersion}] hot run failed`, err);
     return NextResponse.json(
