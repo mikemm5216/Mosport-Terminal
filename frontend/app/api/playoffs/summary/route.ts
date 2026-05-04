@@ -59,6 +59,12 @@ function formatDate(date: Date) {
   return `${y}${m}${d}`
 }
 
+function addDays(date: Date, days: number) {
+  const next = new Date(date)
+  next.setDate(next.getDate() + days)
+  return next
+}
+
 function numberOrNull(value: unknown): number | null {
   const n = Number(value)
   return Number.isFinite(n) && n > 0 ? n : null
@@ -98,24 +104,39 @@ function errorSummary(league: LeagueCode, message: string): SimulationSummaryRes
   }
 }
 
-async function getESPNNBAPlayoffEvents() {
-  const today = new Date()
-  const start = new Date(today)
-  start.setDate(start.getDate() - 45)
-  const end = new Date(today)
-  end.setDate(end.getDate() + 14)
-
-  const url = `${ESPN_NBA_SCOREBOARD}?dates=${formatDate(start)}-${formatDate(end)}`
-
+async function fetchScoreboardEventsForDate(date: Date) {
+  const url = `${ESPN_NBA_SCOREBOARD}?dates=${formatDate(date)}`
   try {
     const res = await fetch(url, { next: { revalidate: 300 } })
     if (!res.ok) return []
     const data = await res.json()
     return Array.isArray(data.events) ? data.events : []
   } catch (err) {
-    console.error('[espn-playoffs] fetch failed:', err)
+    console.error(`[espn-playoffs] fetch failed for ${formatDate(date)}:`, err)
     return []
   }
+}
+
+async function getESPNNBAPlayoffEvents() {
+  const today = new Date()
+  const eventMap = new Map<string, any>()
+  const tasks: Array<Promise<any[]>> = []
+
+  // ESPN's range scoreboard can collapse to only the currently scheduled games.
+  // Fetch daily scoreboards so completed first-round and later-round series are not dropped.
+  for (let offset = -45; offset <= 14; offset += 1) {
+    tasks.push(fetchScoreboardEventsForDate(addDays(today, offset)))
+  }
+
+  const results = await Promise.all(tasks)
+  for (const events of results) {
+    for (const event of events) {
+      if (!event?.id) continue
+      eventMap.set(String(event.id), event)
+    }
+  }
+
+  return Array.from(eventMap.values())
 }
 
 function getSeriesWins(series: any, competitor: any): number {
@@ -241,7 +262,7 @@ function buildLiveSummaryFromSeries(seriesList: ReconstructedSeries[]): Simulati
       validation: {
         mode: 'live_projection',
         overallAccuracy: null,
-        notes: 'Reconstructed from ESPN scoreboard series data. Probabilities are provisional until the projection worker snapshot is available.',
+        notes: 'Reconstructed from ESPN daily scoreboard series data. Probabilities are provisional until the projection worker snapshot is available.',
       },
     },
     meta: {
