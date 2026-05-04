@@ -23,6 +23,78 @@ function teamRef(league: LeagueCode, code: string, seed?: number | null): TeamRe
   }
 }
 
+function formatDate(date: Date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}${m}${d}`
+}
+
+async function getESPNNBAPlayoffs() {
+  const today = new Date()
+  const start = new Date(today)
+  start.setDate(start.getDate() - 45)
+  const end = new Date(today)
+  end.setDate(end.getDate() + 14)
+
+  const startStr = formatDate(start)
+  const endStr = formatDate(end)
+  // ESPN supports date ranges like YYYYMMDD-YYYYMMDD
+  const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${startStr}-${endStr}`
+
+  try {
+    const res = await fetch(url, { next: { revalidate: 300 } })
+    if (!res.ok) return []
+    const data = await res.json()
+    return data.events || []
+  } catch (err) {
+    console.error('[espn-playoffs] fetch failed:', err)
+    return []
+  }
+}
+
+function reconstructSeries(events: any[]) {
+  const seriesMap = new Map<string, any>()
+
+  for (const event of events) {
+    const comp = event.competitions?.[0]
+    const series = comp?.series
+    if (!series) continue
+
+    const t1 = comp.competitors[0]
+    const t2 = comp.competitors[1]
+    if (!t1.team || !t2.team) continue
+
+    // Normalize pair to ensure we track the same series across multiple games
+    const [a, b] = [t1.team.abbreviation, t2.team.abbreviation].sort()
+    const roundName = series.title || `Round ${series.round || '?'}`
+    const key = `${a}_${b}_${roundName}`
+
+    // Extract wins from series competitors if available, else use event-level
+    const seriesT1 = series.competitors?.find((c: any) => c.id === t1.id)
+    const seriesT2 = series.competitors?.find((c: any) => c.id === t2.id)
+
+    const winsA = seriesT1?.wins ?? 0
+    const winsB = seriesT2?.wins ?? 0
+
+    if (!seriesMap.has(key) || new Date(event.date) > new Date(seriesMap.get(key).date)) {
+      seriesMap.set(key, {
+        teamA: t1.team.abbreviation,
+        teamB: t2.team.abbreviation,
+        teamASeed: t1.curatedRank,
+        teamBSeed: t2.curatedRank,
+        winsA,
+        winsB,
+        summary: series.summary,
+        roundName,
+        roundNumber: series.round || 1,
+        date: event.date
+      })
+    }
+  }
+  return Array.from(seriesMap.values())
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const league = (searchParams.get('league') || 'NBA').toUpperCase() as LeagueCode
@@ -39,7 +111,69 @@ export async function GET(req: Request) {
   const isDev = process.env.NODE_ENV === 'development'
   const isDemo = searchParams.get('demo') === '1'
 
+  // NBA Live Reconstruction Engine
   if (!snapshot && league === 'NBA') {
+    const events = await getESPNNBAPlayoffs()
+    const seriesList = reconstructSeries(events)
+
+    if (seriesList.length > 0) {
+      const roundsMap = new Map<string, any[]>()
+      for (const s of seriesList) {
+        if (!roundsMap.has(s.roundName)) roundsMap.set(s.roundName, [])
+        
+        const teamA = teamRef('NBA', s.teamA, s.teamASeed)
+        const teamB = teamRef('NBA', s.teamB, s.teamBSeed)
+        const projectedWinner = s.winsA >= s.winsB ? teamA : teamB
+
+        roundsMap.get(s.roundName)!.push({
+          teamA,
+          teamB,
+          projectedWinner,
+          winProbability: 0.5,
+          seriesScore: s.summary,
+          winsA: s.winsA,
+          winsB: s.winsB,
+          conference: s.roundName.includes('Eastern') ? 'East' : (s.roundName.includes('Western') ? 'West' : 'Finals'),
+          round: s.roundNumber
+        })
+      }
+
+      const rounds = Array.from(roundsMap.entries())
+        .sort((a, b) => {
+          const rA = seriesList.find(s => s.roundName === a[0])?.roundNumber || 1
+          const rB = seriesList.find(s => s.roundName === b[0])?.roundNumber || 1
+          return rA - rB
+        })
+        .map(([name, matchups]) => ({ roundName: name, matchups }))
+
+      const lastRound = rounds[rounds.length - 1]
+      const champion = lastRound?.matchups[0]?.projectedWinner || teamRef('NBA', 'TBD')
+
+      const response: SimulationSummaryResponse = {
+        status: 'ok',
+        mode: 'simulation',
+        data: {
+          projectedChampion: { team: champion, titleProbability: 1.0 },
+          mostLikelyFinalsMatchup: { 
+            teamA: lastRound?.matchups[0]?.teamA || teamRef('NBA', 'TBD'), 
+            teamB: lastRound?.matchups[0]?.teamB || teamRef('NBA', 'TBD'), 
+            probability: 1.0 
+          },
+          titleDistribution: [{ team: champion, probability: 1.0 }],
+          bracket: { rounds },
+          validation: { mode: 'live_projection', overallAccuracy: 1.0, notes: 'Reconstructed from ESPN scoreboard series data.' }
+        },
+        meta: { 
+          league: 'NBA', 
+          simulationRuns: 1, 
+          generatedAt: new Date().toISOString(), 
+          validationMode: 'live_projection' 
+        }
+      }
+      return NextResponse.json(response)
+    }
+
+    // Fallback to mock only in dev/demo
     if (isDev || isDemo) {
       const src = NBA_SIM_SUMMARY
       const rounds = [
@@ -64,9 +198,9 @@ export async function GET(req: Request) {
     } else {
       return NextResponse.json({ 
         status: 'pending', 
-        message: 'Playoff series sync pending',
+        message: 'Playoff series sync pending (no ESPN series data found)',
         data: null 
-      }, { status: 200 }) // Return 200 with pending status as requested
+      }, { status: 200 })
     }
   }
 

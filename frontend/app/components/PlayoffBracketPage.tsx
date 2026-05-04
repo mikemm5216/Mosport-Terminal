@@ -54,30 +54,47 @@ function predictSeries(s: BracketSeries, iterations = 5000): { winner: string; p
   return { winner: p >= 0.5 ? s.home.abbr : s.away.abbr, prob: p >= 0.5 ? p : 1 - p }
 }
 
-function simulateBracket(firstRound: BracketSeries[], league: League): BracketSeries[] {
-  const all: BracketSeries[] = [...firstRound]
+function simulateBracket(inputSeries: BracketSeries[], league: League): BracketSeries[] {
+  const all: BracketSeries[] = [...inputSeries]
   const conferences: PlayoffConference[] = ['East', 'West']
 
+  // Helper to find or simulate a series
+  const getOrSim = (round: number, conf: PlayoffConference, id: string, t1: BracketTeam, t2: BracketTeam) => {
+    const existing = all.find(s => s.round === round && s.conference === conf && 
+      ((s.home.abbr === t1.abbr && s.away.abbr === t2.abbr) || (s.home.abbr === t2.abbr && s.away.abbr === t1.abbr)))
+    if (existing) return existing
+    
+    const [h, a] = t1.edge >= t2.edge ? [t1, t2] : [t2, t1]
+    const newSeries: BracketSeries = { 
+      id, league, round, conference: conf, home: h, away: a, 
+      winsHome: 0, winsAway: 0, status: 'pending' 
+    }
+    all.push(newSeries)
+    return newSeries
+  }
+
   for (const conf of conferences) {
-    const r1S = firstRound.filter(s => s.round === 1 && s.conference === conf)
+    const r1S = all.filter(s => s.round === 1 && s.conference === conf)
+    if (r1S.length < 4) continue // Wait for full R1 if we're simulating
+
     for (let i = 0; i < r1S.length; i += 2) {
       const { winner: w1 } = predictSeries(r1S[i], 2000)
       const { winner: w2 } = predictSeries(r1S[i + 1], 2000)
       const t1 = w1 === r1S[i].home.abbr ? r1S[i].home : r1S[i].away
       const t2 = w2 === r1S[i + 1].home.abbr ? r1S[i + 1].home : r1S[i + 1].away
-      const [h, a] = t1.edge >= t2.edge ? [t1, t2] : [t2, t1]
-      all.push({ id: `${league}-r2-${conf}-${i / 2}`, league, round: 2, conference: conf, home: h, away: a, winsHome: 0, winsAway: 0, status: 'pending' })
+      getOrSim(2, conf, `${league}-r2-${conf}-${i / 2}`, t1, t2)
     }
   }
 
   for (const conf of conferences) {
     const r2S = all.filter(s => s.round === 2 && s.conference === conf)
+    if (r2S.length < 2) continue
+
     const { winner: w1 } = predictSeries(r2S[0], 2000)
     const { winner: w2 } = predictSeries(r2S[1], 2000)
     const t1 = w1 === r2S[0].home.abbr ? r2S[0].home : r2S[0].away
     const t2 = w2 === r2S[1].home.abbr ? r2S[1].home : r2S[1].away
-    const [h, a] = t1.edge >= t2.edge ? [t1, t2] : [t2, t1]
-    all.push({ id: `${league}-r3-${conf}`, league, round: 3, conference: conf, home: h, away: a, winsHome: 0, winsAway: 0, status: 'pending' })
+    getOrSim(3, conf, `${league}-r3-${conf}`, t1, t2)
   }
 
   const eF = all.find(s => s.round === 3 && s.conference === 'East')
@@ -87,8 +104,7 @@ function simulateBracket(firstRound: BracketSeries[], league: League): BracketSe
     const { winner: ww } = predictSeries(wF, 2000)
     const tE = we === eF.home.abbr ? eF.home : eF.away
     const tW = ww === wF.home.abbr ? wF.home : wF.away
-    const [h, a] = tE.edge >= tW.edge ? [tE, tW] : [tW, tE]
-    all.push({ id: `${league}-finals`, league, round: 4, conference: 'Finals', home: h, away: a, winsHome: 0, winsAway: 0, status: 'pending' })
+    getOrSim(4, 'Finals', `${league}-finals`, tE, tW)
   }
 
   return all
@@ -115,7 +131,7 @@ function MiniSeriesCard({ series, league, align = "left" }: { series: BracketSer
   const isPending = series.status === 'pending'
   const { winner } = predictSeries(series)
   const homeWins = winner === series.home.abbr
-  const isLiveData = (series as BracketSeries & { _source?: string })._source === 'live_completed_games'
+  const isLiveData = (series as BracketSeries & { _source?: string })._source === 'live_completed_games' || (series as any)._source === 'live_espn_reconstruction'
 
   function TeamRow({ team, isWinner }: { team: BracketTeam; isWinner: boolean }) {
     const wins = team.abbr === series.home.abbr ? series.winsHome : series.winsAway
@@ -260,40 +276,49 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
 
   const liveLeaguePlayoffGames = useMemo(() => allMatches.filter(m => m.league === selectedLeague && m.status === 'FINAL' && m.playoff != null), [allMatches, selectedLeague])
   const liveSeriesMap = useMemo(() => getSeriesStateFromCompletedGames(liveLeaguePlayoffGames), [liveLeaguePlayoffGames])
-  const hydratedSeries: BracketSeries[] = useMemo(() => {
+  
+  const allSeries = useMemo(() => {
+    // Priority 1: Live reconstruction from API summary
+    if (summary?.status === 'ok' && summary.data.bracket.rounds.length > 0 && summary.data.validation.notes?.includes('ESPN')) {
+      const apiSeries: BracketSeries[] = []
+      summary.data.bracket.rounds.forEach(r => {
+        r.matchups.forEach(m => {
+          apiSeries.push({
+            id: `live-${m.teamA.code}-${m.teamB.code}`,
+            league: 'NBA',
+            round: m.round || 1,
+            conference: (m.conference as PlayoffConference) || 'East',
+            home: { abbr: m.teamA.code, seed: m.teamA.seed || 0, edge: 0.5, recovery: 0.7, name: m.teamA.displayName },
+            away: { abbr: m.teamB.code, seed: m.teamB.seed || 0, edge: 0.5, recovery: 0.7, name: m.teamB.displayName },
+            winsHome: m.winsA || 0,
+            winsAway: m.winsB || 0,
+            status: (m.winsA || 0) >= 4 || (m.winsB || 0) >= 4 ? 'completed' : 'active',
+            winner: (m.winsA || 0) >= 4 ? m.teamA.code : ((m.winsB || 0) >= 4 ? m.teamB.code : undefined),
+            _source: 'live_espn_reconstruction'
+          } as any)
+        })
+      })
+      return simulateBracket(apiSeries, league)
+    }
+
+    // Priority 2: Fallback to static bracket + context games (Hydration)
     const baseBracket = selectedLeague === 'NBA' ? NBA_BRACKET_2026 : []
-    if (baseBracket.length === 0) return []
-    return baseBracket.map(s => {
-      // Extract season from series id (e.g. "nba-r1-west-0" -> "2026")
-      // In this mock data, we'll assume 2026 as per the constants
+    const hydrated = baseBracket.map(s => {
       const season = '2026' 
       const { winsHome, winsAway, source, isComplete, winner } = resolveSeriesWins(
-        s.home.abbr, 
-        s.away.abbr, 
-        s.winsHome, 
-        s.winsAway, 
-        liveSeriesMap, 
-        selectedLeague,
-        season,
-        s.round
+        s.home.abbr, s.away.abbr, s.winsHome, s.winsAway, liveSeriesMap, selectedLeague, season, s.round
       )
       return { 
-        ...s, 
-        winsHome, 
-        winsAway, 
-        status: isComplete ? 'completed' : s.status,
-        winner: winner ?? s.winner,
-        _source: source 
+        ...s, winsHome, winsAway, status: isComplete ? 'completed' : s.status,
+        winner: winner ?? s.winner, _source: source 
       } as BracketSeries & { _source: string }
     })
-  }, [liveSeriesMap, selectedLeague])
 
-  const hasLiveSeriesData = liveSeriesMap.size > 0
-  const allSeries = useMemo(() => {
-    if (hydratedSeries.length > 0) return simulateBracket(hydratedSeries, league)
+    if (hydrated.length > 0) return simulateBracket(hydrated, league)
     return []
-  }, [hydratedSeries, league])
-  
+  }, [summary, liveSeriesMap, selectedLeague, league])
+
+  const hasLiveSeriesData = allSeries.some(s => (s as any)._source === 'live_espn_reconstruction' || (s as any)._source === 'live_completed_games')
   const finals = allSeries.find(s => s.round === 4)
   const displayChampion = summary?.data.projectedChampion.team.shortName ?? (finals ? predictSeries(finals).winner : "")
   const titleProb = summary?.data.projectedChampion.titleProbability ?? 0
