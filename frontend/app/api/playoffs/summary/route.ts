@@ -23,6 +23,36 @@ function teamRef(league: LeagueCode, code: string, seed?: number | null): TeamRe
   }
 }
 
+function pendingSummary(league: LeagueCode, message: string): SimulationSummaryResponse {
+  return {
+    status: 'pending',
+    mode: 'simulation',
+    message,
+    data: null,
+    meta: {
+      league,
+      simulationRuns: 0,
+      generatedAt: null,
+      validationMode: 'unvalidated',
+    },
+  }
+}
+
+function errorSummary(league: LeagueCode, message: string): SimulationSummaryResponse {
+  return {
+    status: 'error',
+    mode: 'simulation',
+    message,
+    data: null,
+    meta: {
+      league,
+      simulationRuns: 0,
+      generatedAt: null,
+      validationMode: 'unvalidated',
+    },
+  }
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const league = (searchParams.get('league') || 'NBA').toUpperCase() as LeagueCode
@@ -61,17 +91,13 @@ export async function GET(req: Request) {
         meta: { league: 'NBA', simulationRuns: src.simulation_runs, generatedAt: src.metadata.generated_at, validationMode: src.validation.mode as any },
       }
       return NextResponse.json(response)
-    } else {
-      return NextResponse.json({ 
-        status: 'pending', 
-        message: 'Playoff series sync pending',
-        data: null 
-      }, { status: 200 }) // Return 200 with pending status as requested
     }
+
+    return NextResponse.json(pendingSummary('NBA', 'Playoff series sync pending'), { status: 200 })
   }
 
   if (!snapshot) {
-    return NextResponse.json({ status: 'error', message: `No projection snapshot found for ${league}` }, { status: 404 })
+    return NextResponse.json(errorSummary(league, `No projection snapshot found for ${league}`), { status: 404 })
   }
 
   const response: SimulationSummaryResponse = {
@@ -89,7 +115,7 @@ export async function GET(req: Request) {
       }
     },
     meta: {
-      league: league as any,
+      league,
       simulationRuns: 10000,
       generatedAt: snapshot.generatedAt.toISOString(),
       validationMode: snapshot.dataStatus === 'DEGRADED' ? 'unvalidated' : 'live_projection'
