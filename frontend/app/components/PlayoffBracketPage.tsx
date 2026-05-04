@@ -81,7 +81,7 @@ function simulateBracket(firstRound: BracketSeries[], league: League): BracketSe
   return all
 }
 
-function useSummary(league: string) {
+export function useSummary(league: string) {
   const [summary, setSummary] = useState<SimulationSummaryResponse | null>(null)
   const [loading, setLoading] = useState(true)
 

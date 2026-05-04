@@ -8,10 +8,10 @@ interface Props {
   teamAbbr: string
   league: League
   size: number
-  accentColor: string
+  accentColor?: string
 }
 
-export default function TeamLogo({ teamAbbr, league, size, accentColor }: Props) {
+export default function TeamLogo({ teamAbbr, league, size, accentColor = '#22d3ee' }: Props) {
   const [error, setError] = useState(false)
   const src = getTeamLogo(league, teamAbbr)
 

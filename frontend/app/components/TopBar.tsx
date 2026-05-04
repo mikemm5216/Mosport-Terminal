@@ -149,7 +149,13 @@ export default function TopBar({ onHome, activeTab = 'HOME', onTabChange, mode, 
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-            {!isMobile && !hideModeToggle && (
+            {hideModeToggle && mode === 'live' && !isMobile && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingRight: 12 }}>
+                <LiveDot color="#34d399" size={5} />
+                <span style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 9, color: '#34d399', fontWeight: 800, letterSpacing: '0.18em' }}>SYSTEM_LIVE</span>
+              </div>
+            )}
+            {!hideModeToggle && !isMobile && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <LiveDot color={mode === 'live' ? '#34d399' : '#fbbf24'} size={5} />
                 <span style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 9, color: mode === 'live' ? '#34d399' : '#fbbf24', fontWeight: 800, letterSpacing: '0.18em' }}>{modeLabel}</span>

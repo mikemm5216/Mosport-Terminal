@@ -6,7 +6,7 @@ import { X, Mail, Lock, User, Terminal } from 'lucide-react'
 interface Props {
   isOpen: boolean
   onClose: () => void
-  onSuccess: (user: any) => void
+  onSuccess?: (user: any) => void
 }
 
 export default function AuthModal({ isOpen, onClose, onSuccess }: Props) {
@@ -38,7 +38,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: Props) {
       if (!res.ok) {
         setError(data.error || 'Authentication failed')
       } else {
-        onSuccess(data.user)
+        onSuccess?.(data.user)
         onClose()
       }
     } catch (err) {
