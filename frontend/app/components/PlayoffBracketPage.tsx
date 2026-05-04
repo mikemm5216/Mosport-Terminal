@@ -186,13 +186,46 @@ function getRound(matchup: BracketMatchup): number {
   return Number(matchup.round ?? 1) || 1
 }
 
-function BracketColumn({ matchups, league, label, compact = true, gap = 14 }: { matchups: BracketMatchup[]; league: League; label: string; compact?: boolean; gap?: number }) {
-  const slots = label === 'R1' ? 4 : label === 'R2' ? 2 : 1
-  const padded = [...matchups]
-  while (padded.length < slots) padded.push(null as any)
+function seedSet(matchup: BracketMatchup) {
+  return new Set([matchup.teamA.seed, matchup.teamB.seed].filter((seed): seed is number => typeof seed === 'number'))
+}
+
+function firstRoundSlot(matchup: BracketMatchup) {
+  const seeds = seedSet(matchup)
+  if (seeds.has(1) || seeds.has(8)) return 0
+  if (seeds.has(4) || seeds.has(5)) return 1
+  if (seeds.has(3) || seeds.has(6)) return 2
+  if (seeds.has(2) || seeds.has(7)) return 3
+  return 99
+}
+
+function secondRoundSlot(matchup: BracketMatchup) {
+  const seeds = seedSet(matchup)
+  if (seeds.has(1) || seeds.has(4) || seeds.has(5) || seeds.has(8)) return 0
+  if (seeds.has(2) || seeds.has(3) || seeds.has(6) || seeds.has(7)) return 1
+  return 99
+}
+
+function sortBracketPath(matchups: BracketMatchup[], round: number) {
+  return [...matchups].sort((a, b) => {
+    const slotA = round === 1 ? firstRoundSlot(a) : round === 2 ? secondRoundSlot(a) : 0
+    const slotB = round === 1 ? firstRoundSlot(b) : round === 2 ? secondRoundSlot(b) : 0
+    return slotA - slotB
+  })
+}
+
+function SlotColumn({ matchups, league, round, side, label, compact = true }: { matchups: BracketMatchup[]; league: League; round: 1 | 2 | 3; side: ConferenceSide; label: string; compact?: boolean }) {
+  const sorted = sortBracketPath(matchups, round)
+  const rows = round === 1 ? [1, 3, 5, 7] : round === 2 ? [2, 6] : [4]
+  const slots = round === 1 ? 4 : round === 2 ? 2 : 1
+  const items = Array.from({ length: slots }, (_, i) => sorted[i] ?? null)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap }}>
-      {padded.slice(0, slots).map((matchup, i) => matchup ? <SeriesCard key={`${label}-${i}-${matchup.teamA.shortName}-${matchup.teamB.shortName}`} matchup={matchup} league={league} compact={compact} /> : <EmptySlot key={`${label}-empty-${i}`} league={league} label={label} />)}
+    <div style={{ display: 'grid', gridTemplateRows: 'repeat(7, minmax(58px, auto))', rowGap: 9, alignItems: 'center', minHeight: 500 }}>
+      {items.map((matchup, i) => (
+        <div key={`${side}-${label}-${i}`} style={{ gridRow: rows[i] }}>
+          {matchup ? <SeriesCard matchup={matchup} league={league} compact={compact} /> : <EmptySlot league={league} label={label} />}
+        </div>
+      ))}
     </div>
   )
 }
@@ -209,20 +242,20 @@ function ButterflyBracket({ data, league }: { data: PlayoffSimulationSummary; le
   const finals = all.find(m => getRound(m) === 4) ?? all.find(m => getConference(m) === 'Finals')
 
   return (
-    <div style={{ position: 'relative', minHeight: 560, padding: '28px 24px', border: `1px solid ${t.hex}18`, borderRadius: 10, background: 'radial-gradient(circle at center, rgba(34,211,238,0.08), rgba(2,6,23,0) 45%)', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', minHeight: 600, padding: '28px 24px', border: `1px solid ${t.hex}18`, borderRadius: 10, background: 'radial-gradient(circle at center, rgba(34,211,238,0.08), rgba(2,6,23,0) 45%)', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', left: '50%', top: 70, bottom: 40, width: 1, background: `linear-gradient(180deg, transparent, ${t.hex}77, transparent)` }} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1.05fr 0.9fr 230px 0.9fr 1.05fr 1.3fr', gap: 16, alignItems: 'center', height: '100%' }}>
-        <BracketColumn matchups={westR1} league={league} label="R1" compact gap={14} />
-        <BracketColumn matchups={westR2} league={league} label="R2" compact gap={42} />
-        <BracketColumn matchups={westR3} league={league} label="WCF" compact={false} gap={96} />
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1.08fr 0.9fr 230px 0.9fr 1.08fr 1.35fr', gap: 16, alignItems: 'center', height: '100%' }}>
+        <SlotColumn matchups={westR1} league={league} round={1} side="West" label="R1" compact />
+        <SlotColumn matchups={westR2} league={league} round={2} side="West" label="R2" compact />
+        <SlotColumn matchups={westR3} league={league} round={3} side="West" label="WCF" compact={false} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, minHeight: 500 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#fbbf24', letterSpacing: '0.42em', fontWeight: 900 }}>FINALS</div>
           {finals ? <SeriesCard matchup={finals} league={league} /> : <EmptySlot league={league} label="FINALS" />}
           <ChampionCard summary={{ status: 'ok', mode: 'simulation', data, meta: { league: league as any, simulationRuns: 0, generatedAt: null, validationMode: 'unvalidated' } }} league={league} loading={false} />
         </div>
-        <BracketColumn matchups={eastR3} league={league} label="ECF" compact={false} gap={96} />
-        <BracketColumn matchups={eastR2} league={league} label="R2" compact gap={42} />
-        <BracketColumn matchups={eastR1} league={league} label="R1" compact gap={14} />
+        <SlotColumn matchups={eastR3} league={league} round={3} side="East" label="ECF" compact={false} />
+        <SlotColumn matchups={eastR2} league={league} round={2} side="East" label="R2" compact />
+        <SlotColumn matchups={eastR1} league={league} round={1} side="East" label="R1" compact />
       </div>
     </div>
   )
