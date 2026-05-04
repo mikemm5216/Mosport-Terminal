@@ -109,7 +109,7 @@ export default function Home() {
           onTabChange={handleTabChange}
           mode={viewState.mode}
           onModeChange={handleModeChange}
-          hideModeToggle={activeTab === 'LAB' || viewState.mode === 'simulation'}
+          hideModeToggle={activeTab !== 'LAB'}
         >
           <div className="flex items-center gap-4">
             {user ? (

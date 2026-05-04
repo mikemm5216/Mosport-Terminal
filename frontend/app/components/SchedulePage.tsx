@@ -3,12 +3,178 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { Match, League, KeyPlayer } from '../data/mockData'
 import { generateSimulatedPlayers, getPlayerBadgeLabel } from '../lib/playerReadiness'
-import { leagueTheme, TeamMark, LeagueBadge, wpaColor, LiveDot } from './ui'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import { useMatchesContext, DataFreshnessBadge } from '../context/MatchesContext'
-import { getCoachMetricLabels } from '../lib/coachMetricLabels'
+import { getCoachMetricLabels, leagueToSport } from '../lib/coachMetricLabels'
 import { PAGE_SHELL_STYLE, BREAKPOINTS } from '../lib/ui'
-import { leagueToSport } from '../lib/coachMetricLabels'
+import { leagueTheme, TeamMark, LeagueBadge, wpaColor, LiveDot, BioBar, RingGauge, TacticalLabel } from './ui'
+import { useAuth } from '../context/AuthContext'
+import AuthModal from './AuthModal'
+
+// ── Engagement Panel ───────────────────────────────────────────
+function EngagementPanel({ m, onClose }: { m: Match; onClose: () => void }) {
+  const { user } = useAuth()
+  const [showAuth, setShowAuth] = useState(false)
+  const [view, setView] = useState<'PREDICT' | 'COMMENT'>('PREDICT')
+  const [prediction, setPrediction] = useState<'HOME' | 'AWAY' | null>(null)
+  const [confidence, setConfidence] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM')
+  const [commentText, setCommentText] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [success, setSuccess] = useState(false)
+
+  const handlePredict = async () => {
+    if (!user) { setShowAuth(true); return }
+    if (!prediction) return
+    setSubmitting(true)
+    try {
+      const stance = prediction === 'HOME' ? 'AGREE' : 'DISAGREE'
+      const confMap = { LOW: 33, MEDIUM: 66, HIGH: 99 }
+      await fetch(`/api/matches/${m.id}/coach-vote`, {
+        method: 'POST',
+        body: JSON.stringify({ stance, confidence: confMap[confidence] })
+      })
+      setSuccess(true)
+      setTimeout(onClose, 1500)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleComment = async () => {
+    if (!user) { setShowAuth(true); return }
+    if (!commentText.trim()) return
+    setSubmitting(true)
+    try {
+      await fetch(`/api/matches/${m.id}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ 
+          stance: 'WATCH_ONLY', 
+          commentText: commentText.trim(),
+          confidence: 50
+        })
+      })
+      setSuccess(true)
+      setTimeout(onClose, 1500)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (success) {
+    return (
+      <div style={{ padding: 24, textAlign: "center", background: "rgba(52,211,153,0.05)", borderTop: "1px solid rgba(52,211,153,0.2)" }}>
+        <div style={{ fontFamily: "var(--font-mono)", color: "#34d399", fontWeight: 900, fontSize: 12 }}>✓ ENGAGEMENT_RECORDED</div>
+      </div>
+    )
+  }
+
+  return (
+    <div onClick={(e) => e.stopPropagation()} style={{ 
+      padding: "20px 24px", background: "rgba(2,6,23,0.4)", borderTop: "1px solid rgba(34,211,238,0.1)",
+      display: "flex", flexDirection: "column", gap: 20
+    }}>
+      {showAuth && <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />}
+      
+      <div style={{ display: "flex", gap: 16 }}>
+        <button 
+          onClick={() => setView('PREDICT')}
+          style={{ 
+            fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 900, letterSpacing: "0.2em",
+            color: view === 'PREDICT' ? "#22d3ee" : "#475569", background: "none", border: "none", cursor: "pointer",
+            borderBottom: view === 'PREDICT' ? "2px solid #22d3ee" : "2px solid transparent", paddingBottom: 4
+          }}
+        >PREDICT</button>
+        <button 
+          onClick={() => setView('COMMENT')}
+          style={{ 
+            fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 900, letterSpacing: "0.2em",
+            color: view === 'COMMENT' ? "#22d3ee" : "#475569", background: "none", border: "none", cursor: "pointer",
+            borderBottom: view === 'COMMENT' ? "2px solid #22d3ee" : "2px solid transparent", paddingBottom: 4
+          }}
+        >COMMENT</button>
+      </div>
+
+      {view === 'PREDICT' ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", gap: 12 }}>
+            <button 
+              onClick={() => setPrediction('AWAY')}
+              style={{ 
+                flex: 1, padding: "12px", background: prediction === 'AWAY' ? "rgba(34,211,238,0.1)" : "rgba(15,23,42,0.6)",
+                border: `1px solid ${prediction === 'AWAY' ? "#22d3ee" : "rgba(148,163,184,0.1)"}`,
+                borderRadius: 4, color: prediction === 'AWAY' ? "#fff" : "#64748b",
+                fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 13, cursor: "pointer"
+              }}
+            >{m.away.abbr}</button>
+            <button 
+              onClick={() => setPrediction('HOME')}
+              style={{ 
+                flex: 1, padding: "12px", background: prediction === 'HOME' ? "rgba(34,211,238,0.1)" : "rgba(15,23,42,0.6)",
+                border: `1px solid ${prediction === 'HOME' ? "#22d3ee" : "rgba(148,163,184,0.1)"}`,
+                borderRadius: 4, color: prediction === 'HOME' ? "#fff" : "#64748b",
+                fontFamily: "var(--font-inter)", fontWeight: 900, fontSize: 13, cursor: "pointer"
+              }}
+            >{m.home.abbr}</button>
+          </div>
+          
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.1em" }}>CONFIDENCE</span>
+            <div style={{ display: "flex", gap: 8, flex: 1 }}>
+              {(['LOW', 'MEDIUM', 'HIGH'] as const).map(c => (
+                <button 
+                  key={c}
+                  onClick={() => setConfidence(c)}
+                  style={{ 
+                    flex: 1, padding: "6px", background: "none", borderRadius: 3,
+                    border: `1px solid ${confidence === c ? "#22d3ee" : "rgba(148,163,184,0.1)"}`,
+                    color: confidence === c ? "#22d3ee" : "#475569",
+                    fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 800, cursor: "pointer"
+                  }}
+                >{c}</button>
+              ))}
+            </div>
+          </div>
+
+          <button 
+            disabled={!prediction || submitting}
+            onClick={handlePredict}
+            style={{ 
+              padding: "10px", background: "#22d3ee", borderRadius: 4, border: "none",
+              color: "#020617", fontFamily: "var(--font-mono)", fontWeight: 900, fontSize: 10,
+              letterSpacing: "0.1em", cursor: prediction ? "pointer" : "not-allowed", opacity: prediction ? 1 : 0.5
+            }}
+          >{submitting ? "RECORDING..." : "LOCK IN PREDICTION"}</button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <textarea 
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Add quick tactical insight..."
+            style={{ 
+              width: "100%", height: 80, background: "rgba(15,23,42,0.6)", border: "1px solid rgba(148,163,184,0.1)",
+              borderRadius: 4, padding: 12, color: "#fff", fontFamily: "var(--font-inter)", fontSize: 13,
+              resize: "none", outline: "none"
+            }}
+          />
+          <button 
+            disabled={!commentText.trim() || submitting}
+            onClick={handleComment}
+            style={{ 
+              alignSelf: "flex-end", padding: "8px 20px", background: "#22d3ee", borderRadius: 4, border: "none",
+              color: "#020617", fontFamily: "var(--font-mono)", fontWeight: 900, fontSize: 10,
+              letterSpacing: "0.1em", cursor: "pointer"
+            }}
+          >{submitting ? "POSTING..." : "POST INSIGHT"}</button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ── Date helpers ─────────────────────────────────────────────
 function todayISO() {
@@ -363,8 +529,9 @@ function GameBarPreview({ m, onOpen, isMobile }: { m: Match; onOpen: (m: Match) 
 }
 
 // ── Collapsible game bar ───────────────────────────────────────
-function GameBar({ m, expanded, onToggle, onOpen }: {
-  m: Match; expanded: boolean; onToggle: () => void; onOpen: (m: Match) => void
+function GameBar({ m, expanded, onToggle, onOpen, engagementId, onEngage }: {
+  m: Match; expanded: boolean; onToggle: () => void; onOpen: (m: Match) => void;
+  engagementId: string | null; onEngage: (id: string | null) => void;
 }) {
   const w = useWindowWidth()
   const isMobile = w < BREAKPOINTS.mobile
@@ -374,6 +541,8 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
   const isLive = m.status === "LIVE"
   const isFinal = m.status === "FINAL"
   const sport = leagueToSport(m.league)
+  
+  const isEngaging = engagementId === m.id
   
   // Sport-specific progress formatting
   let displayTime = m.time
@@ -444,23 +613,11 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 900, color: "#fff" }}>{Math.abs(m.wpa).toFixed(2)}</span>
             </div>
             <div style={{ flex: 1 }} />
-            <div style={{ display: "flex", gap: 10 }}>
-              {["Mismatch", "Fatigue"].map((s, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#64748b", fontWeight: 700 }}>{s}</span>
-                  <span style={{ color: i === 0 ? "#34d399" : "#fbbf24", fontSize: 10, fontWeight: 900 }}>↑</span>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: t.hex, letterSpacing: "0.25em", fontWeight: 900 }}>ACCESS INTELLIGENCE →</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(148,163,184,0.1)", padding: "2px 6px", borderRadius: 4 }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#94a3b8" }}>🗨</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#94a3b8", fontWeight: 800 }}>12</span>
-              </div>
+            <div onClick={(e) => { e.stopPropagation(); onEngage(isEngaging ? null : m.id) }} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: isEngaging ? "#fff" : t.hex, letterSpacing: "0.25em", fontWeight: 900 }}>{isEngaging ? "CLOSE ENGAGE ↑" : "ENGAGE INTEL →"}</span>
             </div>
             <span style={{
               color: expanded ? t.hex : "#334155",
@@ -515,16 +672,6 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
                 <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 13, fontWeight: 900, color: "#1e293b", letterSpacing: "0.5em" }}>TBD</span>
               )}
             </div>
-            {m.playoff && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: isCompact ? 8 : 9, fontWeight: 900, color: t.hex, letterSpacing: "0.25em" }}>
-                  {m.playoff.round.toUpperCase()}
-                </span>
-                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: isCompact ? 8 : 9, color: "#64748b", letterSpacing: "0.15em", fontWeight: 700 }}>
-                  {m.playoff.summary}
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Home */}
@@ -570,13 +717,17 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.1em" }}>DECISION SCORE</span>
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 900, color: wpaColor(m.tactical_label) }}>{Math.abs(m.wpa).toFixed(2)}</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569", letterSpacing: "0.1em" }}>TACTICAL DRIVER</span>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 900, color: "#e2e8f0" }}>{m.tactical_label.replace('_', ' ')}</span>
-          </div>
           <div style={{ flex: 1 }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-             <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, color: "#475569" }}>LATEST INTEL: "Line divergence detected in early movement..."</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+             <button 
+                onClick={(e) => { e.stopPropagation(); onEngage(isEngaging ? null : m.id) }}
+                style={{ 
+                  background: isEngaging ? "#22d3ee" : "rgba(34,211,238,0.08)", border: `1px solid ${isEngaging ? "#22d3ee" : "rgba(34,211,238,0.2)"}`,
+                  padding: "4px 12px", borderRadius: 4, cursor: "pointer",
+                  fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 900, color: isEngaging ? "#020617" : "#22d3ee",
+                  transition: "all 0.2s ease"
+                }}
+              >{isEngaging ? "CLOSE ENGAGE ↑" : "ENGAGE"}</button>
              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#64748b" }}>🗨 12</span>
              </div>
@@ -584,6 +735,7 @@ function GameBar({ m, expanded, onToggle, onOpen }: {
         </div>
       )}
 
+      {isEngaging && <EngagementPanel m={m} onClose={() => onEngage(null)} />}
       {expanded && <GameBarPreview m={m} onOpen={onOpen} isMobile={isMobile} />}
     </div>
   )
@@ -594,6 +746,7 @@ const LEAGUES: Array<"ALL" | League> = ["ALL", "MLB", "NBA", "EPL", "UCL", "NHL"
 
 export default function SchedulePage({ onOpen, onOpenLab }: { onOpen: (m: Match) => void; onOpenLab?: () => void }) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [engagementId, setEngagementId] = useState<string | null>(null)
   const [filter, setFilter] = useState<"ALL" | League>("ALL")
   const [selectedDate, setSelectedDate] = useState(todayISO())
   const { matches: allMatches, loading, error, dataFreshness } = useMatchesContext()
