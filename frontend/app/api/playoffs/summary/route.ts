@@ -4,7 +4,7 @@ import type { SimulationSummaryResponse, TeamRef } from '../../../contracts/prod
 import type { LeagueCode } from '../../../contracts/product'
 import { toCanonicalTeamKey } from '../../../config/teamCodeNormalization'
 import { getTeamLogo } from '../../../lib/teamLogoResolver'
-import { prisma } from '../../../../../lib/prisma'
+import { prisma } from '../../../lib/prisma'
 
 export const revalidate = 3600
 export const dynamic = 'force-dynamic'
