@@ -106,14 +106,42 @@ export type PlayoffSimulationSummary = {
   }
 }
 
-export type SimulationSummaryResponse = {
-  status: 'ok' | 'error'
+type SimulationSummaryMeta = {
+  league: LeagueCode
+  simulationRuns: number
+  generatedAt: string | null
+  validationMode: 'live_projection' | 'historical_backtest' | 'unvalidated'
+}
+
+export type SimulationOkSummary = {
+  status: 'ok'
   mode: 'simulation'
   data: PlayoffSimulationSummary
-  meta: {
-    league: 'NBA'
-    simulationRuns: number
-    generatedAt: string
-    validationMode: 'live_projection' | 'historical_backtest' | 'unvalidated'
+  meta: SimulationSummaryMeta
+}
+
+export type SimulationPendingSummary = {
+  status: 'pending'
+  mode: 'simulation'
+  message: string
+  data: null
+  meta: SimulationSummaryMeta & {
+    simulationRuns: 0
+    generatedAt: null
+    validationMode: 'unvalidated'
   }
 }
+
+export type SimulationErrorSummary = {
+  status: 'error'
+  mode: 'simulation'
+  message: string
+  data: null
+  meta?: SimulationSummaryMeta & {
+    simulationRuns: 0
+    generatedAt: null
+    validationMode: 'unvalidated'
+  }
+}
+
+export type SimulationSummaryResponse = SimulationOkSummary | SimulationPendingSummary | SimulationErrorSummary
