@@ -127,7 +127,6 @@ export const TODAY_MATCHES: Match[] = [
     matchup_complexity: 0.41,
     recovery_away: 0.72,
     recovery_home: 0.58,
-    playoff: { round: "West 1st Round - Game 4", summary: "Series tied 1-1", seriesWins: { home: 1, away: 1 } },
   },
   {
     id: "epl_2026_mci_liv",
@@ -196,7 +195,6 @@ export const TODAY_MATCHES: Match[] = [
     matchup_complexity: 0.88,
     recovery_away: 0.81,
     recovery_home: 0.48,
-    playoff: { round: "East 1st Round - Game 3", summary: "BOS leads series 2-0", seriesWins: { home: 2, away: 0 } },
   },
   {
     id: "epl_2026_ars_tot",
@@ -233,7 +231,6 @@ export const TODAY_MATCHES: Match[] = [
     matchup_complexity: 0.48,
     recovery_away: 0.65,
     recovery_home: 0.73,
-    playoff: { round: "East 1st Round - Game 2", summary: "BOS leads series 1-0", seriesWins: { home: 1, away: 0 } },
   },
 ]
 
