@@ -296,6 +296,30 @@ function buildLiveSummaryFromSeries(seriesList: ReconstructedSeries[], liveSerie
   }
 }
 
+function snapshotSummary(snapshot: any, league: LeagueCode): SimulationSummaryResponse {
+  return {
+    status: 'ok',
+    mode: 'simulation',
+    data: {
+      projectedChampion: snapshot.projectedChampion,
+      mostLikelyFinalsMatchup: snapshot.finalsMatchup,
+      titleDistribution: snapshot.titleDistribution,
+      bracket: snapshot.bracketState,
+      validation: {
+        mode: snapshot.modelVersion === 'interim-determ-v1' ? 'unvalidated' : 'live_projection',
+        overallAccuracy: 0.82,
+        notes: snapshot.dataStatus === 'DEGRADED' ? 'Data streams degraded. Interim projection active.' : 'Agency calibrated snapshot.',
+      },
+    },
+    meta: {
+      league,
+      simulationRuns: 10000,
+      generatedAt: snapshot.generatedAt.toISOString(),
+      validationMode: snapshot.dataStatus === 'DEGRADED' ? 'unvalidated' : 'live_projection',
+    },
+  }
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const league = (searchParams.get('league') || 'NBA').toUpperCase() as LeagueCode
@@ -312,12 +336,14 @@ export async function GET(req: Request) {
   const isDev = process.env.NODE_ENV === 'development'
   const isDemo = searchParams.get('demo') === '1'
 
-  if (!snapshot && league === 'NBA') {
+  if (league === 'NBA') {
     const events = await getESPNNBAPlayoffEvents()
     const liveSeries = reconstructSeries(events)
     const mergedSeries = mergeSeedWithLiveSeries(liveSeries)
     const liveSummary = buildLiveSummaryFromSeries(mergedSeries, liveSeries.length)
     if (liveSummary) return NextResponse.json(liveSummary)
+
+    if (snapshot) return NextResponse.json(snapshotSummary(snapshot, league))
 
     if (isDev || isDemo) {
       const src = NBA_SIM_SUMMARY
@@ -349,27 +375,5 @@ export async function GET(req: Request) {
     return NextResponse.json(errorSummary(league, `No projection snapshot found for ${league}`), { status: 404 })
   }
 
-  const response: SimulationSummaryResponse = {
-    status: 'ok',
-    mode: 'simulation',
-    data: {
-      projectedChampion: snapshot.projectedChampion,
-      mostLikelyFinalsMatchup: snapshot.finalsMatchup,
-      titleDistribution: snapshot.titleDistribution,
-      bracket: snapshot.bracketState,
-      validation: {
-        mode: snapshot.modelVersion === 'interim-determ-v1' ? 'unvalidated' : 'live_projection',
-        overallAccuracy: 0.82,
-        notes: snapshot.dataStatus === 'DEGRADED' ? 'Data streams degraded. Interim projection active.' : 'Agency calibrated snapshot.',
-      },
-    },
-    meta: {
-      league,
-      simulationRuns: 10000,
-      generatedAt: snapshot.generatedAt.toISOString(),
-      validationMode: snapshot.dataStatus === 'DEGRADED' ? 'unvalidated' : 'live_projection',
-    },
-  }
-
-  return NextResponse.json(response)
+  return NextResponse.json(snapshotSummary(snapshot, league))
 }
