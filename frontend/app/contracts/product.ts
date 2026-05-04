@@ -20,6 +20,7 @@ export type TeamRef = {
 }
 
 import type { RosterSnapshot, RosterSource } from './roster'
+import type { PlayoffInfo } from '../data/mockData'
 
 export type LiveMatchCard = {
   id: string
@@ -35,6 +36,10 @@ export type LiveMatchCard = {
     home: number | null
     away: number | null
   }
+  season?: string
+  seasonYear?: number
+  seasonType?: 'regular' | 'postseason' | 'preseason'
+  playoff?: PlayoffInfo
   decision: {
     label: 'STRONG' | 'UPSET' | 'CHAOS' | 'WEAK' | 'NONE'
     action: 'LEAN_HOME' | 'LEAN_AWAY' | 'UPSET_WATCH' | 'AVOID' | 'NO_ACTION'

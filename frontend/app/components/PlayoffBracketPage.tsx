@@ -138,6 +138,47 @@ function SeriesCard({ matchup, league, compact = false }: { matchup: BracketMatc
   )
 }
 
+function PendingSeriesCard({ league, label }: { league: League; label: string }) {
+  const t = leagueTheme(league)
+  return (
+    <div style={{ minHeight: 58, padding: '10px 12px', background: 'linear-gradient(180deg, rgba(15,23,42,0.58), rgba(2,6,23,0.72))', border: '1px dashed rgba(148,163,184,0.16)', borderLeft: `3px solid ${t.hex}`, borderRadius: 6 }}>
+      <div style={{ height: 9, width: '55%', background: 'rgba(148,163,184,0.12)', borderRadius: 999, marginBottom: 10 }} />
+      <div style={{ height: 9, width: '42%', background: 'rgba(148,163,184,0.08)', borderRadius: 999, marginBottom: 9 }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 7, color: t.hex, letterSpacing: '0.12em', fontWeight: 900 }}>
+        <span>{label}</span>
+        <span>SYNC</span>
+      </div>
+    </div>
+  )
+}
+
+function PendingButterflyBracket({ league, message }: { league: League; message: string }) {
+  const t = leagueTheme(league)
+  const left = ['R1', 'R1', 'R1', 'R1']
+  const right = ['R1', 'R1', 'R1', 'R1']
+  return (
+    <div style={{ position: 'relative', minHeight: 520, padding: '28px 24px', border: `1px solid ${t.hex}22`, borderRadius: 10, background: 'radial-gradient(circle at center, rgba(34,211,238,0.08), rgba(2,6,23,0) 45%)', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', left: '50%', top: 70, bottom: 40, width: 1, background: `linear-gradient(180deg, transparent, ${t.hex}77, transparent)` }} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.9fr 220px 0.9fr 1fr 1.2fr', gap: 16, alignItems: 'center', height: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{left.map((label, i) => <PendingSeriesCard key={`pl1-${i}`} league={league} label={label} />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}>{left.slice(0, 2).map((label, i) => <PendingSeriesCard key={`pl2-${i}`} league={league} label="R2" />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}><PendingSeriesCard league={league} label="CONF" /></div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#fbbf24', letterSpacing: '0.42em', fontWeight: 900 }}>FINALS</div>
+          <div style={{ padding: 22, background: 'rgba(251,191,36,0.05)', border: '2px dashed rgba(251,191,36,0.55)', borderRadius: 8, boxShadow: '0 0 30px rgba(251,191,36,0.12)', textAlign: 'center', minWidth: 190 }}>
+            <div style={{ fontFamily: 'var(--font-inter)', fontWeight: 900, color: '#fff', fontSize: 18, marginBottom: 8 }}>SYNC PENDING</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#fbbf24', letterSpacing: '0.2em' }}>PROJECTION RECALCULATING</div>
+            <div style={{ marginTop: 14, fontFamily: 'var(--font-inter)', fontSize: 12, lineHeight: 1.5, color: '#94a3b8' }}>{message}</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}><PendingSeriesCard league={league} label="CONF" /></div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}>{right.slice(0, 2).map((label, i) => <PendingSeriesCard key={`pr2-${i}`} league={league} label="R2" />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{right.map((label, i) => <PendingSeriesCard key={`pr1-${i}`} league={league} label={label} />)}</div>
+      </div>
+    </div>
+  )
+}
+
 function ChampionCard({ summary, league, loading }: { summary: SimulationOkSummary | null; league: League; loading: boolean }) {
   const champion = summary?.data.projectedChampion
   return (
@@ -146,9 +187,7 @@ function ChampionCard({ summary, league, loading }: { summary: SimulationOkSumma
       <div style={{ marginTop: 12, fontFamily: 'var(--font-inter)', fontWeight: 900, color: '#fff', fontSize: 22 }}>
         {loading ? '—' : champion?.team.shortName ?? 'RECALCULATING'}
       </div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#fbbf24', marginTop: 4, letterSpacing: '0.2em' }}>
-        PROJECTED CHAMPION
-      </div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#fbbf24', marginTop: 4, letterSpacing: '0.2em' }}>PROJECTED CHAMPION</div>
       <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid rgba(251,191,36,0.2)' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: '#64748b', letterSpacing: '0.15em', marginBottom: 2 }}>TITLE PROBABILITY</div>
         <div style={{ fontFamily: 'var(--font-inter)', fontWeight: 900, fontSize: 18, color: loading ? '#475569' : '#fbbf24' }}>
@@ -180,7 +219,7 @@ function ButterflyBracket({ data, league }: { data: PlayoffSimulationSummary; le
         <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}>{r3Left.map((m, i) => <SeriesCard key={`l-r3-${i}`} matchup={m} league={league} />)}</div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#fbbf24', letterSpacing: '0.42em', fontWeight: 900 }}>FINALS</div>
-          {finals ? <SeriesCard matchup={finals} league={league} /> : <ChampionCard summary={{ status: 'ok', mode: 'simulation', data, meta: { league: league as any, simulationRuns: 0, generatedAt: null, validationMode: 'unvalidated' } }} league={league} loading={false} />}
+          {finals ? <SeriesCard matchup={finals} league={league} /> : null}
           <ChampionCard summary={{ status: 'ok', mode: 'simulation', data, meta: { league: league as any, simulationRuns: 0, generatedAt: null, validationMode: 'unvalidated' } }} league={league} loading={false} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}>{r3Right.map((m, i) => <SeriesCard key={`r-r3-${i}`} matchup={m} league={league} />)}</div>
@@ -267,13 +306,13 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
   const liveSeriesMap = useMemo(() => getSeriesStateFromCompletedGames(liveLeaguePlayoffGames), [liveLeaguePlayoffGames])
   const hasLiveSeriesData = liveSeriesMap.size > 0
 
-  if (!loading && summaryPending && !hasLiveSeriesData) {
-    return <StatusShell embedded={embedded} league={selectedLeague} title={`${selectedLeague} PLAYOFF SERIES SYNC PENDING`} message="Waiting for live playoff snapshot or completed series reconstruction. No mock bracket is shown in production." />
-  }
-
   if (!loading && summaryError && !hasLiveSeriesData) {
     return <StatusShell embedded={embedded} league={selectedLeague} title={`${selectedLeague} PLAYOFF SNAPSHOT UNAVAILABLE`} message={summary?.message ?? 'Projection snapshot unavailable.'} />
   }
+
+  const pendingMessage = summaryPending
+    ? 'Waiting for live playoff snapshot or completed series reconstruction. No mock bracket is shown in production.'
+    : 'Waiting for projection snapshot. No mock bracket is shown in production.'
 
   return (
     <div style={embedded ? { width: '100%' } : PAGE_SHELL_STYLE}>
@@ -302,18 +341,7 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
           </div>
         )}
 
-        {summaryOk ? (
-          <ButterflyBracket data={summaryOk.data} league={selectedLeague} />
-        ) : (
-          <div style={{ padding: '48px 24px', background: 'rgba(15,23,42,0.45)', border: '1px dashed rgba(148,163,184,0.16)', borderRadius: 10, textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: t.hex, letterSpacing: '0.24em', fontWeight: 900, marginBottom: 8 }}>
-              PROJECTION RECALCULATING
-            </div>
-            <div style={{ fontFamily: 'var(--font-inter)', fontSize: 13, color: '#94a3b8' }}>
-              No production mock bracket is displayed. Waiting for live playoff snapshot or reconstructed completed series.
-            </div>
-          </div>
-        )}
+        {summaryOk ? <ButterflyBracket data={summaryOk.data} league={selectedLeague} /> : <PendingButterflyBracket league={selectedLeague} message={pendingMessage} />}
 
         <LiveSeriesStrip league={selectedLeague} seriesMap={liveSeriesMap} />
 
