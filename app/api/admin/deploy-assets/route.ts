@@ -1,83 +1,27 @@
-﻿import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { validateCronAuth } from "@/lib/auth";
-import { validateInternalApiKey } from "@/lib/security/validateInternalApiKey";
-import { rateLimit } from "@/lib/security/rateLimit";
-import fs from "fs";
-import path from "path";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
-  const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
-  if (!rateLimit(ip, 30, 60_000)) {
-    return Response.json({ error: "Too Many Requests" }, { status: 429 });
-  }
-  if (!validateInternalApiKey(request)) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const startTime = Date.now();
-  try {
-    const error = await validateCronAuth(request.clone());
-    if (error) return error;
-
-    const assets = [
-      { name: 'lad.png', url: 'https://a.espncdn.com/i/teamlogos/mlb/500/lad.png' },
-      { name: 'sd.png', url: 'https://a.espncdn.com/i/teamlogos/mlb/500/sd.png' },
-      { name: 'bkn.png', url: 'https://a.espncdn.com/i/teamlogos/nba/500/bkn.png' },
-      { name: 'ny.png', url: 'https://a.espncdn.com/i/teamlogos/nba/500/ny.png' }
-    ];
-
-    const results = [];
-    const publicDir = path.join(process.cwd(), 'public');
-    
-    if (!fs.existsSync(publicDir)) {
-      fs.mkdirSync(publicDir, { recursive: true });
-    }
-
-    for (const asset of assets) {
-      const res = await fetch(asset.url);
-      if (!res.ok) throw new Error(`Failed to fetch ${asset.name}`);
-      // ?儭?BINARY INJECTION (ENSURE NON-ZERO SIZE)
-      const buffer = Buffer.from(await res.arrayBuffer()); 
-      const filePath = path.join(publicDir, asset.name);
-      fs.writeFileSync(filePath, buffer);
-      results.push({ name: asset.name, size: buffer.length });
-    }
-
-    // ALIGN DATABASE
-    const teamMappings = [
-      { short: 'LAD', path: '/lad.png' },
-      { short: 'SDP', path: '/sd.png' },
-      { short: 'BKN', path: '/bkn.png' },
-      { short: 'NYK', path: '/ny.png' },
-      { short: 'SFG', path: '/sf.png' },
-      { short: 'SEA', path: '/sea.png' },
-      { short: 'TEX', path: '/tex.png' },
-      { short: 'CHW', path: '/chw.png' }
-    ];
-
-    for (const mapping of teamMappings) {
-      await prisma.team.updateMany({
-        where: { short_name: mapping.short },
-        data: { logo_url: mapping.path }
-      });
-    }
-
-    return NextResponse.json({
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      latency: `${Date.now() - startTime}ms`,
-      data: {
-        message: "Binary Assets Deployed and DB Aligned.",
-        results
-      }
-    });
-
-  } catch (error: any) {
-    return NextResponse.json({
-      status: "error",
-      error: error.message,
-      latency: `${Date.now() - startTime}ms`,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
-  }
+export async function GET() {
+  return Response.json(
+    {
+      ok: false,
+      service: "ingest-worker",
+      error: "STALE_ROUTE_DISABLED",
+      message: "This API route is not part of the ingest-worker production runtime."
+    },
+    { status: 410 }
+  );
 }
+
+export async function POST() {
+  return Response.json(
+    {
+      ok: false,
+      service: "ingest-worker",
+      error: "STALE_ROUTE_DISABLED",
+      message: "This API route is not part of the ingest-worker production runtime."
+    },
+    { status: 410 }
+  );
+}
+
