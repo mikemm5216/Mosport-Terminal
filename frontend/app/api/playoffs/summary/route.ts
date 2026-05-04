@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { NBA_SIM_SUMMARY } from '../../../data/playoffSimSummary'
+import { NBA_PLAYOFF_HISTORY_SEED_2026 } from '../../../data/nbaPlayoffHistorySeed'
+import type { NbaPlayoffSeedSeries } from '../../../data/nbaPlayoffHistorySeed'
 import type { PlayoffSimulationSummary, SimulationSummaryResponse, TeamRef } from '../../../contracts/product'
 import type { LeagueCode } from '../../../contracts/product'
 import { toCanonicalTeamKey } from '../../../config/teamCodeNormalization'
@@ -31,6 +33,7 @@ type ReconstructedSeries = {
   roundName: string
   roundNumber: number
   date: string
+  source?: 'seed' | 'espn'
 }
 
 function normalizeESPN(abbr: string): string {
@@ -122,8 +125,6 @@ async function getESPNNBAPlayoffEvents() {
   const eventMap = new Map<string, any>()
   const tasks: Array<Promise<any[]>> = []
 
-  // ESPN's range scoreboard can collapse to only the currently scheduled games.
-  // Fetch daily scoreboards so completed first-round and later-round series are not dropped.
   for (let offset = -45; offset <= 14; offset += 1) {
     tasks.push(fetchScoreboardEventsForDate(addDays(today, offset)))
   }
@@ -157,6 +158,26 @@ function getRoundNumber(series: any, roundName: string): number {
   if (lower.includes('semifinals') || lower.includes('semi-finals')) return 2
   if (lower.includes('1st') || lower.includes('first') || lower.includes('round 1')) return 1
   return 1
+}
+
+function seriesKey(series: Pick<ReconstructedSeries, 'teamA' | 'teamB' | 'roundNumber'>) {
+  const [left, right] = [series.teamA, series.teamB].sort()
+  return `${series.roundNumber}_${left}_${right}`
+}
+
+function seedToSeries(seed: NbaPlayoffSeedSeries): ReconstructedSeries {
+  return { ...seed, source: 'seed' }
+}
+
+function mergeSeedWithLiveSeries(liveSeries: ReconstructedSeries[]) {
+  const merged = new Map<string, ReconstructedSeries>()
+  for (const seed of NBA_PLAYOFF_HISTORY_SEED_2026) {
+    merged.set(seriesKey(seed), seedToSeries(seed))
+  }
+  for (const live of liveSeries) {
+    merged.set(seriesKey(live), { ...live, source: 'espn' })
+  }
+  return Array.from(merged.values())
 }
 
 function reconstructSeries(events: any[]): ReconstructedSeries[] {
@@ -198,6 +219,7 @@ function reconstructSeries(events: any[]): ReconstructedSeries[] {
         roundName,
         roundNumber,
         date,
+        source: 'espn',
       })
     }
   }
@@ -205,7 +227,7 @@ function reconstructSeries(events: any[]): ReconstructedSeries[] {
   return Array.from(seriesMap.values())
 }
 
-function buildLiveSummaryFromSeries(seriesList: ReconstructedSeries[]): SimulationSummaryResponse | null {
+function buildLiveSummaryFromSeries(seriesList: ReconstructedSeries[], liveSeriesCount: number): SimulationSummaryResponse | null {
   if (seriesList.length === 0) return null
 
   const roundsMap = new Map<string, PlayoffSimulationSummary['bracket']['rounds'][number]['matchups']>()
@@ -262,12 +284,12 @@ function buildLiveSummaryFromSeries(seriesList: ReconstructedSeries[]): Simulati
       validation: {
         mode: 'live_projection',
         overallAccuracy: null,
-        notes: 'Reconstructed from ESPN daily scoreboard series data. Probabilities are provisional until the projection worker snapshot is available.',
+        notes: `Seeded bracket baseline with ESPN live series overlay. Live ESPN overlays applied: ${liveSeriesCount}.`,
       },
     },
     meta: {
       league: 'NBA',
-      simulationRuns: 1,
+      simulationRuns: liveSeriesCount > 0 ? liveSeriesCount : 1,
       generatedAt: new Date().toISOString(),
       validationMode: 'live_projection',
     },
@@ -292,7 +314,9 @@ export async function GET(req: Request) {
 
   if (!snapshot && league === 'NBA') {
     const events = await getESPNNBAPlayoffEvents()
-    const liveSummary = buildLiveSummaryFromSeries(reconstructSeries(events))
+    const liveSeries = reconstructSeries(events)
+    const mergedSeries = mergeSeedWithLiveSeries(liveSeries)
+    const liveSummary = buildLiveSummaryFromSeries(mergedSeries, liveSeries.length)
     if (liveSummary) return NextResponse.json(liveSummary)
 
     if (isDev || isDemo) {
