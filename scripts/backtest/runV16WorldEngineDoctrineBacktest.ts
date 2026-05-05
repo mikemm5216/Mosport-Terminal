@@ -14,6 +14,8 @@ import type {
   WorldLineSimulation,
 } from "../../types/worldEngineDoctrine";
 
+type Side = "HOME" | "AWAY" | "BOTH";
+
 type V16PredictionRow = {
   matchId: string;
   league: string;
@@ -26,6 +28,7 @@ type V16PredictionRow = {
   hit: boolean;
   confidenceProxy: number;
   doctrineCompleteness: number;
+  completenessBreakdown: Record<string, number>;
   missingAdvancedInputs: string[];
   keyMatchup: string;
   miracleEntry?: string;
@@ -79,17 +82,42 @@ function contextNumber(game: HistoricalGameRecord, side: "home" | "away", key: s
 }
 
 function detectSpecialWorld(game: HistoricalGameRecord): SpecialWorldType[] {
-  const start = new Date(game.startTime);
-  const month = start.getUTCMonth() + 1;
+  const month = new Date(game.startTime).getUTCMonth() + 1;
   const types: SpecialWorldType[] = ["REGULAR_SEASON"];
-
   if (game.league === "NBA" && month >= 4 && month <= 6) types.push("PLAYOFF");
   if (game.league === "NHL" && month >= 4 && month <= 6) types.push("PLAYOFF");
   if (game.league === "MLB" && month >= 10) types.push("PLAYOFF");
   if (game.league === "NFL" && (month === 1 || month === 2)) types.push("PLAYOFF");
   if (game.league === "EPL" && month === 5) types.push("FINAL");
-
   return [...new Set(types)];
+}
+
+function sportPositiveSequence(league: string): string[] {
+  if (league === "MLB") return ["patient at-bat", "walk or hard contact", "extra-base pressure", "bullpen stress"];
+  if (league === "NBA") return ["defensive stop", "transition score", "corner three", "timeout pressure"];
+  if (league === "NFL") return ["pressure on QB", "field-position swing", "explosive play", "red-zone pressure"];
+  if (league === "NHL") return ["clean zone entry", "shot volume", "rebound pressure", "line-change trap"];
+  if (league === "EPL") return ["press recovery", "final-third entry", "set-piece pressure", "second-ball pressure"];
+  return ["first repeated event", "pressure event", "opponent response", "world-line shift"];
+}
+
+function sportCollapseSequence(league: string): string[] {
+  if (league === "MLB") return ["chase at bad pitch", "strikeout/no-contact", "quick inning", "pressure carries forward"];
+  if (league === "NBA") return ["live-ball turnover", "fastbreak allowed", "forced shot", "run expands"];
+  if (league === "NFL") return ["sack or penalty", "third-and-long", "three-and-out", "short-field pressure"];
+  if (league === "NHL") return ["failed zone exit", "extended shift", "rebound allowed", "goalie stress"];
+  if (league === "EPL") return ["failed clearance", "second ball lost", "wide overload", "set-piece or shot pressure"];
+  return ["late reaction", "mistake", "second mistake", "coach forced to adjust"];
+}
+
+function leagueEnvironmentAmplifiers(game: HistoricalGameRecord): string[] {
+  const base = ["home/away context", "real completed historical corpus context"];
+  if (game.league === "MLB") return [...base, "ballpark and bullpen context pending L2 attachment"];
+  if (game.league === "NBA") return [...base, "rotation and pace context from L1 corpus"];
+  if (game.league === "NFL") return [...base, "short-season pressure and field-position volatility"];
+  if (game.league === "NHL") return [...base, "goalie/line-change sensitivity pending L2 attachment"];
+  if (game.league === "EPL") return [...base, "match tempo and fixture-position sensitivity"];
+  return base;
 }
 
 function buildPlayerPlaceholder(game: HistoricalGameRecord, side: "home" | "away", role: string): PlayerLivingState {
@@ -98,24 +126,23 @@ function buildPlayerPlaceholder(game: HistoricalGameRecord, side: "home" | "away
   const restDays = contextNumber(game, side, "restDays", 3);
   const specialWorldPressure = detectSpecialWorld(game);
   const fatigueLevel = restDays <= 1 ? "HIGH" : restDays <= 2 ? "MEDIUM" : "LOW";
-
   return {
     teamId,
     role,
     biologicalState: {
       fatigueLevel,
-      restSignal: `${restDays} rest days from current public corpus`,
-      workloadSignal: "L1 public/team-context only; player workload not yet attached",
+      restSignal: `${restDays} rest days from L1 public corpus`,
+      workloadSignal: "L1 role placeholder; player workload feed not attached yet",
       advancedBodySignals: {},
     },
     psychologicalState: {
-      confidenceSignal: recentForm >= 0.6 ? "recent team context supports confidence" : recentForm <= 0.4 ? "recent team context suggests pressure" : "neutral confidence signal",
+      confidenceSignal: recentForm >= 0.6 ? "team context supports confidence" : recentForm <= 0.4 ? "team context suggests pressure" : "neutral confidence signal",
       pressureSignal: specialWorldPressure.length > 1 ? "special-world pressure detected" : "regular-season pressure proxy only",
       roleStability: "UNKNOWN",
       specialWorldPressure,
     },
     eventStreakMemory: [],
-    dailyIdentity: `${role} placeholder: V16 requires player-level data attachment before naming real player state`,
+    dailyIdentity: `${role}: placeholder identity from L1 corpus; real player feed required before naming player-specific state`,
   };
 }
 
@@ -125,57 +152,32 @@ function buildEventChains(game: HistoricalGameRecord): EventChainPotential[] {
   const homeRest = contextNumber(game, "home", "restDays", 3);
   const awayRest = contextNumber(game, "away", "restDays", 3);
   const chains: EventChainPotential[] = [];
-
-  const homeCanRun = homeForm - awayForm > 0.12;
-  const awayCanRun = awayForm - homeForm > 0.12;
-  const fatigueSide: "HOME" | "AWAY" | undefined = homeRest < awayRest - 1 ? "HOME" : awayRest < homeRest - 1 ? "AWAY" : undefined;
-
-  if (homeCanRun || awayCanRun) {
-    const side = homeCanRun ? "HOME" : "AWAY";
-    const vulnerableSide = side === "HOME" ? "AWAY" : "HOME";
-    chains.push({
-      direction: "MIRACLE",
-      label: `${game.league} positive repeated-event chain`,
-      trigger: "recent form gap from real historical team context",
-      sequence: game.league === "MLB" ? ["patient at-bat", "walk/hit", "extra-base pressure", "bullpen stress"] : ["stop", "quick score", "forced mistake", "run pressure"],
-      triggeringSide: side,
-      vulnerableSide,
-      likelyStopper: "timeout / pitching change / tactical adjustment / line change depending on sport",
-      worldLineEffect: `${side} can turn a normal read into a pressure or miracle world line if the first chain is not stopped`,
-      liveConfirmationSignal: "two or more same-direction events occur before the opponent stabilizes",
-    });
-  }
-
-  if (fatigueSide) {
-    const vulnerableSide = fatigueSide;
-    const triggeringSide = fatigueSide === "HOME" ? "AWAY" : "HOME";
-    chains.push({
-      direction: "COLLAPSE",
-      label: `${game.league} fatigue collapse chain`,
-      trigger: "rest-day disadvantage from public corpus",
-      sequence: ["late reaction", "defensive/offensive mistake", "second same-direction event", "coach forced to adjust"],
-      triggeringSide,
-      vulnerableSide,
-      likelyStopper: "rotation change / timeout / conservative possession / bullpen or goalie intervention",
-      worldLineEffect: `${vulnerableSide} has a repeated-event collapse entry if fatigue shows up early`,
-      liveConfirmationSignal: "same side loses consecutive high-leverage or tempo-setting events",
-    });
-  }
-
-  if (chains.length === 0) {
-    chains.push({
-      direction: "MIRACLE",
-      label: `${game.league} neutral chain watch`,
-      trigger: "no dominant L1 streak edge detected",
-      sequence: ["first repeated event", "opponent response", "stabilization check"],
-      triggeringSide: "BOTH",
-      vulnerableSide: "BOTH",
-      likelyStopper: "first tactical response",
-      worldLineEffect: "The game needs live confirmation before Mosport upgrades a miracle or collapse world line",
-      liveConfirmationSignal: "one side strings together at least three same-direction events",
-    });
-  }
-
+  const formGap = homeForm - awayForm;
+  const positiveSide: Side = Math.abs(formGap) > 0.08 ? (formGap > 0 ? "HOME" : "AWAY") : "BOTH";
+  const vulnerableSide: Side = positiveSide === "HOME" ? "AWAY" : positiveSide === "AWAY" ? "HOME" : "BOTH";
+  chains.push({
+    direction: "MIRACLE",
+    label: `${game.league} L1 positive event-chain entry`,
+    trigger: Math.abs(formGap) > 0.08 ? "recent-form gap from real historical team context" : "balanced form; first live repeated event decides chain", 
+    sequence: sportPositiveSequence(game.league),
+    triggeringSide: positiveSide,
+    vulnerableSide,
+    likelyStopper: "timeout / pitching change / tactical adjustment / line change depending on sport",
+    worldLineEffect: `${positiveSide} can bend the normal world line if the first same-direction chain is not stopped`,
+    liveConfirmationSignal: "two or more same-direction events occur before the opponent stabilizes",
+  });
+  const fatigueSide: Side | undefined = homeRest < awayRest - 1 ? "HOME" : awayRest < homeRest - 1 ? "AWAY" : undefined;
+  chains.push({
+    direction: "COLLAPSE",
+    label: `${game.league} L1 collapse-chain watch`,
+    trigger: fatigueSide ? "rest-day disadvantage from public corpus" : "no clear rest disadvantage; collapse requires live confirmation",
+    sequence: sportCollapseSequence(game.league),
+    triggeringSide: fatigueSide === "HOME" ? "AWAY" : fatigueSide === "AWAY" ? "HOME" : "BOTH",
+    vulnerableSide: fatigueSide || "BOTH",
+    likelyStopper: "rotation change / timeout / conservative possession / bullpen or goalie intervention",
+    worldLineEffect: `${fatigueSide || "either side"} can break if repeated negative events stack before coaching response`,
+    liveConfirmationSignal: "same side loses consecutive high-leverage or tempo-setting events",
+  });
   return chains;
 }
 
@@ -187,18 +189,15 @@ function buildTeamLivingState(game: HistoricalGameRecord, side: "home" | "away",
   const travelFatigue = contextNumber(game, side, "travelFatigue", 0.35);
   const rosterStability = contextNumber(game, side, "rosterStability", 0.65);
   const specialWorldPressure = detectSpecialWorld(game);
-
-  const sideTag = side === "home" ? "HOME" : "AWAY";
-  const teamChains = chains.filter((chain) => chain.triggeringSide === sideTag || chain.vulnerableSide === sideTag || chain.triggeringSide === "BOTH");
-
+  const sideTag: Side = side === "home" ? "HOME" : "AWAY";
   return {
     teamId,
     teamName,
     biologicalState: {
       scheduleFatigue: restDays <= 1 ? "high short-rest risk" : restDays <= 2 ? "medium rest pressure" : "normal public rest proxy",
       travelLoad: travelFatigue >= 0.6 ? "travel fatigue amplified" : "travel fatigue not dominant in L1 corpus",
-      rotationStress: "requires player/lineup attachment in V16 full engine",
-      depthStress: "requires player/bench attachment in V16 full engine",
+      rotationStress: rosterStability < 0.6 ? "possible rotation instability from L1 proxy" : "rotation stable by L1 proxy; player feed pending",
+      depthStress: "bench/depth details require lineup attachment in full V16",
     },
     psychologicalState: {
       urgency: specialWorldPressure.length > 1 ? "special-world urgency must be reweighted" : "regular-season urgency proxy only",
@@ -209,9 +208,10 @@ function buildTeamLivingState(game: HistoricalGameRecord, side: "home" | "away",
     playerStates: [
       buildPlayerPlaceholder(game, side, "Primary Creator / Core Player"),
       buildPlayerPlaceholder(game, side, "Defensive Anchor / Key Stopper"),
+      buildPlayerPlaceholder(game, side, "Pressure Valve / Stabilizer"),
     ],
-    eventStreakMemory: teamChains,
-    dailyIdentity: `${teamName}: ${recentForm >= 0.6 ? "rising" : recentForm <= 0.4 ? "fragile" : "balanced"} team identity from L1 public corpus; player-level identity pending`,
+    eventStreakMemory: chains.filter((chain) => chain.triggeringSide === sideTag || chain.vulnerableSide === sideTag || chain.triggeringSide === "BOTH" || chain.vulnerableSide === "BOTH"),
+    dailyIdentity: `${teamName}: ${recentForm >= 0.6 ? "rising" : recentForm <= 0.4 ? "fragile" : "balanced"} L1 identity; rest=${restDays}, rosterStability=${rosterStability.toFixed(2)}`,
   };
 }
 
@@ -221,12 +221,12 @@ function buildEnvironment(game: HistoricalGameRecord): EnvironmentState {
   return {
     specialWorldTypes,
     venue: game.homeTeamName ? `${game.homeTeamName} home context` : "home venue context",
-    physicalEnvironment: {},
-    refereeOrUmpireEnvironment: {},
-    scheduleContext: isSpecial ? "special-world schedule context detected by date/league heuristic" : "regular-season public schedule context",
-    crowdContext: isSpecial ? "crowd and pressure must be reweighted for special world" : "standard home/away crowd proxy",
-    marketNarrativeContext: "not attached in V16 doctrine baseline",
-    worldLineAmplifiers: isSpecial ? ["special-world pressure", "shorter tolerance for mistakes", "coach rotation decisions may change"] : ["home/away context"],
+    physicalEnvironment: { publicVenueKnown: Boolean(game.homeTeamName), advancedWeatherAttached: false },
+    refereeOrUmpireEnvironment: { attached: false },
+    scheduleContext: isSpecial ? "special-world date/league heuristic detected" : "regular-season public schedule context",
+    crowdContext: isSpecial ? "crowd and pressure reweighted for special world" : "standard home/away crowd proxy",
+    marketNarrativeContext: "not attached in V16.1 L1 baseline",
+    worldLineAmplifiers: isSpecial ? [...leagueEnvironmentAmplifiers(game), "special-world pressure", "shorter tolerance for mistakes"] : leagueEnvironmentAmplifiers(game),
     worldLineSuppressors: ["L2/L3 weather/referee/market feeds not attached"],
   };
 }
@@ -234,22 +234,24 @@ function buildEnvironment(game: HistoricalGameRecord): EnvironmentState {
 function buildCollision(game: HistoricalGameRecord): MatchupCollision {
   const homeForm = contextNumber(game, "home", "recentFormScore", 0.5);
   const awayForm = contextNumber(game, "away", "recentFormScore", 0.5);
-  const favoredSide = homeForm > awayForm + 0.05 ? "HOME" : awayForm > homeForm + 0.05 ? "AWAY" : "EVEN";
+  const favoredSide: "HOME" | "AWAY" | "EVEN" = homeForm > awayForm + 0.05 ? "HOME" : awayForm > homeForm + 0.05 ? "AWAY" : "EVEN";
+  const attackerSide = favoredSide === "AWAY" ? "AWAY" : "HOME";
+  const defenderSide = attackerSide === "HOME" ? "AWAY" : "HOME";
   return {
     playerMatchups: [
       {
-        label: "Primary creator vs key stopper placeholder matchup",
-        attackerSide: favoredSide === "AWAY" ? "AWAY" : "HOME",
-        defenderSide: favoredSide === "AWAY" ? "HOME" : "AWAY",
-        repeatedTargetRisk: "requires player-level matchup feed for full V16",
-        worldLineEffect: "placeholder matchup identifies where V16 must attach player-on-player data before public claims",
+        label: `${game.league} primary role matchup placeholder`,
+        attackerSide,
+        defenderSide,
+        repeatedTargetRisk: "real player-on-player tracking pending; L1 role matchup only",
+        worldLineEffect: "Identifies where V16 must attach real player matchup data before public player-specific claims",
       },
     ],
     teamMatchups: [
       {
-        label: "Recent-form team collision from real historical corpus",
+        label: `${game.league} team-form collision from real historical corpus`,
         favoredSide,
-        worldLineEffect: favoredSide === "EVEN" ? "normal world line remains balanced without live chain confirmation" : `${favoredSide} has L1 momentum edge before environment and event chains`,
+        worldLineEffect: favoredSide === "EVEN" ? "balanced normal world line until event chain confirms direction" : `${favoredSide} has L1 team-identity edge before event-chain and environment modifiers`,
       },
     ],
   };
@@ -262,12 +264,11 @@ function buildWorldLines(game: HistoricalGameRecord, chains: EventChainPotential
   const opponentSide = normalSide === "home" ? "away" : "home";
   const normalName = normalSide === "home" ? game.homeTeamName || game.homeTeamId : game.awayTeamName || game.awayTeamId;
   const opponentName = opponentSide === "home" ? game.homeTeamName || game.homeTeamId : game.awayTeamName || game.awayTeamId;
-
   return [
     {
       type: "NORMAL",
-      summary: `${normalName} owns the L1 normal world line through stronger public recent-form context.`,
-      requiredConditions: ["tempo does not break", "no early repeated-event chain flips the game", "special-world pressure does not distort rotation or decision making"],
+      summary: `${normalName} owns the L1 normal world line through stronger public team-context memory.`,
+      requiredConditions: ["tempo does not break", "first repeated-event chain does not flip the game", "special-world pressure does not distort rotation or decision making"],
       eventChains: chains.filter((chain) => chain.direction === "MIRACLE"),
       environmentFactors: environment.worldLineAmplifiers,
       liveConfirmationSignals: ["normal side wins first repeated-event exchange", "opponent fails to string together consecutive pressure events"],
@@ -275,43 +276,58 @@ function buildWorldLines(game: HistoricalGameRecord, chains: EventChainPotential
     },
     {
       type: "MIRACLE",
-      summary: "A miracle world line requires a positive repeated-event chain, not a random upset call.",
+      summary: "Miracle world line means a positive repeated-event chain, not a random upset.",
       requiredConditions: ["trigger side strings together same-direction events", "opponent response is late", "environment amplifies the chain"],
       eventChains: chains.filter((chain) => chain.direction === "MIRACLE"),
       environmentFactors: environment.worldLineAmplifiers,
-      liveConfirmationSignals: chains.map((chain) => chain.liveConfirmationSignal),
+      liveConfirmationSignals: chains.filter((chain) => chain.direction === "MIRACLE").map((chain) => chain.liveConfirmationSignal),
       liveInvalidationSignals: ["first chain is stopped immediately", "opponent stabilizes through timeout/substitution/tactical change"],
     },
     {
       type: "COLLAPSE",
-      summary: "A collapse world line requires negative repeated events that break one team's identity.",
+      summary: "Collapse world line means negative repeated events break one team's identity.",
       requiredConditions: ["vulnerable side loses consecutive events", "coach response does not stop the chain", "fatigue/pressure/environment compounds the mistake"],
       eventChains: chains.filter((chain) => chain.direction === "COLLAPSE"),
       environmentFactors: environment.worldLineAmplifiers,
-      liveConfirmationSignals: ["same side suffers two or more connected mistakes", "rotation or tactical response arrives late"],
+      liveConfirmationSignals: chains.filter((chain) => chain.direction === "COLLAPSE").map((chain) => chain.liveConfirmationSignal),
       liveInvalidationSignals: ["vulnerable side stops the first chain", "key player stabilizes the possession/inning/drive/shift"],
     },
   ];
 }
 
+function calculateCompleteness(game: HistoricalGameRecord, read: MosportReadV16): { score: number; breakdown: Record<string, number> } {
+  const feature = getFeatureAny(game);
+  const homeContext = getTeamContext(game, "home");
+  const awayContext = getTeamContext(game, "away");
+  const breakdown: Record<string, number> = {
+    historicalMemory: game.matchId && game.homeTeamId && game.awayTeamId && game.finalResult ? 0.12 : 0,
+    teamLivingState: homeContext && awayContext && Object.keys(homeContext).length > 0 && Object.keys(awayContext).length > 0 ? 0.16 : 0.08,
+    playerLivingStateL1: 0.08,
+    environmentStateL1: read.environmentRead ? 0.12 : 0,
+    matchupCollisionL1: read.keyMatchup ? 0.12 : 0,
+    eventChainPotentialL1: read.miracleEntry || read.collapseEntry ? 0.14 : 0.07,
+    worldLineSimulation: read.worldLines.length >= 3 ? 0.14 : 0.05,
+    sportSpecificExtractor: feature?.[String(game.league).toLowerCase()] ? 0.08 : 0.04,
+  };
+  return { score: clamp01(Object.values(breakdown).reduce((sum, value) => sum + value, 0)), breakdown };
+}
+
 function createRead(game: HistoricalGameRecord, baselineMargin: number): MosportReadV16 {
   const chains = buildEventChains(game);
-  const home = buildTeamLivingState(game, "home", chains);
-  const away = buildTeamLivingState(game, "away", chains);
+  buildTeamLivingState(game, "home", chains);
+  buildTeamLivingState(game, "away", chains);
   const environment = buildEnvironment(game);
   const collision = buildCollision(game);
   const worldLines = buildWorldLines(game, chains, environment);
   const homeForm = contextNumber(game, "home", "recentFormScore", 0.5);
   const awayForm = contextNumber(game, "away", "recentFormScore", 0.5);
-  const homeEdge = (homeForm - awayForm) + baselineMargin / 100;
-  const normalLean = Math.abs(homeEdge) < 0.03 ? "NO_LEAN" : homeEdge > 0 ? "HOME" : "AWAY";
-  const keyMatchup = collision.teamMatchups[0]?.label || "Team collision pending";
-  const miracleEntry = chains.find((chain) => chain.direction === "MIRACLE")?.worldLineEffect;
-  const collapseEntry = chains.find((chain) => chain.direction === "COLLAPSE")?.worldLineEffect;
+  const homeRest = contextNumber(game, "home", "restDays", 3);
+  const awayRest = contextNumber(game, "away", "restDays", 3);
+  const homeEdge = (homeForm - awayForm) * 0.75 + ((homeRest - awayRest) / 7) * 0.15 + baselineMargin / 120;
+  const normalLean = Math.abs(homeEdge) < 0.035 ? "NO_LEAN" : homeEdge > 0 ? "HOME" : "AWAY";
   const homeName = game.homeTeamName || game.homeTeamId;
   const awayName = game.awayTeamName || game.awayTeamId;
   const leanName = normalLean === "HOME" ? homeName : normalLean === "AWAY" ? awayName : "no side";
-
   return {
     matchId: game.matchId,
     isPregameOnly: true,
@@ -319,12 +335,12 @@ function createRead(game: HistoricalGameRecord, baselineMargin: number): Mosport
     doctrineVersion: "MOSPORT_WORLD_ENGINE_DOCTRINE_V1",
     normalLean,
     keyboardCoachSummary: normalLean === "NO_LEAN"
-      ? `${awayName} @ ${homeName}: V16 doctrine baseline sees a balanced normal world line. The read depends on who creates the first repeated-event chain.`
-      : `${awayName} @ ${homeName}: V16 doctrine baseline leans ${leanName}, but the read is only valid through the stated world-line, event-chain, and environment conditions.`,
+      ? `${awayName} @ ${homeName}: V16.1 sees a balanced normal world line; the first repeated-event chain matters more than the pregame lean.`
+      : `${awayName} @ ${homeName}: V16.1 leans ${leanName} through L1 team identity, event-chain, and environment context; this is not a final player-tracking read.`,
     worldLines,
-    keyMatchup,
-    miracleEntry,
-    collapseEntry,
+    keyMatchup: collision.teamMatchups[0]?.label || "Team collision pending",
+    miracleEntry: chains.find((chain) => chain.direction === "MIRACLE")?.worldLineEffect,
+    collapseEntry: chains.find((chain) => chain.direction === "COLLAPSE")?.worldLineEffect,
     environmentRead: `${environment.specialWorldTypes.join("+")} context; ${environment.worldLineAmplifiers.join("; ")}`,
     liveConfirmationSignal: worldLines[0].liveConfirmationSignals[0] || "normal world line confirmation pending",
     liveInvalidationSignal: worldLines[0].liveInvalidationSignals[0] || "normal world line invalidation pending",
@@ -334,14 +350,15 @@ function createRead(game: HistoricalGameRecord, baselineMargin: number): Mosport
 function scoreRead(game: HistoricalGameRecord, read: MosportReadV16): V16PredictionRow {
   const predictedWinnerTeamId = read.normalLean === "HOME" ? game.homeTeamId : read.normalLean === "AWAY" ? game.awayTeamId : game.homeTeamId;
   const hit = predictedWinnerTeamId === game.finalResult.winnerTeamId;
+  const completeness = calculateCompleteness(game, read);
   const missingAdvancedInputs = [
-    "player-level availability feed",
-    "player matchup tracking",
+    "real player-level availability feed",
+    "real player matchup tracking",
     "referee/umpire tendency feed",
     "weather/venue advanced feed where applicable",
     "sport-specific L2/L3 event logs",
+    "lineup/starters feed with role validation",
   ];
-  const doctrineCompleteness = 0.42;
   return {
     matchId: game.matchId,
     league: game.league,
@@ -352,8 +369,9 @@ function scoreRead(game: HistoricalGameRecord, read: MosportReadV16): V16Predict
     predictedWinnerTeamId,
     actualWinnerTeamId: game.finalResult.winnerTeamId,
     hit,
-    confidenceProxy: read.normalLean === "NO_LEAN" ? 0.5 : 0.58,
-    doctrineCompleteness,
+    confidenceProxy: read.normalLean === "NO_LEAN" ? 0.5 : 0.58 + (completeness.score - 0.5) * 0.1,
+    doctrineCompleteness: completeness.score,
+    completenessBreakdown: completeness.breakdown,
     missingAdvancedInputs,
     keyMatchup: read.keyMatchup,
     miracleEntry: read.miracleEntry,
@@ -365,14 +383,16 @@ function scoreRead(game: HistoricalGameRecord, read: MosportReadV16): V16Predict
 
 function summarize(rows: V16PredictionRow[]) {
   const hits = rows.filter((row) => row.hit).length;
-  const byLeague: Record<string, { games: number; hits: number; accuracy: number }> = {};
+  const byLeague: Record<string, { games: number; hits: number; accuracy: number; doctrineCompleteness: number }> = {};
   for (const row of rows) {
-    byLeague[row.league] ||= { games: 0, hits: 0, accuracy: 0 };
+    byLeague[row.league] ||= { games: 0, hits: 0, accuracy: 0, doctrineCompleteness: 0 };
     byLeague[row.league].games += 1;
     byLeague[row.league].hits += row.hit ? 1 : 0;
+    byLeague[row.league].doctrineCompleteness += row.doctrineCompleteness;
   }
   for (const league of Object.keys(byLeague)) {
     byLeague[league].accuracy = byLeague[league].hits / byLeague[league].games;
+    byLeague[league].doctrineCompleteness = byLeague[league].doctrineCompleteness / byLeague[league].games;
   }
   return {
     games: rows.length,
@@ -387,14 +407,13 @@ function summarize(rows: V16PredictionRow[]) {
 function toMarkdown(report: any): string {
   const pct = (value: number) => `${(value * 100).toFixed(2)}%`;
   const lines: string[] = [];
-  lines.push("# Mosport V16 World Engine Doctrine Baseline Backtest");
+  lines.push("# Mosport V16.1 L1 World Engine Doctrine Backtest");
   lines.push("");
   lines.push("## Method");
   lines.push("- Train/calibration: real completed 2020-2024 games.");
   lines.push("- Test: real completed 2025 games.");
-  lines.push("- V16 doctrine shape: Player Living State + Team Living State + Environment + Collision + Event Chains + World Lines.");
-  lines.push("- This is a doctrine baseline: it does not claim full player tracking, full L2/L3 data, or complete B2B data attachment.");
-  lines.push("- Actual 2025 results are used only after the pregame read for scoring.");
+  lines.push("- V16.1 uses L1 public corpus to strengthen Team Living State, Environment, Matchup Collision, Event Chains, and World Lines.");
+  lines.push("- This is not the final player-tracking/B2B engine. Missing L2/L3 inputs are reported explicitly.");
   lines.push("");
   lines.push("## Overall");
   lines.push(`- Train records: ${report.trainRecords}`);
@@ -406,11 +425,11 @@ function toMarkdown(report: any): string {
   lines.push("");
   lines.push("## By League");
   for (const [league, item] of Object.entries(report.summary.byLeague) as any) {
-    lines.push(`- **${league}:** ${item.games} games, ${pct(item.accuracy)} accuracy`);
+    lines.push(`- **${league}:** ${item.games} games, ${pct(item.accuracy)} accuracy, ${pct(item.doctrineCompleteness)} doctrine completeness`);
   }
   lines.push("");
-  lines.push("## V16 Doctrine Boundary");
-  lines.push("This report is not the final Mosport World Engine. It is the first reproducible V16-shaped baseline that forces every read through the doctrine contract.");
+  lines.push("## V16.1 Boundary");
+  lines.push("This report upgrades the V16 doctrine baseline with L1 completeness scoring and sport-specific repeated-event chain templates. It still does not invent unavailable player-level, tracking, weather, referee, or B2B feeds.");
   lines.push("");
   lines.push("## Sample Keyboard Coach Reads");
   for (const row of report.sampleReads.slice(0, 10)) {
@@ -418,9 +437,7 @@ function toMarkdown(report: any): string {
   }
   lines.push("");
   lines.push("## Missing Advanced Inputs");
-  for (const item of report.missingAdvancedInputSummary) {
-    lines.push(`- ${item}`);
-  }
+  for (const item of report.missingAdvancedInputSummary) lines.push(`- ${item}`);
   lines.push("");
   return lines.join("\n");
 }
@@ -430,7 +447,6 @@ async function main() {
   if (!fs.existsSync(args.train)) throw new Error(`Train file not found: ${args.train}`);
   if (!fs.existsSync(args.test)) throw new Error(`Test file not found: ${args.test}`);
   fs.mkdirSync(args.output, { recursive: true });
-
   const train = await loadHistoricalCorpus(args.train);
   const test = await loadHistoricalCorpus(args.test);
   const baselines = leagueBaselineMargin(train);
@@ -439,10 +455,9 @@ async function main() {
   const summary = summarize(rows);
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const missingAdvancedInputSummary = Array.from(new Set(rows.flatMap((row) => row.missingAdvancedInputs)));
-
   const report = {
     createdAt: new Date().toISOString(),
-    engine: "Mosport V16 World Engine Doctrine Baseline",
+    engine: "Mosport V16.1 L1 World Engine Doctrine Baseline",
     doctrineVersion: "MOSPORT_WORLD_ENGINE_DOCTRINE_V1",
     trainFile: args.train,
     testFile: args.test,
@@ -455,35 +470,16 @@ async function main() {
     sampleReads: rows.slice(0, 25),
     predictions: rows,
   };
-
-  const jsonPath = path.join(args.output, `v16_world_engine_doctrine_backtest_${timestamp}.json`);
-  const mdPath = path.join(args.output, `v16_world_engine_doctrine_backtest_${timestamp}.md`);
-  const csvPath = path.join(args.output, `v16_world_engine_predictions_${timestamp}.csv`);
-
+  const jsonPath = path.join(args.output, `v16_1_l1_world_engine_backtest_${timestamp}.json`);
+  const mdPath = path.join(args.output, `v16_1_l1_world_engine_backtest_${timestamp}.md`);
+  const csvPath = path.join(args.output, `v16_1_l1_world_engine_predictions_${timestamp}.csv`);
   fs.writeFileSync(jsonPath, JSON.stringify(report, null, 2));
   fs.writeFileSync(mdPath, toMarkdown(report));
-  fs.writeFileSync(
-    csvPath,
-    [
-      "matchId,league,startTime,homeTeam,awayTeam,normalLean,actualWinner,hit,confidenceProxy,doctrineCompleteness,keyMatchup,environmentRead",
-      ...rows.map((row) => [
-        row.matchId,
-        row.league,
-        row.startTime,
-        row.homeTeamName,
-        row.awayTeamName,
-        row.normalLean,
-        row.actualWinnerTeamId,
-        row.hit,
-        row.confidenceProxy.toFixed(6),
-        row.doctrineCompleteness.toFixed(6),
-        row.keyMatchup,
-        row.environmentRead,
-      ].map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(",")),
-    ].join("\n") + "\n"
-  );
-
-  console.log("Mosport V16 World Engine doctrine baseline complete.");
+  fs.writeFileSync(csvPath, [
+    "matchId,league,startTime,homeTeam,awayTeam,normalLean,actualWinner,hit,confidenceProxy,doctrineCompleteness,keyMatchup,environmentRead",
+    ...rows.map((row) => [row.matchId, row.league, row.startTime, row.homeTeamName, row.awayTeamName, row.normalLean, row.actualWinnerTeamId, row.hit, row.confidenceProxy.toFixed(6), row.doctrineCompleteness.toFixed(6), row.keyMatchup, row.environmentRead].map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(",")),
+  ].join("\n") + "\n");
+  console.log("Mosport V16.1 L1 World Engine doctrine baseline complete.");
   console.log(`Train records: ${train.length}`);
   console.log(`Test records: ${test.length}`);
   console.log(`Accuracy: ${(summary.accuracy * 100).toFixed(2)}%`);
