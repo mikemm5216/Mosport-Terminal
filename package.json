@@ -18,8 +18,10 @@
     "check:secrets": "tsx scripts/check-no-env-secrets.ts",
     "check:prisma": "tsx scripts/check-prisma-imports.ts",
     "cleanup:engine-demo": "tsx scripts/cleanup/removeUnsupportedEngineData.ts",
+    "corpus:generate-real-train-test": "tsx scripts/backtest/generateRealTrainTestCorpus.ts",
     "corpus:validate": "tsx scripts/backtest/validateHistoricalCorpus.ts",
-    "backtest:historical": "tsx scripts/backtest/runHistoricalBacktest.ts"
+    "backtest:historical": "tsx scripts/backtest/runHistoricalBacktest.ts",
+    "backtest:oos-2025": "tsx scripts/backtest/runHistoricalOutOfSampleBacktest.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
