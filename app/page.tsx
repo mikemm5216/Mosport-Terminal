@@ -130,7 +130,13 @@ const MOCK_GAMES: CoachReadDTO[] = [
     fanPrompt: "Do you adjust the substitution pattern early?",
     confidenceLabel: "HIGH",
     debateIntensity: "HOT",
-    fanVoteSummary: { agreePct: 65, disagreePct: 25, alternativePct: 10, totalVotes: 1240 }
+    fanVoteSummary: { agreePct: 65, disagreePct: 25, alternativePct: 10, totalVotes: 1240 },
+    engineStatus: "READY",
+    evidenceStatus: "VALIDATED",
+    isProductionEngine: false,
+    engineVersion: "14.0.0",
+    featureVersion: "14.0.0",
+    translatorVersion: "1.0.0"
   },
   {
     matchId: 'mlb-1',
@@ -155,6 +161,12 @@ const MOCK_GAMES: CoachReadDTO[] = [
     fanPrompt: "Pre-warm the pen in the 5th or trust the starter?",
     confidenceLabel: "MEDIUM",
     debateIntensity: "ACTIVE",
-    fanVoteSummary: { agreePct: 42, disagreePct: 48, alternativePct: 10, totalVotes: 850 }
+    fanVoteSummary: { agreePct: 42, disagreePct: 48, alternativePct: 10, totalVotes: 850 },
+    engineStatus: "PARTIAL",
+    evidenceStatus: "PARTIAL",
+    isProductionEngine: false,
+    engineVersion: "14.0.0",
+    featureVersion: "14.0.0",
+    translatorVersion: "1.0.0"
   }
 ]

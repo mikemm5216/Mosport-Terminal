@@ -7,7 +7,7 @@ import { MLBPregameFeatures } from "../../../types/features";
  * NOT PRODUCTION READY for advanced feature extraction.
  */
 export function buildMLBFeatures(game: NormalizedProviderGame): MLBPregameFeatures {
-  const competitors = game.raw?.competitions?.[0]?.competitors || [];
+  const competitors = game.rawFeatures?.competitions?.[0]?.competitors || [];
   const homeCompetitor = competitors.find((c: any) => c.homeAway === "home");
   const awayCompetitor = competitors.find((c: any) => c.homeAway === "away");
 

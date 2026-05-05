@@ -20,6 +20,7 @@ export type MissingEvidenceReason =
   | "MISSING_GOALIE_STATUS"
   | "MISSING_QB_CONTEXT"
   | "MISSING_FIXTURE_CONTEXT"
+  | "MISSING_ADVANCED_METRICS"
   | "UNSUPPORTED_SPORT";
 
 export type EngineVersion = {

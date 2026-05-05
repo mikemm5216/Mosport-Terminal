@@ -13,6 +13,8 @@ export function buildInsufficientDataWorldState(
     engineStatus: "INSUFFICIENT_DATA",
     evidenceStatus: "MISSING",
     missingEvidence: reasons,
+    homeTeam: { id: features.homeTeamId, name: features.homeTeamName },
+    awayTeam: { id: features.awayTeamId, name: features.awayTeamName },
     pressure: null,
     fatigue: null,
     volatility: null,

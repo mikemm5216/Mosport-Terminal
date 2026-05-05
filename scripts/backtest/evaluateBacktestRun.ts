@@ -13,7 +13,20 @@ export async function evaluateBacktestRun(corpus: any[]): Promise<any> {
 
   for (const game of corpus) {
     try {
-      const worldState = deriveWorldState(game.features);
+      const featureSet = {
+        ...game.features,
+        matchId: game.matchId,
+        league: game.league,
+        sport: game.sport,
+        startTime: game.startTime,
+        homeTeamId: game.finalResult?.homeTeamId || "HOME",
+        awayTeamId: game.finalResult?.awayTeamId || "AWAY",
+        homeTeamName: game.homeTeamName || "Home Team",
+        awayTeamName: game.awayTeamName || "Away Team",
+        dataQuality: game.features.dataQuality || { completenessScore: 1.0, missing: [] }
+      };
+
+      const worldState = deriveWorldState(featureSet);
       const coachRead = getCoachRead(worldState);
 
       if (worldState.engineStatus === "INSUFFICIENT_DATA") {
@@ -34,6 +47,7 @@ export async function evaluateBacktestRun(corpus: any[]): Promise<any> {
       if (hit) stats.byLeague[league].hits++;
 
     } catch (err) {
+      console.error(`Error evaluating game ${game.matchId}:`, err);
       stats.gamesSkipped++;
       stats.skipReasons["ERROR"] = (stats.skipReasons["ERROR"] || 0) + 1;
     }

@@ -168,7 +168,7 @@ export async function runHotIngestFull(params: { reason: string, date: string, p
     ok: true, 
     processed: totalProcessed, 
     resultsByLeague,
-    mode: "production_world_engine", 
+    mode: "v14_engine_scaffold", 
     engineVersion: "14.0.0",
     generatedAt: new Date().toISOString() 
   };

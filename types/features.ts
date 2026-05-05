@@ -31,11 +31,11 @@ export type PregameFeatureSet = {
 };
 
 export type TeamPregameContext = {
-  recentFormScore?: number;
-  restDays?: number;
-  travelFatigue?: number;
-  injuryBurden?: number;
-  rosterStability?: number;
+  recentFormScore?: number | null;
+  restDays?: number | null;
+  travelFatigue?: number | null;
+  injuryBurden?: number | null;
+  rosterStability?: number | null;
 };
 
 export type FeatureStatus = "READY" | "PARTIAL" | "MISSING";
@@ -47,47 +47,47 @@ export type BaseSportFeatures = {
 };
 
 export type NBAPregameFeatures = BaseSportFeatures & {
-  pacePressure?: number;
-  rotationRisk?: number;
-  foulTroubleRisk?: number;
-  matchupMismatch?: number;
-  benchStability?: number;
-  starLoad?: number;
+  pacePressure?: number | null;
+  rotationRisk?: number | null;
+  foulTroubleRisk?: number | null;
+  matchupMismatch?: number | null;
+  benchStability?: number | null;
+  starLoad?: number | null;
 };
 
 export type MLBPregameFeatures = BaseSportFeatures & {
-  starterAdvantage?: number;
-  bullpenFreshness?: number;
-  handednessSplitAdvantage?: number;
-  parkFactor?: number;
-  lineupQuality?: number;
-  thirdTimeThroughOrderRisk?: number;
-  lateInningLeverageRisk?: number;
-  defensiveStability?: number;
+  starterAdvantage?: number | null;
+  bullpenFreshness?: number | null;
+  handednessSplitAdvantage?: number | null;
+  parkFactor?: number | null;
+  lineupQuality?: number | null;
+  thirdTimeThroughOrderRisk?: number | null;
+  lateInningLeverageRisk?: number | null;
+  defensiveStability?: number | null;
 };
 
 export type NHLPregameFeatures = BaseSportFeatures & {
-  goalieAdvantage?: number;
-  backToBackFatigue?: number;
-  specialTeamsEdge?: number;
-  shotQualityEdge?: number;
-  defensivePairingStability?: number;
+  goalieAdvantage?: number | null;
+  backToBackFatigue?: number | null;
+  specialTeamsEdge?: number | null;
+  shotQualityEdge?: number | null;
+  defensivePairingStability?: number | null;
 };
 
 export type NFLPregameFeatures = BaseSportFeatures & {
-  qbStability?: number;
-  passRushMismatch?: number;
-  offensiveLineHealth?: number;
-  redZoneEdge?: number;
-  gameScriptPressure?: number;
-  turnoverVolatility?: number;
+  qbStability?: number | null;
+  passRushMismatch?: number | null;
+  offensiveLineHealth?: number | null;
+  redZoneEdge?: number | null;
+  gameScriptPressure?: number | null;
+  turnoverVolatility?: number | null;
 };
 
 export type EPLPregameFeatures = BaseSportFeatures & {
-  pressResistance?: number;
-  midfieldControl?: number;
-  setPieceRisk?: number;
-  fixtureCongestion?: number;
-  strikerForm?: number;
-  defensiveLineRisk?: number;
+  pressResistance?: number | null;
+  midfieldControl?: number | null;
+  setPieceRisk?: number | null;
+  fixtureCongestion?: number | null;
+  strikerForm?: number | null;
+  defensiveLineRisk?: number | null;
 };

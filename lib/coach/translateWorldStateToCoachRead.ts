@@ -11,7 +11,7 @@ export function translateWorldStateToCoachRead(
   // This logic translates the World Engine's quantitative data into the qualitative Coach Read
   
   const coachQuestion = "How should the rotation be adjusted to handle the opponent's momentum?";
-  const coachDecision: CoachDecisionType = worldState.momentum > 60 ? "ROTATION_COMPRESSION" : "TRUST_BENCH";
+  const coachDecision: CoachDecisionType = (worldState.momentum ?? 0) > 60 ? "ROTATION_COMPRESSION" : "TRUST_BENCH";
   
   return {
     matchId: match.id,
@@ -37,16 +37,24 @@ export function translateWorldStateToCoachRead(
     worldEngineEvidence: [
       {
         label: "Momentum Stress",
-        valueLabel: `${worldState.momentum.toFixed(1)}%`,
-        severity: worldState.momentum > 60 ? "HIGH" : "MEDIUM",
+        valueLabel: `${(worldState.momentum ?? 0).toFixed(1)}%`,
+        severity: (worldState.momentum ?? 0) > 60 ? "HIGH" : "MEDIUM",
         explanation: "Opponent is on a scoring run and the defensive rhythm is broken.",
         source: "WORLD_ENGINE"
       }
     ],
     opposingView: "Some coaches would prefer to trust the depth and allow the bench to play through the slump to preserve energy for the fourth quarter.",
     fanPrompt: "Do you compress the rotation or trust your bench?",
+    confidenceLabel: (worldState.momentum ?? 0) > 0.7 ? "HIGH" : "MEDIUM",
+    debateIntensity: (worldState.momentum ?? 0) > 0.5 ? "HOT" : "ACTIVE",
     
-    confidenceLabel: "HIGH",
-    debateIntensity: "ACTIVE"
+    engineStatus: worldState.engineStatus,
+    evidenceStatus: worldState.evidenceStatus,
+    missingEvidence: worldState.missingEvidence?.map(e => e.toString()),
+    noLeanReason: worldState.noLeanReason,
+    isProductionEngine: false,
+    engineVersion: "14.0.0",
+    featureVersion: "14.0.0",
+    translatorVersion: "1.0.0"
   };
 }
