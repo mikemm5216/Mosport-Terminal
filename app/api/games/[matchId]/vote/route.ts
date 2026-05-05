@@ -7,28 +7,43 @@ export async function POST(
 ) {
   try {
     const { matchId } = params;
-    const { stance, coachAction, targetPlayer, confidence, userId } = await req.json();
+    const body = await req.json();
+    const { stance, coachAction, targetPlayer, confidence, userId } = body;
+
+    // P0-3: userId is mandatory
+    if (!userId) {
+      return NextResponse.json({ 
+        error: "UNAUTHORIZED", 
+        message: "A valid userId is required to cast a vote." 
+      }, { status: 401 });
+    }
 
     if (!stance) {
       return NextResponse.json({ error: "STANCE_REQUIRED" }, { status: 400 });
     }
 
-    // Check if match is pregame
+    // P0-2: Check if match is pregame
     const match = await prisma.match.findUnique({
       where: { match_id: matchId }
     });
 
-    if (match?.status === "live" || match?.status === "final") {
-      // In a real app, we might allow late votes but mark them
-      // The instruction says "投票必須標記為賽前投票或關閉"
-      // We'll allow it for now but in a production app we'd check against start_time
+    if (!match) {
+      return NextResponse.json({ error: "MATCH_NOT_FOUND" }, { status: 404 });
+    }
+
+    // Lock voting after start
+    if (match.status === "live" || match.status === "final") {
+      return NextResponse.json({ 
+        error: "VOTING_LOCKED_AFTER_START",
+        message: "Voting is only allowed during the pregame phase."
+      }, { status: 409 });
     }
 
     const vote = await prisma.coachDecisionVote.upsert({
       where: {
         matchId_userId: {
           matchId: matchId,
-          userId: userId || "anonymous_user"
+          userId: userId
         }
       },
       update: {
@@ -39,7 +54,7 @@ export async function POST(
       },
       create: {
         matchId,
-        userId: userId || "anonymous_user",
+        userId: userId,
         stance,
         coachAction,
         targetPlayer,
@@ -50,7 +65,7 @@ export async function POST(
     // Persistent User Event Log
     await prisma.userEventLog.create({
       data: {
-        userId: userId || "anonymous_user",
+        userId: userId,
         matchId: matchId,
         action: "VOTE",
         event: `FAN_VOTE_${stance}`,

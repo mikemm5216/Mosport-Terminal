@@ -9,6 +9,13 @@ export async function POST(
     const { matchId } = params;
     const { commentText, stance, userId, coachAction, targetPlayer, confidence } = await req.json();
 
+    if (!userId) {
+      return NextResponse.json({ 
+        error: "UNAUTHORIZED", 
+        message: "A valid userId is required to post a comment." 
+      }, { status: 401 });
+    }
+
     if (!commentText) {
       return NextResponse.json({ error: "COMMENT_TEXT_REQUIRED" }, { status: 400 });
     }
@@ -16,7 +23,7 @@ export async function POST(
     const comment = await prisma.matchComment.create({
       data: {
         matchId,
-        userId: userId || "anonymous_user",
+        userId: userId,
         commentText,
         stance: stance || "WATCH_ONLY",
         coachAction,
@@ -28,7 +35,7 @@ export async function POST(
     // Persistent User Event Log
     await prisma.userEventLog.create({
       data: {
-        userId: userId || "anonymous_user",
+        userId: userId,
         matchId: matchId,
         action: "COMMENT",
         event: "FAN_COMMENT_POSTED",

@@ -16,6 +16,13 @@ export async function POST(req: Request) {
       suggestedValue 
     } = await req.json();
 
+    if (!userId) {
+      return NextResponse.json({ 
+        error: "UNAUTHORIZED", 
+        message: "A valid userId is required to submit a data challenge." 
+      }, { status: 401 });
+    }
+
     if (!reportType || !description) {
       return NextResponse.json({ error: "REPORT_TYPE_AND_DESCRIPTION_REQUIRED" }, { status: 400 });
     }
@@ -23,7 +30,7 @@ export async function POST(req: Request) {
     const report = await prisma.dataChallengeReport.create({
       data: {
         matchId,
-        userId: userId || "anonymous_user",
+        userId: userId,
         reportType,
         description,
         entityType: entityType || "OTHER",
@@ -40,7 +47,7 @@ export async function POST(req: Request) {
     // Log the challenge event
     await prisma.userEventLog.create({
       data: {
-        userId: userId || "anonymous_user",
+        userId: userId,
         matchId: matchId,
         action: "DATA_CHALLENGE",
         event: `REPORT_${reportType}`,

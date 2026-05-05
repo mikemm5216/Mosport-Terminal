@@ -4,23 +4,25 @@ import { translateWorldStateToCoachRead } from "../coach/translateWorldStateToCo
 import { AnalysisPhase } from "../../types/gameStatus";
 
 /**
- * Hardened Full Ingest Runner
+ * [SKELETON / ORCHESTRATOR] 
+ * Hardened Full Ingest Runner (Structure Only)
+ * 
+ * NOTE: This is the architectural skeleton for the full ingest pipeline.
+ * It coordinates entity upserts and enforces the pregame-only analysis lifecycle.
+ * Real-world production would integrate multiple data providers (ESPN, etc.)
  * 
  * Flow:
- * 1. Fetch raw data from providers
- * 2. Upsert Team / Player
+ * 1. Fetch raw data from providers (Skeleton mode)
+ * 2. Upsert Team / Player [P1-2]
  * 3. Upsert Match
  * 4. Upsert MatchStats
  * 5. Derive and Upsert TeamWorldState (PREGAME ONLY)
  * 6. Generate and Persist CoachRead (PREGAME ONLY)
  */
 export async function runHotIngestFull(params: { reason: string, date: string }) {
-  console.log(`[IngestFull] Starting run for ${params.date} (Reason: ${params.reason})`);
+  console.log(`[IngestOrchestrator] Starting run for ${params.date} (Reason: ${params.reason})`);
   
-  // 1. Fetch Provider Data (Simplified for this structure)
-  // In a real scenario, this would call external APIs (ESPN, TheSportsDB, etc.)
-  // For now we assume we have a way to get raw game facts
-  
+  // 1. Fetch Provider Data (Skeleton Simulation)
   const matchesToProcess = await getMatchesForDate(params.date);
   let processed = 0;
 
@@ -49,6 +51,26 @@ export async function runHotIngestFull(params: { reason: string, date: string })
         }
       });
 
+      // 2.1 Upsert Players [P1-2]
+      // Simulating a roster fetch
+      if (rawMatch.roster) {
+        for (const p of rawMatch.roster) {
+          await prisma.player.upsert({
+            where: { externalId: p.externalId },
+            update: { 
+              fullName: p.name, 
+              teamId: p.teamSide === 'home' ? homeTeam.team_id : awayTeam.team_id 
+            },
+            create: {
+              externalId: p.externalId,
+              fullName: p.name,
+              teamId: p.teamSide === 'home' ? homeTeam.team_id : awayTeam.team_id,
+              position: p.position
+            }
+          });
+        }
+      }
+
       // 3. Upsert Match
       const match = await prisma.match.upsert({
         where: { match_id: rawMatch.matchId },
@@ -71,17 +93,22 @@ export async function runHotIngestFull(params: { reason: string, date: string })
         },
         include: {
           stats: true,
-          signals: true
+          signals: true,
+          predictions: {
+            where: { label: "COACH_READ" },
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          }
         }
       });
 
-      // PREGAME-ONLY Analysis Guard
+      // LifeCycle Check
       const now = new Date();
       const isLive = match.status === "live";
       const isPast = now >= match.match_date;
 
       if (!isLive && !isPast) {
-        // 4. Upsert MatchStats (if available in raw data)
+        // 4. Upsert MatchStats
         const stats = await prisma.matchStats.upsert({
           where: { matchId: match.match_id },
           update: { payload: (rawMatch.stats || {}) as any },
@@ -122,7 +149,6 @@ export async function runHotIngestFull(params: { reason: string, date: string })
           match_date: match.match_date
         }, { status: "scheduled", display: "Scheduled" });
 
-        // Hardened Persistence
         await prisma.matchPrediction.upsert({
           where: { id: `${match.match_id}_cr` },
           update: {
@@ -134,7 +160,7 @@ export async function runHotIngestFull(params: { reason: string, date: string })
               analysisPhase: "PREGAME_OPEN",
               generatedBeforeStart: true,
               isPregameOnly: true,
-              lockedAt: null // Explicitly open
+              lockedAt: null 
             } as any
           },
           create: {
@@ -155,18 +181,33 @@ export async function runHotIngestFull(params: { reason: string, date: string })
 
         processed++;
       } else if (isLive) {
-        console.log(`[IngestFull] Match ${match.match_id} is LIVE. Skipping CoachRead refresh (Pregame Only).`);
-        // We could still update scores here if we had them
+        // [P1-3] Handle lockedAt persistence when turning LIVE
+        const latestRead = match.predictions[0];
+        if (latestRead && latestRead.payload) {
+          const payload = latestRead.payload as any;
+          if (!payload.lockedAt) {
+            console.log(`[IngestOrchestrator] Locking pregame read for match ${match.match_id} (Match is LIVE)`);
+            await prisma.matchPrediction.update({
+              where: { id: latestRead.id },
+              data: {
+                payload: {
+                  ...payload,
+                  analysisPhase: "LIVE_FOLLOW_ONLY",
+                  lockedAt: now.toISOString()
+                } as any
+              }
+            });
+          }
+        }
       }
     } catch (err) {
-      console.error(`[IngestFull] Error processing match ${rawMatch.matchId}:`, err);
+      console.error(`[IngestOrchestrator] Error processing match ${rawMatch.matchId}:`, err);
     }
   }
 
-  return { ok: true, processed, mode: "full", generatedAt: new Date().toISOString() };
+  return { ok: true, processed, mode: "orchestrator_skeleton", generatedAt: new Date().toISOString() };
 }
 
-// Mock helper to get some data for demo/worker stability
 async function getMatchesForDate(date: string) {
   return [
     {
@@ -177,7 +218,11 @@ async function getMatchesForDate(date: string) {
       awayTeamName: "Golden State Warriors",
       matchDate: `${date}T22:00:00Z`,
       status: "scheduled",
-      stats: { paintPoints: 44, fastBreakPoints: 12 }
+      stats: { paintPoints: 44, fastBreakPoints: 12 },
+      roster: [
+        { externalId: "p-ad-1", name: "Anthony Davis", teamSide: "home", position: "C" },
+        { externalId: "p-sc-1", name: "Steph Curry", teamSide: "away", position: "G" }
+      ]
     }
   ];
 }

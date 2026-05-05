@@ -107,17 +107,17 @@ const MOCK_GAMES: CoachReadDTO[] = [
     homeTeam: { id: 'lal', name: 'Los Angeles Lakers', shortName: 'LAL', league: 'NBA' },
     awayTeam: { id: 'gsw', name: 'Golden State Warriors', shortName: 'GSW', league: 'NBA' },
     gameStatus: { status: 'scheduled', display: '10:00 PM' },
-    coachQuestion: "Should the Lakers compress their rotation to stop the GSW momentum?",
+    coachQuestion: "Should the Lakers compress their rotation to counteract GSW's expected transition speed?",
     coachDecision: "ROTATION_COMPRESSION",
-    coachRead: "The Lakers' bench is being outclassed in transition. AD needs more minutes with the starters to anchor the paint before the lead balloons.",
-    emotionalHook: "Don't let the bench sink the ship.",
-    whyItMatters: ["Bench +/- is -15", "Paint points allowed: 48"],
+    coachRead: "The Warriors' projected second-unit lineups prioritize pace. AD needs a tailored substitution pattern to anchor the paint before the transition game dictates the rhythm.",
+    emotionalHook: "Control the tempo before it controls you.",
+    whyItMatters: ["GSW leading league in transition points", "Lakers' bench defensive rating vs fast-break teams"],
     worldEngineEvidence: [
-      { label: "Momentum", valueLabel: "82%", severity: "HIGH", explanation: "GSW is on a 12-2 run.", source: "WORLD_ENGINE" },
-      { label: "Fatigue", valueLabel: "15%", severity: "LOW", explanation: "Starters are fresh.", source: "WORLD_ENGINE" }
+      { label: "Pace Forecast", valueLabel: "HIGH", severity: "HIGH", explanation: "GSW expected to push the ball 25% more than league average.", source: "WORLD_ENGINE" },
+      { label: "Star Freshness", valueLabel: "OPTIMAL", severity: "LOW", explanation: "Lakers starters have had 2 days of full rest.", source: "WORLD_ENGINE" }
     ],
-    opposingView: "Resting the stars now ensures they are ready for the clutch moments.",
-    fanPrompt: "Do you pull the bench early?",
+    opposingView: "Stick to the standard rotation to keep the stars fresh for the fourth quarter grind.",
+    fanPrompt: "Do you adjust the substitution pattern early?",
     confidenceLabel: "HIGH",
     debateIntensity: "HOT",
     fanVoteSummary: { agreePct: 65, disagreePct: 25, alternativePct: 10, totalVotes: 1240 }
@@ -133,16 +133,16 @@ const MOCK_GAMES: CoachReadDTO[] = [
     homeTeam: { id: 'nyy', name: 'New York Yankees', shortName: 'NYY', league: 'MLB' },
     awayTeam: { id: 'bos', name: 'Boston Red Sox', shortName: 'BOS', league: 'MLB' },
     gameStatus: { status: 'scheduled', display: '7:05 PM' },
-    coachQuestion: "Is it time to pull the starter before the third time through the order?",
+    coachQuestion: "Prepare the bullpen early to avoid the third-time-through-the-order risk?",
     coachDecision: "BULLPEN_TIMING",
-    coachRead: "The starter's velocity is dipping, and the Red Sox top of the order has timed him perfectly twice already.",
-    emotionalHook: "Avoid the third-time-through penalty.",
-    whyItMatters: ["Exit velocity up 5mph in 5th inning", "Whiff rate down 12%"],
+    coachRead: "The starter's performance historically drops by 20% when facing this Red Sox top-of-order for the third time in a single game.",
+    emotionalHook: "Don't wait for the damage to pull the plug.",
+    whyItMatters: ["Red Sox .310 average against fatigued starters", "Yankees bullpen has 3 fresh high-leverage arms"],
     worldEngineEvidence: [
-      { label: "Velocity Dip", valueLabel: "-1.5mph", severity: "MEDIUM", explanation: "Fastball losing life.", source: "WORLD_ENGINE" }
+      { label: "Historical Fatigue Pattern", valueLabel: "-1.5mph", severity: "MEDIUM", explanation: "Pitcher velocity tends to drop significantly after 75 pitches.", source: "WORLD_ENGINE" }
     ],
-    opposingView: "He's a horse, let him finish the 6th to save the bullpen.",
-    fanPrompt: "Go to the pen now or wait?",
+    opposingView: "Trust the ace to work through the jam and save the bullpen for the weekend series.",
+    fanPrompt: "Pre-warm the pen in the 5th or trust the starter?",
     confidenceLabel: "MEDIUM",
     debateIntensity: "ACTIVE",
     fanVoteSummary: { agreePct: 42, disagreePct: 48, alternativePct: 10, totalVotes: 850 }
