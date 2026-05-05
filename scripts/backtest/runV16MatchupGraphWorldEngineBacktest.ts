@@ -12,8 +12,8 @@ type MatchupKind = "TEAM_UNIT" | "PLAYER_ROLE" | "COACHING";
 
 type AvailabilityContext = {
   sourceLevel: "TEAM_PROXY" | "ROLE_PROXY" | "PLAYER_FEED";
-  leagueSpecificHook: string;
-  leagueSpecificHookAttached: boolean;
+  leagueSpecificEdgeSource: string;
+  leagueSpecificEdgeSourceAttached: boolean;
   baseCertainty: MatchupCertainty;
   missingInputs: string[];
 };
@@ -137,11 +137,11 @@ function specialWorlds(game: HistoricalGameRecord): SpecialWorldType[] {
   return [...new Set(result)];
 }
 
-function leagueHook(league: string): string {
+function leagueEdgeSource(league: string): string {
   if (league === "MLB") return "starting pitcher + bullpen usage + catcher/lineup order";
-  if (league === "NHL") return "confirmed goalie + line combinations + defensive pairings";
+  if (league === "NHL") return "goalie + line combinations + defensive pairings";
   if (league === "NBA") return "injury report + starters + minutes restriction + rotation";
-  if (league === "NFL") return "starting QB + OL availability + inactive list";
+  if (league === "NFL") return "QB + OL availability + inactive list";
   if (league === "EPL") return "starting XI + formation + substitution load";
   return "league-specific availability and role graph";
 }
@@ -159,17 +159,17 @@ function availability(game: HistoricalGameRecord): AvailabilityContext {
     NFL: ["qb", "quarterback", "offensiveLine", "inactive"],
     EPL: ["startingXI", "formation", "lineups"],
   };
-  const hookAttached = (hookKeys[game.league] || []).some((key) => Boolean(f[key] || f[leagueKey(game)]?.[key]));
+  const edgeSourceAttached = (hookKeys[game.league] || []).some((key) => Boolean(f[key] || f[leagueKey(game)]?.[key]));
   const missingInputs: string[] = [];
   if (!hasPlayers) missingInputs.push("real player-level availability feed");
   if (!hasLineups) missingInputs.push("lineup/starters feed with role validation");
   if (!hasRoles) missingInputs.push("role validation feed");
   if (!hasInjuries) missingInputs.push("injury/minutes/inactive feed");
-  if (!hookAttached) missingInputs.push(`${game.league} ${leagueHook(game.league)} feed`);
+  if (!edgeSourceAttached) missingInputs.push(`${game.league} ${leagueEdgeSource(game.league)} edge-source feed`);
   return {
     sourceLevel: hasPlayers ? "PLAYER_FEED" : hasLineups ? "ROLE_PROXY" : "TEAM_PROXY",
-    leagueSpecificHook: leagueHook(game.league),
-    leagueSpecificHookAttached: hookAttached,
+    leagueSpecificEdgeSource: leagueEdgeSource(game.league),
+    leagueSpecificEdgeSourceAttached: edgeSourceAttached,
     baseCertainty: hasPlayers && hasLineups && hasRoles ? "CONFIRMED" : hasLineups ? "PROJECTED" : "UNKNOWN",
     missingInputs,
   };
@@ -178,7 +178,7 @@ function availability(game: HistoricalGameRecord): AvailabilityContext {
 function positiveSequence(league: string): string[] {
   if (league === "MLB") return ["patient at-bat", "walk or hard contact", "extra-base pressure", "bullpen stress"];
   if (league === "NBA") return ["defensive stop", "transition score", "corner three", "timeout pressure"];
-  if (league === "NFL") return ["pressure on QB", "field-position swing", "explosive play", "red-zone pressure"];
+  if (league === "NFL") return ["pressure", "field-position swing", "explosive play", "red-zone pressure"];
   if (league === "NHL") return ["clean zone entry", "shot volume", "rebound pressure", "line-change trap"];
   if (league === "EPL") return ["press recovery", "final-third entry", "set-piece pressure", "second-ball pressure"];
   return ["first repeated event", "pressure event", "opponent response", "world-line shift"];
@@ -188,7 +188,7 @@ function collapseSequence(league: string): string[] {
   if (league === "MLB") return ["chase at bad pitch", "strikeout/no-contact", "quick inning", "pressure carries forward"];
   if (league === "NBA") return ["live-ball turnover", "fastbreak allowed", "forced shot", "run expands"];
   if (league === "NFL") return ["sack or penalty", "third-and-long", "three-and-out", "short-field pressure"];
-  if (league === "NHL") return ["failed zone exit", "extended shift", "rebound allowed", "goalie stress"];
+  if (league === "NHL") return ["failed zone exit", "extended shift", "rebound allowed", "sustained pressure"];
   if (league === "EPL") return ["failed clearance", "second ball lost", "wide overload", "set-piece or shot pressure"];
   return ["late reaction", "mistake", "second mistake", "coach forced to adjust"];
 }
@@ -199,27 +199,27 @@ function graphFor(game: HistoricalGameRecord): MatchupGraph {
   const a = availability(game);
   const favored: Side = homeForm > awayForm + 0.05 ? "HOME" : awayForm > homeForm + 0.05 ? "AWAY" : "BOTH";
   const pressured: Side = favored === "HOME" ? "AWAY" : favored === "AWAY" ? "HOME" : "BOTH";
-  const hookCertainty: MatchupCertainty = a.leagueSpecificHookAttached ? a.baseCertainty : "UNKNOWN";
+  const edgeSourceCertainty: MatchupCertainty = a.leagueSpecificEdgeSourceAttached ? a.baseCertainty : "UNKNOWN";
   const edges: MatchupEdge[] = [
-    { id: `${game.matchId}:team`, kind: "TEAM_UNIT", label: `${game.league} team identity collision`, attackingSide: favored, defendingSide: pressured, certainty: "PROJECTED", miracleEntry: true, collapseEntry: true, worldLineEffect: "Team-form edge shapes the normal world line but cannot replace player-level matchup graph data." },
+    { id: `${game.matchId}:team`, kind: "TEAM_UNIT", label: `${game.league} team identity collision`, attackingSide: favored, defendingSide: pressured, certainty: "PROJECTED", miracleEntry: true, collapseEntry: true, worldLineEffect: "Team-form edge enters the graph as one edge among many; it is not a priority weight." },
     { id: `${game.matchId}:primary-role`, kind: "PLAYER_ROLE", label: `${game.league} primary role collision`, attackingSide: favored, defendingSide: pressured, certainty: a.baseCertainty, miracleEntry: true, collapseEntry: true, worldLineEffect: "Primary role edge can create repeated-event pressure; certainty depends on validated player/lineup feed." },
-    { id: `${game.matchId}:league-hook`, kind: "PLAYER_ROLE", label: `${game.league} ${a.leagueSpecificHook}`, attackingSide: favored, defendingSide: pressured, certainty: hookCertainty, miracleEntry: true, collapseEntry: true, worldLineEffect: "League-specific edge is the next data-depth unlock for this sport." },
-    { id: `${game.matchId}:depth`, kind: "TEAM_UNIT", label: `${game.league} bench/depth collision`, attackingSide: "BOTH", defendingSide: "BOTH", certainty: a.sourceLevel === "PLAYER_FEED" ? "PROJECTED" : "UNKNOWN", miracleEntry: false, collapseEntry: true, worldLineEffect: "Depth edge can become decisive if fatigue or rotation pressure appears." },
-    { id: `${game.matchId}:coach`, kind: "COACHING", label: `${game.league} coaching response vs event chain`, attackingSide: "BOTH", defendingSide: "BOTH", certainty: "PROJECTED", miracleEntry: true, collapseEntry: true, worldLineEffect: "Coaching response controls whether the first repeated-event chain is stopped." },
+    { id: `${game.matchId}:league-edge-source`, kind: "PLAYER_ROLE", label: `${game.league} ${a.leagueSpecificEdgeSource}`, attackingSide: favored, defendingSide: pressured, certainty: edgeSourceCertainty, miracleEntry: true, collapseEntry: true, worldLineEffect: "Sport-specific feed creates or confirms a matchup edge only; it is not a priority weight." },
+    { id: `${game.matchId}:depth`, kind: "TEAM_UNIT", label: `${game.league} bench/depth collision`, attackingSide: "BOTH", defendingSide: "BOTH", certainty: a.sourceLevel === "PLAYER_FEED" ? "PROJECTED" : "UNKNOWN", miracleEntry: false, collapseEntry: true, worldLineEffect: "Depth edge enters the graph like every other edge; importance emerges only if world-line simulation amplifies it." },
+    { id: `${game.matchId}:coach`, kind: "COACHING", label: `${game.league} coaching response vs event chain`, attackingSide: "BOTH", defendingSide: "BOTH", certainty: "PROJECTED", miracleEntry: true, collapseEntry: true, worldLineEffect: "Coaching-response edge enters the graph and may matter only through event-chain interaction." },
   ];
   const confirmedEdges = edges.filter((edge) => edge.certainty === "CONFIRMED").length;
   const uncertainEdges = edges.length - confirmedEdges;
   const coverage = clamp01(0.1 + edges.length * 0.12 + confirmedEdges * 0.06 - uncertainEdges * 0.02);
-  return { edges, confirmedEdges, uncertainEdges, confirmedRate: edges.length ? confirmedEdges / edges.length : 0, uncertainRate: edges.length ? uncertainEdges / edges.length : 1, coverage, summary: `${edges.length} matchup edges mapped; ${uncertainEdges} edges are not confirmed and must remain uncertainty-aware.` };
+  return { edges, confirmedEdges, uncertainEdges, confirmedRate: edges.length ? confirmedEdges / edges.length : 0, uncertainRate: edges.length ? uncertainEdges / edges.length : 1, coverage, summary: `${edges.length} matchup edges mapped; ${uncertainEdges} edges are not confirmed and must remain uncertainty-aware. No sport-specific edge is pre-weighted.` };
 }
 
 function environmentRead(game: HistoricalGameRecord): string {
   const base = ["home/away context", "real completed historical corpus context"];
-  if (game.league === "MLB") base.push("ballpark and bullpen context pending L2 attachment");
-  if (game.league === "NBA") base.push("rotation and pace context from L1 corpus");
-  if (game.league === "NFL") base.push("short-season pressure and field-position volatility");
-  if (game.league === "NHL") base.push("goalie/line-change sensitivity pending L2 attachment");
-  if (game.league === "EPL") base.push("match tempo and fixture-position sensitivity");
+  if (game.league === "MLB") base.push("ballpark/bullpen information can create environment or matchup edges when attached");
+  if (game.league === "NBA") base.push("rotation/pace information can create role edges when attached");
+  if (game.league === "NFL") base.push("field-position information can create event-chain edges when attached");
+  if (game.league === "NHL") base.push("line-change information can create matchup edges when attached");
+  if (game.league === "EPL") base.push("fixture/formation information can create position-role edges when attached");
   const worlds = specialWorlds(game);
   if (worlds.some((world) => world !== "REGULAR_SEASON")) base.push("special-world pressure", "shorter tolerance for mistakes");
   return `${worlds.join("+")} context; ${base.join("; ")}`;
@@ -240,7 +240,7 @@ function coverage(game: HistoricalGameRecord, graph: MatchupGraph) {
   const homeContext = teamContext(game, "home");
   const awayContext = teamContext(game, "away");
   const doctrineFlowCoverage = 0.12 + (homeContext && awayContext ? 0.16 : 0.08) + 0.08 + 0.12 + (graph.edges.length >= 4 ? 0.14 : 0.06) + 0.14 + 0.14 + (f?.[leagueKey(game)] ? 0.08 : 0.04);
-  const dataDepthCompleteness = (homeContext && awayContext ? 0.14 : 0.04) + (a.sourceLevel === "PLAYER_FEED" ? 0.14 : a.sourceLevel === "ROLE_PROXY" ? 0.07 : 0.03) + (a.sourceLevel !== "TEAM_PROXY" ? 0.12 : 0.02) + (hasFeature(game, ["injuries"]) || hasFeature(game, ["injuryReport"]) ? 0.12 : 0.02) + graph.coverage * 0.14 + graph.confirmedRate * 0.10 + (hasFeature(game, ["weather"]) || hasFeature(game, ["venue"]) ? 0.10 : 0.03) + (hasFeature(game, ["officials"]) || hasFeature(game, ["umpire"]) ? 0.08 : 0.01) + (a.leagueSpecificHookAttached ? 0.16 : f?.[leagueKey(game)] ? 0.06 : 0.02) + (hasFeature(game, ["eventLog"]) || hasFeature(game, ["plays"]) ? 0.12 : 0.03);
+  const dataDepthCompleteness = (homeContext && awayContext ? 0.14 : 0.04) + (a.sourceLevel === "PLAYER_FEED" ? 0.14 : a.sourceLevel === "ROLE_PROXY" ? 0.07 : 0.03) + (a.sourceLevel !== "TEAM_PROXY" ? 0.12 : 0.02) + (hasFeature(game, ["injuries"]) || hasFeature(game, ["injuryReport"]) ? 0.12 : 0.02) + graph.coverage * 0.14 + graph.confirmedRate * 0.10 + (hasFeature(game, ["weather"]) || hasFeature(game, ["venue"]) ? 0.10 : 0.03) + (hasFeature(game, ["officials"]) || hasFeature(game, ["umpire"]) ? 0.08 : 0.01) + (a.leagueSpecificEdgeSourceAttached ? 0.16 : f?.[leagueKey(game)] ? 0.06 : 0.02) + (hasFeature(game, ["eventLog"]) || hasFeature(game, ["plays"]) ? 0.12 : 0.03);
   const flow = clamp01(doctrineFlowCoverage);
   const depth = clamp01(dataDepthCompleteness);
   return { doctrineFlowCoverage: flow, dataDepthCompleteness: depth, worldEngineReadiness: clamp01(flow * 0.55 + depth * 0.45) };
@@ -258,10 +258,10 @@ function rowFor(game: HistoricalGameRecord, baselineMargin: number): PredictionR
   const leanName = normalLean === "HOME" ? homeName : normalLean === "AWAY" ? awayName : "no side";
   const positive = positiveSequence(game.league).join(" → ");
   const collapse = collapseSequence(game.league).join(" → ");
-  const missingAdvancedInputs = Array.from(new Set([...a.missingInputs, "real player matchup tracking", "referee/umpire tendency feed", "weather/venue advanced feed where applicable", "sport-specific L2/L3 event logs"]));
+  const missingAdvancedInputs = Array.from(new Set([...a.missingInputs, "real player matchup tracking", "referee/umpire tendency feed", "weather/venue advanced feed where applicable", "sport-specific L2/L3 event logs as edge sources"]));
   const keyboardCoachSummary = normalLean === "NO_LEAN"
-    ? `${awayName} @ ${homeName}: V16.5 sees a balanced L1 world line. The matchup graph has ${graph.edges.length} edges and ${graph.uncertainEdges} uncertainty-aware edges; the first repeated-event chain matters more than a single headline matchup.`
-    : `${awayName} @ ${homeName}: V16.5 leans ${leanName}, but the read flows through ${graph.edges.length} matchup edges, not one key matchup. ${graph.uncertainEdges} edges remain uncertainty-aware until confirmed by live/lineup data.`;
+    ? `${awayName} @ ${homeName}: V16.5 sees a balanced L1 world line. The matchup graph has ${graph.edges.length} edges and ${graph.uncertainEdges} uncertainty-aware edges; no edge is pre-weighted before world-line simulation.`
+    : `${awayName} @ ${homeName}: V16.5 leans ${leanName}, but the read flows through ${graph.edges.length} matchup edges, not one key matchup. ${graph.uncertainEdges} edges remain uncertainty-aware, and importance can only emerge through world-line simulation.`;
   return { matchId: game.matchId, league: game.league, startTime: game.startTime, homeTeamName: game.homeTeamName, awayTeamName: game.awayTeamName, normalLean, predictedWinnerTeamId, actualWinnerTeamId: game.finalResult.winnerTeamId, hit, confidenceProxy: normalLean === "NO_LEAN" ? 0.5 : 0.56 + c.worldEngineReadiness * 0.08 - graph.uncertainRate * 0.03, doctrineFlowCoverage: c.doctrineFlowCoverage, dataDepthCompleteness: c.dataDepthCompleteness, worldEngineReadiness: c.worldEngineReadiness, matchupGraphCoverage: graph.coverage, confirmedMatchupEdgeRate: graph.confirmedRate, uncertainMatchupEdgeRate: graph.uncertainRate, matchupGraph: graph, matchupGraphSummary: graph.summary, miracleEntry: positive, collapseEntry: collapse, environmentRead: environmentRead(game), keyboardCoachSummary, missingAdvancedInputs };
 }
 
@@ -291,10 +291,10 @@ function summarize(rows: PredictionRow[]) {
 
 function markdown(report: any): string {
   const lines: string[] = [];
-  lines.push("# Mosport V16.5 Matchup Graph World Engine Backtest", "", "## Method", "- Train/calibration: real completed 2020-2024 games.", "- Test: real completed 2025 games.", "- V16.5 replaces single key-matchup logic with a matchup collision graph.", "- Every matchup edge carries a certainty label: CONFIRMED, PROJECTED, PROBABLE, RUMORED, UNKNOWN, or CONFLICTING.", "- Starter or lineup uncertainty is treated as matchup graph uncertainty, not a standalone exception.", "- Missing L2/L3 and B2B inputs are reported explicitly.", "", "## Overall");
+  lines.push("# Mosport V16.5 Matchup Graph World Engine Backtest", "", "## Method", "- Train/calibration: real completed 2020-2024 games.", "- Test: real completed 2025 games.", "- V16.5 replaces single key-matchup logic with a matchup collision graph.", "- Every matchup edge carries a certainty label: CONFIRMED, PROJECTED, PROBABLE, RUMORED, UNKNOWN, or CONFLICTING.", "- Sport-specific feeds create or confirm matchup edges only; they are not priority weights.", "- Starter or lineup uncertainty is treated as matchup graph uncertainty, not a standalone exception.", "- Missing L2/L3 and B2B inputs are reported explicitly.", "", "## Overall");
   lines.push(`- Train records: ${report.trainRecords}`, `- Test predictions: ${report.testRecords}`, `- Accuracy: ${pct(report.summary.accuracy)}`, `- Hits: ${report.summary.hits}`, `- Misses: ${report.summary.misses}`, `- Doctrine flow coverage: ${pct(report.summary.averageDoctrineFlowCoverage)}`, `- Data depth completeness: ${pct(report.summary.averageDataDepthCompleteness)}`, `- World engine readiness: ${pct(report.summary.averageWorldEngineReadiness)}`, `- Matchup graph coverage: ${pct(report.summary.averageMatchupGraphCoverage)}`, `- Confirmed matchup edge rate: ${pct(report.summary.averageConfirmedMatchupEdgeRate)}`, `- Uncertain matchup edge rate: ${pct(report.summary.averageUncertainMatchupEdgeRate)}`, "", "## By League");
   for (const [league, item] of Object.entries(report.summary.byLeague) as any) lines.push(`- **${league}:** ${item.games} games, ${pct(item.accuracy)} accuracy, ${pct(item.doctrineFlowCoverage)} flow, ${pct(item.dataDepthCompleteness)} data depth, ${pct(item.worldEngineReadiness)} readiness, ${pct(item.matchupGraphCoverage)} graph coverage, ${pct(item.uncertainMatchupEdgeRate)} uncertain edges`);
-  lines.push("", "## V16.5 Boundary", "This report does not claim a single key matchup decides a game. It maps multiple matchup edges and marks each edge certainty. If player, lineup, injury, role, or matchup feeds are missing, the edge remains uncertainty-aware.", "", "## Sample Keyboard Coach Reads");
+  lines.push("", "## V16.5 Boundary", "This report does not claim a single key matchup decides a game. It maps multiple matchup edges and marks each edge certainty. Sport-specific feeds are only edge sources; edge importance emerges only through world-line simulation.", "", "## Sample Keyboard Coach Reads");
   for (const row of report.sampleReads.slice(0, 10)) lines.push(`- ${row.startTime} ${row.league} ${row.awayTeamName} @ ${row.homeTeamName}: ${row.keyboardCoachSummary}`);
   lines.push("", "## Missing Advanced Inputs");
   for (const item of report.missingAdvancedInputSummary) lines.push(`- ${item}`);
@@ -313,7 +313,7 @@ async function main() {
   const rows = test.map((game) => rowFor(game, baselines[game.league] || 0));
   const summary = summarize(rows);
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const report = { createdAt: new Date().toISOString(), engine: "Mosport V16.5 Matchup Graph World Engine Baseline", doctrineVersion: "MOSPORT_WORLD_ENGINE_DOCTRINE_V1_1", trainFile: args.train, testFile: args.test, trainSha256: sha256(args.train), testSha256: sha256(args.test), trainRecords: train.length, testRecords: test.length, summary, missingAdvancedInputSummary: Array.from(new Set(rows.flatMap((row) => row.missingAdvancedInputs))), sampleReads: rows.slice(0, 25), predictions: rows };
+  const report = { createdAt: new Date().toISOString(), engine: "Mosport V16.5 Matchup Graph World Engine Baseline", doctrineVersion: "MOSPORT_WORLD_ENGINE_DOCTRINE_V1_2", trainFile: args.train, testFile: args.test, trainSha256: sha256(args.train), testSha256: sha256(args.test), trainRecords: train.length, testRecords: test.length, summary, missingAdvancedInputSummary: Array.from(new Set(rows.flatMap((row) => row.missingAdvancedInputs))), sampleReads: rows.slice(0, 25), predictions: rows };
   const jsonPath = path.join(args.output, `v16_5_matchup_graph_world_engine_backtest_${timestamp}.json`);
   const mdPath = path.join(args.output, `v16_5_matchup_graph_world_engine_backtest_${timestamp}.md`);
   const csvPath = path.join(args.output, `v16_5_matchup_graph_world_engine_predictions_${timestamp}.csv`);
