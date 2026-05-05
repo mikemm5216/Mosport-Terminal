@@ -1,0 +1,47 @@
+name: V15 Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validate-v15:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Validate V15 sample corpus
+        run: npm run corpus:validate -- --input=data/historical/sample_v15.jsonl --output=data/backtest-artifacts
+
+      - name: Run V15 sample backtest
+        run: npm run backtest:historical -- --input=data/historical/sample_v15.jsonl --output=data/backtest-artifacts
+
+      - name: Upload V15 backtest artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v15-backtest-artifacts
+          path: data/backtest-artifacts
+          if-no-files-found: warn
