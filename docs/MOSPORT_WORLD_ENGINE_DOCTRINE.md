@@ -1,6 +1,6 @@
 # Mosport World Engine Doctrine
 
-Version: v1.0
+Version: v1.1
 Status: Binding Constitutional Doctrine
 Parent Constitution: `docs/MOSPORT_CONSTITUTION.md`
 
@@ -18,7 +18,7 @@ Required flow:
 Player Living State
 + Team Living State
 + Environment State
-+ Matchup Collision
++ Matchup Collision Graph
 + Event Chain Potential
 → World Line Simulation
 → Mosport Read
@@ -34,11 +34,14 @@ Forbidden:
 - pretending baseline features are the World Engine
 - unsupported invented narratives
 - analyzing international games, playoff games, finals, or championship games with ordinary regular-season logic
+- reducing a game to one single key matchup
+- treating uncertain matchup data as confirmed matchup data
 
 Chinese:
 
 > 以後 Mosport 跑任何一場比賽，都只能用這套世界引擎邏輯。
 > 不准臨時自創邏輯，不准先有答案再補故事，不准把 team rolling average 包裝成 Mosport 結論。
+> 不准把一場比賽簡化成單一關鍵對位；每個對位都可能改變世界線。
 
 ---
 
@@ -49,15 +52,14 @@ Historical Memory
 × Event Streak Memory
 × Player Bio-Psycho State
 × Team Bio-Psycho State
-× Player Matchups
-× Team Matchups
+× Matchup Collision Graph
 × Environment State
 → World Engine Simulation
 → Mosport Read
 → Keyboard Coach Translation
 ```
 
-Mosport is not using numbers to predict results. Mosport uses historical memory, repeated-event chains, player/team bio-psychological states, matchups, and environment to simulate world lines, then translates the read into Keyboard Coach language.
+Mosport is not using numbers to predict results. Mosport uses historical memory, repeated-event chains, player/team bio-psychological states, matchup graph, and environment to simulate world lines, then translates the read into Keyboard Coach language.
 
 ---
 
@@ -68,7 +70,7 @@ Quant is engine material, not the public product.
 Required transformation:
 
 ```txt
-data → living state → collision → environment amplification → event-chain potential → world-line read → keyboard coach language
+data → living state → collision graph → environment amplification → event-chain potential → world-line read → keyboard coach language
 ```
 
 Forbidden simplification:
@@ -88,7 +90,7 @@ Chinese:
 
 The player layer asks: is this player still himself today?
 
-Inputs include player historical data, event-streak data, biological state, psychological state, matchup history, and current role context.
+Inputs include player historical data, event-streak data, biological state, psychological state, matchup history, current role context, and matchup certainty.
 
 Biological signals may include injury, rest, fatigue, workload, return-from-injury state, pitch count, recent usage, speed loss, pitch velocity, spin rate, exit velocity, sprint speed, acceleration load, and recovery indicators.
 
@@ -100,13 +102,15 @@ Output:
 Player Daily Identity
 ```
 
+No player-specific claim may be made unless that player belongs to the displayed team and the matchup data is either confirmed or explicitly labeled as projected/probable/unknown.
+
 ---
 
 ## 5. Team Living State
 
 The team layer asks: is this team still itself today?
 
-Inputs include team historical data, event-streak data, team biological state, team psychological state, aggregated player living states, and coaching reaction history.
+Inputs include team historical data, event-streak data, team biological state, team psychological state, aggregated player living states, coaching reaction history, and matchup graph certainty.
 
 Team biological state may include schedule fatigue, back-to-back, three-in-four, travel, altitude, bullpen usage, goalie usage, rotation compression, player load concentration, bench survivability, tournament congestion, and short international windows.
 
@@ -117,6 +121,8 @@ Output:
 ```txt
 Team Daily Identity
 ```
+
+If matchup certainty is low, the team living state must expose uncertainty instead of pretending the graph is confirmed.
 
 ---
 
@@ -135,18 +141,72 @@ A streak must identify its trigger, sequence length, who triggered it, who was a
 
 ---
 
-## 7. Matchup Collision Layer
+## 7. Matchup Collision Graph
 
-Mosport must analyze both player matchups and team matchups.
+Mosport must analyze a matchup graph, not a single key matchup.
 
-Collision Layer asks:
+Every matchup can influence the world line. A matchup with smaller public attention may become decisive if it triggers a repeated-event chain.
+
+The graph may include:
+
+- starter vs starter
+- bench vs bench
+- pitcher vs hitter profile
+- bullpen vs lineup order
+- catcher/defense vs running game
+- QB vs pass rush
+- OL vs DL
+- WR/TE/RB vs coverage shell
+- scorer vs primary defender
+- second unit creator vs bench defender
+- winger vs fullback
+- midfield press vs buildup line
+- striker vs center backs
+- goalie vs shooter profile
+- line matching and defensive pairings
+- coach substitution pattern vs opponent rotation
+
+Every matchup edge must carry a certainty label:
 
 ```txt
-Who attacks whom?
-Who gets repeatedly targeted?
-Which individual matchup can open or close the world line?
-Which team tendency amplifies the player matchup?
+CONFIRMED
+PROJECTED
+PROBABLE
+RUMORED
+UNKNOWN
+CONFLICTING
 ```
+
+The certainty label belongs to the matchup edge. It is not a separate special-case rule.
+
+Collision Graph asks:
+
+```txt
+What are all meaningful collisions in this game?
+Which collision can trigger a miracle chain?
+Which collision can trigger a collapse chain?
+Which collision is uncertain because the matchup edge is not confirmed?
+Which collision becomes more important under this environment?
+```
+
+Forbidden:
+
+```txt
+single key matchup → game explanation
+uncertain matchup → confirmed collision
+```
+
+Allowed:
+
+```txt
+matchup graph → edge certainty → world-line pressure map → live confirmation/invalidation signals
+```
+
+Chinese:
+
+> 不是誰佔比大誰才重要。
+> 每個對位都可能影響世界線；小對位也可能因為連續事件變成破口。
+> 先發不確定，本質上就是對位圖不確定，不需要另外發明一套假先發邏輯。
 
 ---
 
@@ -186,7 +246,7 @@ Advanced data must map into one of:
 Player Living State
 Team Living State
 Environment State
-Matchup Collision
+Matchup Collision Graph
 Event Chain Potential
 World Line Simulation
 ```
@@ -210,7 +270,7 @@ Required world-line categories:
 - comeback world line
 - garbage-time world line
 
-A Mosport Read should explain who Mosport leans toward, why that is the normal read, which matchup matters, which event chain can rewrite the game, which collapse chain can break the read, which environment factor changes the world, and what live signal would confirm or invalidate the pregame read.
+A Mosport Read should explain who Mosport leans toward, why that is the normal read, which matchup graph clusters matter, which event chain can rewrite the game, which collapse chain can break the read, which environment factor changes the world, which matchup edges are uncertain, and what live signal would confirm or invalidate the pregame read.
 
 ---
 
@@ -228,7 +288,7 @@ V16 must reconstruct the pipeline around:
 Player Living State
 Team Living State
 Environment State
-Matchup Collision
+Matchup Collision Graph
 Event Chain Potential
 World Line Simulation
 Keyboard Coach Translation
@@ -241,6 +301,9 @@ Acceptance:
 - Player states must exist before team state.
 - Team state must be generated from player states plus team context.
 - Environment must be part of the world line, not a footnote.
+- Matchups must be represented as a graph, not a single key matchup.
+- Every matchup graph edge must carry a certainty label.
+- Uncertain matchup edges must not be treated as confirmed collisions.
 - International / playoff / championship games must use special-world logic.
 - Miracle and collapse must mean repeated-event chains.
 - Advanced/B2B data must map into the doctrine, not random feature slots.
