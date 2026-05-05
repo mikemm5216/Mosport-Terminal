@@ -1,0 +1,92 @@
+name: V16 World Engine Doctrine Backtest
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - scripts/backtest/**
+      - types/**
+      - docs/MOSPORT_CONSTITUTION.md
+      - docs/MOSPORT_WORLD_ENGINE_DOCTRINE.md
+      - package.json
+      - package-lock.json
+      - .github/workflows/v16-world-engine-doctrine-backtest.yml
+
+jobs:
+  v16-world-engine-doctrine-backtest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Generate real 2020-2024 training corpus and 2025 test corpus
+        run: |
+          npm run corpus:generate-real-train-test -- \
+            --train-start-year=2020 \
+            --train-end-year=2024 \
+            --test-year=2025 \
+            --min-train-records=9500 \
+            --train-output=data/historical/mosport_2020_2024_train.jsonl \
+            --test-output=data/historical/mosport_2025_test.jsonl
+
+      - name: Verify real corpus files exist
+        run: |
+          test -f data/historical/mosport_2020_2024_train.jsonl
+          test -f data/historical/mosport_2025_test.jsonl
+          train_lines=$(wc -l < data/historical/mosport_2020_2024_train.jsonl)
+          test_lines=$(wc -l < data/historical/mosport_2025_test.jsonl)
+          echo "mosport_2020_2024_train.jsonl line count: $train_lines"
+          echo "mosport_2025_test.jsonl line count: $test_lines"
+          if [ "$train_lines" -lt 9500 ]; then
+            echo "ERROR: 2020-2024 real training corpus has fewer than expected. Refusing fake V16 run."
+            exit 1
+          fi
+          if [ "$test_lines" -lt 1 ]; then
+            echo "ERROR: 2025 test corpus is empty."
+            exit 1
+          fi
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Validate 2020-2024 training corpus
+        run: npm run corpus:validate -- --input=data/historical/mosport_2020_2024_train.jsonl --output=data/backtest-artifacts
+
+      - name: Validate 2025 test corpus
+        run: npm run corpus:validate -- --input=data/historical/mosport_2025_test.jsonl --output=data/backtest-artifacts
+
+      - name: Run V16 World Engine doctrine backtest
+        run: |
+          npm run backtest:v16-world-engine -- \
+            --train=data/historical/mosport_2020_2024_train.jsonl \
+            --test=data/historical/mosport_2025_test.jsonl \
+            --output=data/backtest-artifacts
+
+      - name: Upload V16 World Engine doctrine artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v16-world-engine-doctrine-backtest-artifacts
+          path: |
+            data/backtest-artifacts
+            data/historical/mosport_2020_2024_train.jsonl
+            data/historical/mosport_2025_test.jsonl
+          if-no-files-found: warn
