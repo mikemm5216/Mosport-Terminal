@@ -55,7 +55,7 @@ function parseArgs() {
     trainStartYear: Number(args.find((a) => a.startsWith("--train-start-year="))?.split("=")[1] || 2020),
     trainEndYear: Number(args.find((a) => a.startsWith("--train-end-year="))?.split("=")[1] || 2024),
     testYear: Number(args.find((a) => a.startsWith("--test-year="))?.split("=")[1] || 2025),
-    targetTrainRecords: Number(args.find((a) => a.startsWith("--target-train-records="))?.split("=")[1] || 9500),
+    minTrainRecords: Number(args.find((a) => a.startsWith("--min-train-records="))?.split("=")[1] || 9500),
     trainOutput: args.find((a) => a.startsWith("--train-output="))?.split("=")[1] || DEFAULT_TRAIN_OUTPUT,
     testOutput: args.find((a) => a.startsWith("--test-output="))?.split("=")[1] || DEFAULT_TEST_OUTPUT,
   };
@@ -236,7 +236,11 @@ function buildPregameFeatures(game: RawGame, homeState: TeamRollingState | undef
   return base;
 }
 
-function toRecord(game: RawGame, states: Map<string, TeamRollingState>, split: "TRAIN_2020_2024" | "TEST_2025") {
+function splitLabel(trainStartYear: number, trainEndYear: number, testYear: number, split: "train" | "test") {
+  return split === "train" ? `TRAIN_${trainStartYear}_${trainEndYear}` : `TEST_${testYear}`;
+}
+
+function toRecord(game: RawGame, states: Map<string, TeamRollingState>, split: string) {
   return {
     matchId: game.matchId,
     league: game.league,
@@ -395,18 +399,17 @@ async function main() {
     const startTimeMs = new Date(game.startTime).getTime();
 
     if (year >= args.trainStartYear && year <= args.trainEndYear) {
-      trainRecords.push(toRecord(game, states, "TRAIN_2020_2024"));
+      trainRecords.push(toRecord(game, states, splitLabel(args.trainStartYear, args.trainEndYear, args.testYear, "train")));
     } else if (year === args.testYear) {
-      testRecords.push(toRecord(game, states, "TEST_2025"));
+      testRecords.push(toRecord(game, states, splitLabel(args.trainStartYear, args.trainEndYear, args.testYear, "test")));
     }
 
     updateState(states, game.homeTeamId, game.homeScore, game.awayScore, game.winnerTeamId === game.homeTeamId, startTimeMs);
     updateState(states, game.awayTeamId, game.awayScore, game.homeScore, game.winnerTeamId === game.awayTeamId, startTimeMs);
   }
 
-  const selectedTrain = trainRecords.slice(-args.targetTrainRecords);
-  if (selectedTrain.length < args.targetTrainRecords) {
-    console.error(`ERROR: only generated ${selectedTrain.length} real 2020-2024 training records; target is ${args.targetTrainRecords}. Refusing to create a fake 9500 corpus.`);
+  if (trainRecords.length < args.minTrainRecords) {
+    console.error(`ERROR: only generated ${trainRecords.length} real ${args.trainStartYear}-${args.trainEndYear} training records; minimum expected is ${args.minTrainRecords}. This means the real data collection is incomplete. Refusing to proceed.`);
     process.exit(1);
   }
 
@@ -415,12 +418,12 @@ async function main() {
     process.exit(1);
   }
 
-  writeJsonl(args.trainOutput, selectedTrain);
+  writeJsonl(args.trainOutput, trainRecords);
   writeJsonl(args.testOutput, testRecords);
 
-  console.log(`Wrote train corpus: ${args.trainOutput} (${selectedTrain.length} records)`);
-  console.log(`Train by league: ${JSON.stringify(summarize(selectedTrain))}`);
-  console.log(`Wrote test corpus: ${args.testOutput} (${testRecords.length} records)`);
+  console.log(`Wrote full train corpus: ${args.trainOutput} (${trainRecords.length} records)`);
+  console.log(`Train by league: ${JSON.stringify(summarize(trainRecords))}`);
+  console.log(`Wrote full test corpus: ${args.testOutput} (${testRecords.length} records)`);
   console.log(`Test by league: ${JSON.stringify(summarize(testRecords))}`);
 }
 
