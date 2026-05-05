@@ -679,3 +679,17 @@ World Engine + Locked Pregame Coach Reads + Fan Judgment Data + Keyboard Coach R
 Final product line:
 
 > 賽前當教練，賽中看打臉，賽後論輸贏。
+
+---
+
+## 20. Model Claim Trust Rule
+
+Any claim about model performance, accuracy, game count, backtest size, ROI, edge, upset detection, calibration, or historical result count is forbidden unless backed by a reproducible artifact.
+
+Unsupported claims must be labeled as:
+- target
+- planned corpus
+- backtest pending
+- unverified
+
+Never present unsupported numbers as validated Mosport engine performance.
