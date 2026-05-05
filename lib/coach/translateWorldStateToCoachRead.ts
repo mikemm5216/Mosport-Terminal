@@ -11,7 +11,7 @@ export function translateWorldStateToCoachRead(
   // This logic translates the World Engine's quantitative data into the qualitative Coach Read
   
   const coachQuestion = "How should the rotation be adjusted to handle the opponent's momentum?";
-  const coachDecision: CoachDecisionType = worldState.momentum > 60 ? "ROTATION_COMPRESSION" : "KEEP_LINEUP";
+  const coachDecision: CoachDecisionType = worldState.momentum > 60 ? "ROTATION_COMPRESSION" : "TRUST_BENCH";
   
   return {
     matchId: match.id,
