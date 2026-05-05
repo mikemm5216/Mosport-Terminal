@@ -15,6 +15,28 @@ import type {
 } from "../../types/worldEngineDoctrine";
 
 type Side = "HOME" | "AWAY" | "BOTH";
+type Lean = "HOME" | "AWAY" | "NO_LEAN";
+
+type CoverageBreakdown = {
+  doctrineFlowCoverage: number;
+  dataDepthCompleteness: number;
+  worldEngineReadiness: number;
+  doctrineFlowBreakdown: Record<string, number>;
+  dataDepthBreakdown: Record<string, number>;
+};
+
+type L1AvailabilityContext = {
+  sourceLevel: "MISSING" | "TEAM_PROXY" | "ROLE_PROXY" | "PLAYER_FEED";
+  homeAvailabilitySignal: string;
+  awayAvailabilitySignal: string;
+  validatedStartersAttached: boolean;
+  validatedLineupsAttached: boolean;
+  injuryFeedAttached: boolean;
+  roleValidationAttached: boolean;
+  leagueSpecificHook: string;
+  leagueSpecificHookAttached: boolean;
+  missingInputs: string[];
+};
 
 type V16PredictionRow = {
   matchId: string;
@@ -22,13 +44,19 @@ type V16PredictionRow = {
   startTime: string;
   homeTeamName?: string;
   awayTeamName?: string;
-  normalLean: "HOME" | "AWAY" | "NO_LEAN";
+  normalLean: Lean;
   predictedWinnerTeamId: string;
   actualWinnerTeamId: string;
   hit: boolean;
   confidenceProxy: number;
   doctrineCompleteness: number;
+  doctrineFlowCoverage: number;
+  dataDepthCompleteness: number;
+  worldEngineReadiness: number;
   completenessBreakdown: Record<string, number>;
+  doctrineFlowBreakdown: Record<string, number>;
+  dataDepthBreakdown: Record<string, number>;
+  availabilityContext: L1AvailabilityContext;
   missingAdvancedInputs: string[];
   keyMatchup: string;
   miracleEntry?: string;
@@ -59,6 +87,14 @@ function avg(values: number[], fallback = 0): number {
   return values.length === 0 ? fallback : values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function sum(values: Record<string, number>): number {
+  return Object.values(values).reduce((total, value) => total + value, 0);
+}
+
+function pct(value: number): string {
+  return `${(value * 100).toFixed(2)}%`;
+}
+
 function leagueBaselineMargin(train: HistoricalGameRecord[]): Record<string, number> {
   const buckets: Record<string, number[]> = {};
   for (const game of train) {
@@ -81,6 +117,19 @@ function contextNumber(game: HistoricalGameRecord, side: "home" | "away", key: s
   return Number.isFinite(value) ? value : fallback;
 }
 
+function featureHas(game: HistoricalGameRecord, keys: string[]): boolean {
+  let value: any = getFeatureAny(game);
+  for (const key of keys) {
+    if (!value || typeof value !== "object" || !(key in value)) return false;
+    value = value[key];
+  }
+  return value !== undefined && value !== null;
+}
+
+function leagueKey(game: HistoricalGameRecord): string {
+  return String(game.league).toLowerCase();
+}
+
 function detectSpecialWorld(game: HistoricalGameRecord): SpecialWorldType[] {
   const month = new Date(game.startTime).getUTCMonth() + 1;
   const types: SpecialWorldType[] = ["REGULAR_SEASON"];
@@ -90,6 +139,51 @@ function detectSpecialWorld(game: HistoricalGameRecord): SpecialWorldType[] {
   if (game.league === "NFL" && (month === 1 || month === 2)) types.push("PLAYOFF");
   if (game.league === "EPL" && month === 5) types.push("FINAL");
   return [...new Set(types)];
+}
+
+function leagueSpecificAvailabilityHook(league: string): string {
+  if (league === "MLB") return "starting pitcher + bullpen usage + catcher/lineup order";
+  if (league === "NHL") return "confirmed goalie + line combinations + defensive pairings";
+  if (league === "NBA") return "injury report + starters + minutes restriction + rotation";
+  if (league === "NFL") return "starting QB + OL availability + inactive list";
+  if (league === "EPL") return "starting XI + formation + substitution load";
+  return "league-specific starters and availability";
+}
+
+function buildAvailabilityContext(game: HistoricalGameRecord): L1AvailabilityContext {
+  const features = getFeatureAny(game);
+  const hasPlayerFeed = Boolean(features.playerAvailability || features.players || features.rosters);
+  const hasLineups = Boolean(features.lineups || features.startingLineups || features.starters);
+  const hasInjuries = Boolean(features.injuries || features.injuryReport);
+  const hasRoleValidation = Boolean(features.roleValidation || features.validatedRoles);
+  const leagueSpecificKeys: Record<string, string[]> = {
+    MLB: ["startingPitcher", "probablePitchers", "bullpen"],
+    NHL: ["goalie", "confirmedGoalie", "lineCombinations"],
+    NBA: ["injuries", "minutes", "starters"],
+    NFL: ["qb", "quarterback", "offensiveLine", "inactive"],
+    EPL: ["startingXI", "formation", "lineups"],
+  };
+  const specificKeys = leagueSpecificKeys[game.league] || [];
+  const leagueSpecificHookAttached = specificKeys.some((key) => Boolean(features[key] || features[leagueKey(game)]?.[key]));
+  const sourceLevel: L1AvailabilityContext["sourceLevel"] = hasPlayerFeed ? "PLAYER_FEED" : hasLineups ? "ROLE_PROXY" : "TEAM_PROXY";
+  const missingInputs: string[] = [];
+  if (!hasPlayerFeed) missingInputs.push("real player-level availability feed");
+  if (!hasLineups) missingInputs.push("lineup/starters feed with role validation");
+  if (!hasInjuries) missingInputs.push("injury/minutes/inactive feed");
+  if (!hasRoleValidation) missingInputs.push("role validation feed");
+  if (!leagueSpecificHookAttached) missingInputs.push(`${game.league} ${leagueSpecificAvailabilityHook(game.league)} feed`);
+  return {
+    sourceLevel,
+    homeAvailabilitySignal: hasPlayerFeed ? "player availability feed attached" : "team-level proxy only; do not name player state",
+    awayAvailabilitySignal: hasPlayerFeed ? "player availability feed attached" : "team-level proxy only; do not name player state",
+    validatedStartersAttached: hasLineups,
+    validatedLineupsAttached: hasLineups,
+    injuryFeedAttached: hasInjuries,
+    roleValidationAttached: hasRoleValidation,
+    leagueSpecificHook: leagueSpecificAvailabilityHook(game.league),
+    leagueSpecificHookAttached,
+    missingInputs,
+  };
 }
 
 function sportPositiveSequence(league: string): string[] {
@@ -124,6 +218,7 @@ function buildPlayerPlaceholder(game: HistoricalGameRecord, side: "home" | "away
   const teamId = side === "home" ? game.homeTeamId : game.awayTeamId;
   const recentForm = contextNumber(game, side, "recentFormScore", 0.5);
   const restDays = contextNumber(game, side, "restDays", 3);
+  const availability = buildAvailabilityContext(game);
   const specialWorldPressure = detectSpecialWorld(game);
   const fatigueLevel = restDays <= 1 ? "HIGH" : restDays <= 2 ? "MEDIUM" : "LOW";
   return {
@@ -132,17 +227,21 @@ function buildPlayerPlaceholder(game: HistoricalGameRecord, side: "home" | "away
     biologicalState: {
       fatigueLevel,
       restSignal: `${restDays} rest days from L1 public corpus`,
-      workloadSignal: "L1 role placeholder; player workload feed not attached yet",
-      advancedBodySignals: {},
+      workloadSignal: availability.validatedStartersAttached ? "lineup/starter feed attached" : "team-level role placeholder; player workload feed not attached yet",
+      advancedBodySignals: {
+        availabilitySource: availability.sourceLevel,
+        validatedStartersAttached: availability.validatedStartersAttached,
+        injuryFeedAttached: availability.injuryFeedAttached,
+      },
     },
     psychologicalState: {
       confidenceSignal: recentForm >= 0.6 ? "team context supports confidence" : recentForm <= 0.4 ? "team context suggests pressure" : "neutral confidence signal",
       pressureSignal: specialWorldPressure.length > 1 ? "special-world pressure detected" : "regular-season pressure proxy only",
-      roleStability: "UNKNOWN",
+      roleStability: availability.roleValidationAttached ? "STABLE" : "UNKNOWN",
       specialWorldPressure,
     },
     eventStreakMemory: [],
-    dailyIdentity: `${role}: placeholder identity from L1 corpus; real player feed required before naming player-specific state`,
+    dailyIdentity: `${role}: ${availability.sourceLevel} identity; real player-specific claims require validated player feed`,
   };
 }
 
@@ -158,7 +257,7 @@ function buildEventChains(game: HistoricalGameRecord): EventChainPotential[] {
   chains.push({
     direction: "MIRACLE",
     label: `${game.league} L1 positive event-chain entry`,
-    trigger: Math.abs(formGap) > 0.08 ? "recent-form gap from real historical team context" : "balanced form; first live repeated event decides chain", 
+    trigger: Math.abs(formGap) > 0.08 ? "recent-form gap from real historical team context" : "balanced form; first live repeated event decides chain",
     sequence: sportPositiveSequence(game.league),
     triggeringSide: positiveSide,
     vulnerableSide,
@@ -190,14 +289,15 @@ function buildTeamLivingState(game: HistoricalGameRecord, side: "home" | "away",
   const rosterStability = contextNumber(game, side, "rosterStability", 0.65);
   const specialWorldPressure = detectSpecialWorld(game);
   const sideTag: Side = side === "home" ? "HOME" : "AWAY";
+  const availability = buildAvailabilityContext(game);
   return {
     teamId,
     teamName,
     biologicalState: {
       scheduleFatigue: restDays <= 1 ? "high short-rest risk" : restDays <= 2 ? "medium rest pressure" : "normal public rest proxy",
       travelLoad: travelFatigue >= 0.6 ? "travel fatigue amplified" : "travel fatigue not dominant in L1 corpus",
-      rotationStress: rosterStability < 0.6 ? "possible rotation instability from L1 proxy" : "rotation stable by L1 proxy; player feed pending",
-      depthStress: "bench/depth details require lineup attachment in full V16",
+      rotationStress: availability.validatedLineupsAttached ? "lineup/starter feed attached" : rosterStability < 0.6 ? "possible rotation instability from L1 proxy" : "rotation stable by L1 proxy; player feed pending",
+      depthStress: availability.validatedLineupsAttached ? "depth can be derived from lineup feed" : "bench/depth details require lineup attachment in full V16",
     },
     psychologicalState: {
       urgency: specialWorldPressure.length > 1 ? "special-world urgency must be reweighted" : "regular-season urgency proxy only",
@@ -208,10 +308,10 @@ function buildTeamLivingState(game: HistoricalGameRecord, side: "home" | "away",
     playerStates: [
       buildPlayerPlaceholder(game, side, "Primary Creator / Core Player"),
       buildPlayerPlaceholder(game, side, "Defensive Anchor / Key Stopper"),
-      buildPlayerPlaceholder(game, side, "Pressure Valve / Stabilizer"),
+      buildPlayerPlaceholder(game, side, availability.leagueSpecificHook),
     ],
     eventStreakMemory: chains.filter((chain) => chain.triggeringSide === sideTag || chain.vulnerableSide === sideTag || chain.triggeringSide === "BOTH" || chain.vulnerableSide === "BOTH"),
-    dailyIdentity: `${teamName}: ${recentForm >= 0.6 ? "rising" : recentForm <= 0.4 ? "fragile" : "balanced"} L1 identity; rest=${restDays}, rosterStability=${rosterStability.toFixed(2)}`,
+    dailyIdentity: `${teamName}: ${recentForm >= 0.6 ? "rising" : recentForm <= 0.4 ? "fragile" : "balanced"} L1 identity; availability=${availability.sourceLevel}; hook=${availability.leagueSpecificHook}`,
   };
 }
 
@@ -221,30 +321,31 @@ function buildEnvironment(game: HistoricalGameRecord): EnvironmentState {
   return {
     specialWorldTypes,
     venue: game.homeTeamName ? `${game.homeTeamName} home context` : "home venue context",
-    physicalEnvironment: { publicVenueKnown: Boolean(game.homeTeamName), advancedWeatherAttached: false },
-    refereeOrUmpireEnvironment: { attached: false },
+    physicalEnvironment: { publicVenueKnown: Boolean(game.homeTeamName), advancedWeatherAttached: featureHas(game, ["weather"]) },
+    refereeOrUmpireEnvironment: { attached: featureHas(game, ["officials"]) || featureHas(game, ["umpire"]) },
     scheduleContext: isSpecial ? "special-world date/league heuristic detected" : "regular-season public schedule context",
     crowdContext: isSpecial ? "crowd and pressure reweighted for special world" : "standard home/away crowd proxy",
-    marketNarrativeContext: "not attached in V16.1 L1 baseline",
+    marketNarrativeContext: "not attached in V16.4 L1 data-depth baseline",
     worldLineAmplifiers: isSpecial ? [...leagueEnvironmentAmplifiers(game), "special-world pressure", "shorter tolerance for mistakes"] : leagueEnvironmentAmplifiers(game),
-    worldLineSuppressors: ["L2/L3 weather/referee/market feeds not attached"],
+    worldLineSuppressors: ["L2/L3 weather/referee/market feeds not fully attached"],
   };
 }
 
 function buildCollision(game: HistoricalGameRecord): MatchupCollision {
   const homeForm = contextNumber(game, "home", "recentFormScore", 0.5);
   const awayForm = contextNumber(game, "away", "recentFormScore", 0.5);
+  const availability = buildAvailabilityContext(game);
   const favoredSide: "HOME" | "AWAY" | "EVEN" = homeForm > awayForm + 0.05 ? "HOME" : awayForm > homeForm + 0.05 ? "AWAY" : "EVEN";
   const attackerSide = favoredSide === "AWAY" ? "AWAY" : "HOME";
   const defenderSide = attackerSide === "HOME" ? "AWAY" : "HOME";
   return {
     playerMatchups: [
       {
-        label: `${game.league} primary role matchup placeholder`,
+        label: `${game.league} ${availability.leagueSpecificHook} matchup hook`,
         attackerSide,
         defenderSide,
-        repeatedTargetRisk: "real player-on-player tracking pending; L1 role matchup only",
-        worldLineEffect: "Identifies where V16 must attach real player matchup data before public player-specific claims",
+        repeatedTargetRisk: availability.leagueSpecificHookAttached ? "league-specific hook attached" : "real player-on-player tracking pending; L1 role matchup only",
+        worldLineEffect: availability.leagueSpecificHookAttached ? "league-specific starter/role hook can influence collision layer" : "identifies where V16 must attach real player matchup data before public player-specific claims",
       },
     ],
     teamMatchups: [
@@ -295,11 +396,12 @@ function buildWorldLines(game: HistoricalGameRecord, chains: EventChainPotential
   ];
 }
 
-function calculateCompleteness(game: HistoricalGameRecord, read: MosportReadV16): { score: number; breakdown: Record<string, number> } {
+function calculateCoverage(game: HistoricalGameRecord, read: MosportReadV16, availability: L1AvailabilityContext): CoverageBreakdown {
   const feature = getFeatureAny(game);
   const homeContext = getTeamContext(game, "home");
   const awayContext = getTeamContext(game, "away");
-  const breakdown: Record<string, number> = {
+
+  const doctrineFlowBreakdown: Record<string, number> = {
     historicalMemory: game.matchId && game.homeTeamId && game.awayTeamId && game.finalResult ? 0.12 : 0,
     teamLivingState: homeContext && awayContext && Object.keys(homeContext).length > 0 && Object.keys(awayContext).length > 0 ? 0.16 : 0.08,
     playerLivingStateL1: 0.08,
@@ -307,9 +409,32 @@ function calculateCompleteness(game: HistoricalGameRecord, read: MosportReadV16)
     matchupCollisionL1: read.keyMatchup ? 0.12 : 0,
     eventChainPotentialL1: read.miracleEntry || read.collapseEntry ? 0.14 : 0.07,
     worldLineSimulation: read.worldLines.length >= 3 ? 0.14 : 0.05,
-    sportSpecificExtractor: feature?.[String(game.league).toLowerCase()] ? 0.08 : 0.04,
+    sportSpecificExtractor: feature?.[leagueKey(game)] ? 0.08 : 0.04,
   };
-  return { score: clamp01(Object.values(breakdown).reduce((sum, value) => sum + value, 0)), breakdown };
+
+  const dataDepthBreakdown: Record<string, number> = {
+    teamHistoryDepth: homeContext && awayContext && Object.keys(homeContext).length > 0 && Object.keys(awayContext).length > 0 ? 0.14 : 0.04,
+    playerAvailabilityDepth: availability.sourceLevel === "PLAYER_FEED" ? 0.14 : availability.sourceLevel === "ROLE_PROXY" ? 0.07 : 0.03,
+    lineupStarterDepth: availability.validatedStartersAttached ? 0.12 : 0.02,
+    injuryMinutesInactiveDepth: availability.injuryFeedAttached ? 0.12 : 0.02,
+    playerMatchupTrackingDepth: featureHas(game, ["matchups"]) || featureHas(game, ["playerMatchups"]) ? 0.12 : 0.02,
+    environmentAdvancedDepth: featureHas(game, ["weather"]) || featureHas(game, ["venue"]) ? 0.10 : 0.03,
+    refereeUmpireDepth: featureHas(game, ["officials"]) || featureHas(game, ["umpire"]) ? 0.08 : 0.01,
+    sportSpecificL2Depth: availability.leagueSpecificHookAttached ? 0.16 : feature?.[leagueKey(game)] ? 0.06 : 0.02,
+    eventLogDepth: featureHas(game, ["eventLog"]) || featureHas(game, ["plays"]) ? 0.12 : 0.03,
+  };
+
+  const doctrineFlowCoverage = clamp01(sum(doctrineFlowBreakdown));
+  const dataDepthCompleteness = clamp01(sum(dataDepthBreakdown));
+  const worldEngineReadiness = clamp01(doctrineFlowCoverage * 0.55 + dataDepthCompleteness * 0.45);
+
+  return {
+    doctrineFlowCoverage,
+    dataDepthCompleteness,
+    worldEngineReadiness,
+    doctrineFlowBreakdown,
+    dataDepthBreakdown,
+  };
 }
 
 function createRead(game: HistoricalGameRecord, baselineMargin: number): MosportReadV16 {
@@ -318,13 +443,14 @@ function createRead(game: HistoricalGameRecord, baselineMargin: number): Mosport
   buildTeamLivingState(game, "away", chains);
   const environment = buildEnvironment(game);
   const collision = buildCollision(game);
+  const availability = buildAvailabilityContext(game);
   const worldLines = buildWorldLines(game, chains, environment);
   const homeForm = contextNumber(game, "home", "recentFormScore", 0.5);
   const awayForm = contextNumber(game, "away", "recentFormScore", 0.5);
   const homeRest = contextNumber(game, "home", "restDays", 3);
   const awayRest = contextNumber(game, "away", "restDays", 3);
   const homeEdge = (homeForm - awayForm) * 0.75 + ((homeRest - awayRest) / 7) * 0.15 + baselineMargin / 120;
-  const normalLean = Math.abs(homeEdge) < 0.035 ? "NO_LEAN" : homeEdge > 0 ? "HOME" : "AWAY";
+  const normalLean: Lean = Math.abs(homeEdge) < 0.035 ? "NO_LEAN" : homeEdge > 0 ? "HOME" : "AWAY";
   const homeName = game.homeTeamName || game.homeTeamId;
   const awayName = game.awayTeamName || game.awayTeamId;
   const leanName = normalLean === "HOME" ? homeName : normalLean === "AWAY" ? awayName : "no side";
@@ -335,10 +461,10 @@ function createRead(game: HistoricalGameRecord, baselineMargin: number): Mosport
     doctrineVersion: "MOSPORT_WORLD_ENGINE_DOCTRINE_V1",
     normalLean,
     keyboardCoachSummary: normalLean === "NO_LEAN"
-      ? `${awayName} @ ${homeName}: V16.1 sees a balanced normal world line; the first repeated-event chain matters more than the pregame lean.`
-      : `${awayName} @ ${homeName}: V16.1 leans ${leanName} through L1 team identity, event-chain, and environment context; this is not a final player-tracking read.`,
+      ? `${awayName} @ ${homeName}: V16.4 sees a balanced L1 world line; ${availability.leagueSpecificHook} still needs deeper data before a player-specific read.`
+      : `${awayName} @ ${homeName}: V16.4 leans ${leanName} through L1 team identity, event-chain, environment, and ${availability.leagueSpecificHook} hook; this is not a final player-tracking read.`,
     worldLines,
-    keyMatchup: collision.teamMatchups[0]?.label || "Team collision pending",
+    keyMatchup: collision.playerMatchups[0]?.label || collision.teamMatchups[0]?.label || "Collision pending",
     miracleEntry: chains.find((chain) => chain.direction === "MIRACLE")?.worldLineEffect,
     collapseEntry: chains.find((chain) => chain.direction === "COLLAPSE")?.worldLineEffect,
     environmentRead: `${environment.specialWorldTypes.join("+")} context; ${environment.worldLineAmplifiers.join("; ")}`,
@@ -350,15 +476,15 @@ function createRead(game: HistoricalGameRecord, baselineMargin: number): Mosport
 function scoreRead(game: HistoricalGameRecord, read: MosportReadV16): V16PredictionRow {
   const predictedWinnerTeamId = read.normalLean === "HOME" ? game.homeTeamId : read.normalLean === "AWAY" ? game.awayTeamId : game.homeTeamId;
   const hit = predictedWinnerTeamId === game.finalResult.winnerTeamId;
-  const completeness = calculateCompleteness(game, read);
-  const missingAdvancedInputs = [
-    "real player-level availability feed",
+  const availabilityContext = buildAvailabilityContext(game);
+  const coverage = calculateCoverage(game, read, availabilityContext);
+  const missingAdvancedInputs = Array.from(new Set([
+    ...availabilityContext.missingInputs,
     "real player matchup tracking",
     "referee/umpire tendency feed",
     "weather/venue advanced feed where applicable",
     "sport-specific L2/L3 event logs",
-    "lineup/starters feed with role validation",
-  ];
+  ]));
   return {
     matchId: game.matchId,
     league: game.league,
@@ -369,9 +495,15 @@ function scoreRead(game: HistoricalGameRecord, read: MosportReadV16): V16Predict
     predictedWinnerTeamId,
     actualWinnerTeamId: game.finalResult.winnerTeamId,
     hit,
-    confidenceProxy: read.normalLean === "NO_LEAN" ? 0.5 : 0.58 + (completeness.score - 0.5) * 0.1,
-    doctrineCompleteness: completeness.score,
-    completenessBreakdown: completeness.breakdown,
+    confidenceProxy: read.normalLean === "NO_LEAN" ? 0.5 : 0.56 + coverage.worldEngineReadiness * 0.08,
+    doctrineCompleteness: coverage.worldEngineReadiness,
+    doctrineFlowCoverage: coverage.doctrineFlowCoverage,
+    dataDepthCompleteness: coverage.dataDepthCompleteness,
+    worldEngineReadiness: coverage.worldEngineReadiness,
+    completenessBreakdown: coverage.doctrineFlowBreakdown,
+    doctrineFlowBreakdown: coverage.doctrineFlowBreakdown,
+    dataDepthBreakdown: coverage.dataDepthBreakdown,
+    availabilityContext,
     missingAdvancedInputs,
     keyMatchup: read.keyMatchup,
     miracleEntry: read.miracleEntry,
@@ -383,37 +515,45 @@ function scoreRead(game: HistoricalGameRecord, read: MosportReadV16): V16Predict
 
 function summarize(rows: V16PredictionRow[]) {
   const hits = rows.filter((row) => row.hit).length;
-  const byLeague: Record<string, { games: number; hits: number; accuracy: number; doctrineCompleteness: number }> = {};
+  const byLeague: Record<string, { games: number; hits: number; accuracy: number; doctrineFlowCoverage: number; dataDepthCompleteness: number; worldEngineReadiness: number }> = {};
   for (const row of rows) {
-    byLeague[row.league] ||= { games: 0, hits: 0, accuracy: 0, doctrineCompleteness: 0 };
+    byLeague[row.league] ||= { games: 0, hits: 0, accuracy: 0, doctrineFlowCoverage: 0, dataDepthCompleteness: 0, worldEngineReadiness: 0 };
     byLeague[row.league].games += 1;
     byLeague[row.league].hits += row.hit ? 1 : 0;
-    byLeague[row.league].doctrineCompleteness += row.doctrineCompleteness;
+    byLeague[row.league].doctrineFlowCoverage += row.doctrineFlowCoverage;
+    byLeague[row.league].dataDepthCompleteness += row.dataDepthCompleteness;
+    byLeague[row.league].worldEngineReadiness += row.worldEngineReadiness;
   }
   for (const league of Object.keys(byLeague)) {
     byLeague[league].accuracy = byLeague[league].hits / byLeague[league].games;
-    byLeague[league].doctrineCompleteness = byLeague[league].doctrineCompleteness / byLeague[league].games;
+    byLeague[league].doctrineFlowCoverage = byLeague[league].doctrineFlowCoverage / byLeague[league].games;
+    byLeague[league].dataDepthCompleteness = byLeague[league].dataDepthCompleteness / byLeague[league].games;
+    byLeague[league].worldEngineReadiness = byLeague[league].worldEngineReadiness / byLeague[league].games;
   }
   return {
     games: rows.length,
     hits,
     misses: rows.length - hits,
     accuracy: rows.length ? hits / rows.length : 0,
-    averageDoctrineCompleteness: avg(rows.map((row) => row.doctrineCompleteness), 0),
+    averageDoctrineCompleteness: avg(rows.map((row) => row.worldEngineReadiness), 0),
+    averageDoctrineFlowCoverage: avg(rows.map((row) => row.doctrineFlowCoverage), 0),
+    averageDataDepthCompleteness: avg(rows.map((row) => row.dataDepthCompleteness), 0),
+    averageWorldEngineReadiness: avg(rows.map((row) => row.worldEngineReadiness), 0),
     byLeague,
   };
 }
 
 function toMarkdown(report: any): string {
-  const pct = (value: number) => `${(value * 100).toFixed(2)}%`;
   const lines: string[] = [];
-  lines.push("# Mosport V16.1 L1 World Engine Doctrine Backtest");
+  lines.push("# Mosport V16.4 L1 Data Depth World Engine Backtest");
   lines.push("");
   lines.push("## Method");
   lines.push("- Train/calibration: real completed 2020-2024 games.");
   lines.push("- Test: real completed 2025 games.");
-  lines.push("- V16.1 uses L1 public corpus to strengthen Team Living State, Environment, Matchup Collision, Event Chains, and World Lines.");
-  lines.push("- This is not the final player-tracking/B2B engine. Missing L2/L3 inputs are reported explicitly.");
+  lines.push("- V16.2 splits doctrine flow coverage from data depth completeness.");
+  lines.push("- V16.3 adds L1 availability / lineup / starter attachment points without inventing missing data.");
+  lines.push("- V16.4 adds league-specific starter/role hooks: MLB starting pitcher, NHL goalie, NBA injury/minutes/rotation, NFL QB/OL, EPL starting XI.");
+  lines.push("- Missing L2/L3 and B2B inputs are reported explicitly.");
   lines.push("");
   lines.push("## Overall");
   lines.push(`- Train records: ${report.trainRecords}`);
@@ -421,15 +561,17 @@ function toMarkdown(report: any): string {
   lines.push(`- Accuracy: ${pct(report.summary.accuracy)}`);
   lines.push(`- Hits: ${report.summary.hits}`);
   lines.push(`- Misses: ${report.summary.misses}`);
-  lines.push(`- Average doctrine completeness: ${pct(report.summary.averageDoctrineCompleteness)}`);
+  lines.push(`- Doctrine flow coverage: ${pct(report.summary.averageDoctrineFlowCoverage)}`);
+  lines.push(`- Data depth completeness: ${pct(report.summary.averageDataDepthCompleteness)}`);
+  lines.push(`- World engine readiness: ${pct(report.summary.averageWorldEngineReadiness)}`);
   lines.push("");
   lines.push("## By League");
   for (const [league, item] of Object.entries(report.summary.byLeague) as any) {
-    lines.push(`- **${league}:** ${item.games} games, ${pct(item.accuracy)} accuracy, ${pct(item.doctrineCompleteness)} doctrine completeness`);
+    lines.push(`- **${league}:** ${item.games} games, ${pct(item.accuracy)} accuracy, ${pct(item.doctrineFlowCoverage)} flow coverage, ${pct(item.dataDepthCompleteness)} data depth, ${pct(item.worldEngineReadiness)} readiness`);
   }
   lines.push("");
-  lines.push("## V16.1 Boundary");
-  lines.push("This report upgrades the V16 doctrine baseline with L1 completeness scoring and sport-specific repeated-event chain templates. It still does not invent unavailable player-level, tracking, weather, referee, or B2B feeds.");
+  lines.push("## V16.2-V16.4 Boundary");
+  lines.push("This report intentionally separates whether Mosport followed the constitutional analysis flow from whether Mosport has enough player-level, lineup, environment, referee, and sport-specific L2/L3 data. It does not invent missing feeds.");
   lines.push("");
   lines.push("## Sample Keyboard Coach Reads");
   for (const row of report.sampleReads.slice(0, 10)) {
@@ -447,6 +589,7 @@ async function main() {
   if (!fs.existsSync(args.train)) throw new Error(`Train file not found: ${args.train}`);
   if (!fs.existsSync(args.test)) throw new Error(`Test file not found: ${args.test}`);
   fs.mkdirSync(args.output, { recursive: true });
+
   const train = await loadHistoricalCorpus(args.train);
   const test = await loadHistoricalCorpus(args.test);
   const baselines = leagueBaselineMargin(train);
@@ -457,7 +600,7 @@ async function main() {
   const missingAdvancedInputSummary = Array.from(new Set(rows.flatMap((row) => row.missingAdvancedInputs)));
   const report = {
     createdAt: new Date().toISOString(),
-    engine: "Mosport V16.1 L1 World Engine Doctrine Baseline",
+    engine: "Mosport V16.4 L1 Data Depth World Engine Baseline",
     doctrineVersion: "MOSPORT_WORLD_ENGINE_DOCTRINE_V1",
     trainFile: args.train,
     testFile: args.test,
@@ -470,20 +613,24 @@ async function main() {
     sampleReads: rows.slice(0, 25),
     predictions: rows,
   };
-  const jsonPath = path.join(args.output, `v16_1_l1_world_engine_backtest_${timestamp}.json`);
-  const mdPath = path.join(args.output, `v16_1_l1_world_engine_backtest_${timestamp}.md`);
-  const csvPath = path.join(args.output, `v16_1_l1_world_engine_predictions_${timestamp}.csv`);
+
+  const jsonPath = path.join(args.output, `v16_4_l1_data_depth_world_engine_backtest_${timestamp}.json`);
+  const mdPath = path.join(args.output, `v16_4_l1_data_depth_world_engine_backtest_${timestamp}.md`);
+  const csvPath = path.join(args.output, `v16_4_l1_data_depth_world_engine_predictions_${timestamp}.csv`);
   fs.writeFileSync(jsonPath, JSON.stringify(report, null, 2));
   fs.writeFileSync(mdPath, toMarkdown(report));
   fs.writeFileSync(csvPath, [
-    "matchId,league,startTime,homeTeam,awayTeam,normalLean,actualWinner,hit,confidenceProxy,doctrineCompleteness,keyMatchup,environmentRead",
-    ...rows.map((row) => [row.matchId, row.league, row.startTime, row.homeTeamName, row.awayTeamName, row.normalLean, row.actualWinnerTeamId, row.hit, row.confidenceProxy.toFixed(6), row.doctrineCompleteness.toFixed(6), row.keyMatchup, row.environmentRead].map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(",")),
+    "matchId,league,startTime,homeTeam,awayTeam,normalLean,actualWinner,hit,confidenceProxy,doctrineFlowCoverage,dataDepthCompleteness,worldEngineReadiness,keyMatchup,environmentRead",
+    ...rows.map((row) => [row.matchId, row.league, row.startTime, row.homeTeamName, row.awayTeamName, row.normalLean, row.actualWinnerTeamId, row.hit, row.confidenceProxy.toFixed(6), row.doctrineFlowCoverage.toFixed(6), row.dataDepthCompleteness.toFixed(6), row.worldEngineReadiness.toFixed(6), row.keyMatchup, row.environmentRead].map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(",")),
   ].join("\n") + "\n");
-  console.log("Mosport V16.1 L1 World Engine doctrine baseline complete.");
+
+  console.log("Mosport V16.4 L1 Data Depth World Engine baseline complete.");
   console.log(`Train records: ${train.length}`);
   console.log(`Test records: ${test.length}`);
   console.log(`Accuracy: ${(summary.accuracy * 100).toFixed(2)}%`);
-  console.log(`Average doctrine completeness: ${(summary.averageDoctrineCompleteness * 100).toFixed(2)}%`);
+  console.log(`Doctrine flow coverage: ${(summary.averageDoctrineFlowCoverage * 100).toFixed(2)}%`);
+  console.log(`Data depth completeness: ${(summary.averageDataDepthCompleteness * 100).toFixed(2)}%`);
+  console.log(`World engine readiness: ${(summary.averageWorldEngineReadiness * 100).toFixed(2)}%`);
   console.log(`Report JSON: ${jsonPath}`);
   console.log(`Report Markdown: ${mdPath}`);
   console.log(`Predictions CSV: ${csvPath}`);
