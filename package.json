@@ -18,6 +18,7 @@
     "check:secrets": "tsx scripts/check-no-env-secrets.ts",
     "check:prisma": "tsx scripts/check-prisma-imports.ts",
     "cleanup:engine-demo": "tsx scripts/cleanup/removeUnsupportedEngineData.ts",
+    "corpus:validate": "tsx scripts/backtest/validateHistoricalCorpus.ts",
     "backtest:historical": "tsx scripts/backtest/runHistoricalBacktest.ts"
   },
   "dependencies": {
