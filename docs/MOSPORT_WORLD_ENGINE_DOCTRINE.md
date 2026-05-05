@@ -1,6 +1,6 @@
 # Mosport World Engine Doctrine
 
-Version: v1.1
+Version: v1.2
 Status: Binding Constitutional Doctrine
 Parent Constitution: `docs/MOSPORT_CONSTITUTION.md`
 
@@ -36,12 +36,15 @@ Forbidden:
 - analyzing international games, playoff games, finals, or championship games with ordinary regular-season logic
 - reducing a game to one single key matchup
 - treating uncertain matchup data as confirmed matchup data
+- pre-weighting any sport-specific feed as more important than another edge
+- calling a sport-specific feed a priority, core, or dominant edge before world-line simulation
 
 Chinese:
 
 > 以後 Mosport 跑任何一場比賽，都只能用這套世界引擎邏輯。
 > 不准臨時自創邏輯，不准先有答案再補故事，不准把 team rolling average 包裝成 Mosport 結論。
 > 不准把一場比賽簡化成單一關鍵對位；每個對位都可能改變世界線。
+> 不准預設某個運動專項資料比較重要；所有資料都是對位圖輸入，不是權重。
 
 ---
 
@@ -179,6 +182,18 @@ CONFLICTING
 
 The certainty label belongs to the matchup edge. It is not a separate special-case rule.
 
+All sport-specific feeds are matchup graph inputs, not priority weights. A feed may create or confirm edges, but it must not pre-rank those edges. Every edge enters the graph first; importance emerges only through world-line simulation.
+
+Sport-specific feeds must be expressed as edge sources:
+
+- MLB starting pitcher / bullpen / catcher / lineup order → matchup edge sources
+- NHL goalie / lines / pairings → matchup edge sources
+- NBA injuries / minutes / rotation → matchup edge sources
+- NFL QB / OL / inactive list → matchup edge sources
+- EPL starting XI / formation / substitution load → matchup edge sources
+
+None of the above may be labeled as inherently more important than the others before simulation.
+
 Collision Graph asks:
 
 ```txt
@@ -186,7 +201,7 @@ What are all meaningful collisions in this game?
 Which collision can trigger a miracle chain?
 Which collision can trigger a collapse chain?
 Which collision is uncertain because the matchup edge is not confirmed?
-Which collision becomes more important under this environment?
+Which collision becomes more important only after the world-line simulation amplifies it?
 ```
 
 Forbidden:
@@ -194,6 +209,8 @@ Forbidden:
 ```txt
 single key matchup → game explanation
 uncertain matchup → confirmed collision
+sport-specific feed → priority weight
+position/role/feed type → pre-declared importance
 ```
 
 Allowed:
@@ -207,6 +224,8 @@ Chinese:
 > 不是誰佔比大誰才重要。
 > 每個對位都可能影響世界線；小對位也可能因為連續事件變成破口。
 > 先發不確定，本質上就是對位圖不確定，不需要另外發明一套假先發邏輯。
+> 所有運動專項資料都是對位圖輸入，不是權重。
+> 每個對位先平等進圖，重要性只能在世界線模擬中浮現。
 
 ---
 
@@ -251,7 +270,15 @@ Event Chain Potential
 World Line Simulation
 ```
 
-It must not become random feature slots.
+Advanced data is not a weighting shortcut. It can only:
+
+1. create matchup edges
+2. confirm or change matchup certainty
+3. describe player/team/environment state
+4. expose event-chain entry points
+5. support world-line simulation
+
+It must not become random feature slots or pre-weighted sport-specific shortcuts.
 
 ---
 
@@ -270,7 +297,7 @@ Required world-line categories:
 - comeback world line
 - garbage-time world line
 
-A Mosport Read should explain who Mosport leans toward, why that is the normal read, which matchup graph clusters matter, which event chain can rewrite the game, which collapse chain can break the read, which environment factor changes the world, which matchup edges are uncertain, and what live signal would confirm or invalidate the pregame read.
+A Mosport Read should explain who Mosport leans toward, why that is the normal read, which matchup graph clusters matter after simulation, which event chain can rewrite the game, which collapse chain can break the read, which environment factor changes the world, which matchup edges are uncertain, and what live signal would confirm or invalidate the pregame read.
 
 ---
 
@@ -304,6 +331,8 @@ Acceptance:
 - Matchups must be represented as a graph, not a single key matchup.
 - Every matchup graph edge must carry a certainty label.
 - Uncertain matchup edges must not be treated as confirmed collisions.
+- Sport-specific feeds must not be treated as priority weights.
+- Edge importance must emerge from world-line simulation, not from predeclared role or sport hierarchy.
 - International / playoff / championship games must use special-world logic.
 - Miracle and collapse must mean repeated-event chains.
 - Advanced/B2B data must map into the doctrine, not random feature slots.
