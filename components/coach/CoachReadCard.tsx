@@ -14,6 +14,8 @@ interface CoachReadCardProps {
 }
 
 export default function CoachReadCard({ data, onVote, onComment }: CoachReadCardProps) {
+  const isInsufficient = data.engineStatus === 'INSUFFICIENT_DATA'
+
   return (
     <div className="group relative bg-[#0f172a] border border-white/5 rounded-xl overflow-hidden hover:border-blue-500/30 transition-all duration-500 shadow-2xl">
       {/* Header with Game Info */}
@@ -48,43 +50,57 @@ export default function CoachReadCard({ data, onVote, onComment }: CoachReadCard
           <h2 className="text-xl font-black italic text-white leading-tight">{data.coachQuestion}</h2>
         </div>
 
-        <div className="relative p-4 bg-blue-500/5 rounded-lg border-l-2 border-blue-500/50">
-          <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[8px] font-black uppercase italic">
-            Mosport Read
+        {isInsufficient ? (
+          <div className="p-6 bg-rose-500/5 rounded-lg border border-rose-500/20 text-center">
+            <div className="text-rose-400 text-xs font-black uppercase tracking-widest mb-2">Engine Alert: Insufficient Data</div>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              資料不足，不強行給傾向。<br />
+              你可以先留下你的教練判斷。
+            </p>
           </div>
-          <p className="text-slate-300 text-sm leading-relaxed italic">
-            "{data.coachRead}"
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {data.whyItMatters.map((point, i) => (
-            <div key={i} className="px-2 py-1 bg-slate-800/50 rounded text-[10px] text-slate-400 border border-white/5">
-              • {point}
+        ) : (
+          <>
+            <div className="relative p-4 bg-blue-500/5 rounded-lg border-l-2 border-blue-500/50">
+              <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[8px] font-black uppercase italic">
+                Mosport Read
+              </div>
+              <p className="text-slate-300 text-sm leading-relaxed italic">
+                "{data.coachRead}"
+              </p>
             </div>
-          ))}
-        </div>
+
+            <div className="flex flex-wrap gap-2">
+              {data.whyItMatters.map((point, i) => (
+                <div key={i} className="px-2 py-1 bg-slate-800/50 rounded text-[10px] text-slate-400 border border-white/5">
+                  • {point}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* World Engine Evidence */}
-      <div className="px-6 py-4 bg-black/20 border-y border-white/5">
-        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest block mb-3">World Engine Evidence</span>
-        <div className="space-y-3">
-          {data.worldEngineEvidence.map((ev, i) => (
-            <div key={i} className="flex justify-between items-start gap-4">
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-slate-300">{ev.label}</span>
-                <span className="text-[10px] text-slate-500 leading-tight">{ev.explanation}</span>
+      {!isInsufficient && (
+        <div className="px-6 py-4 bg-black/20 border-y border-white/5">
+          <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest block mb-3">World Engine Evidence</span>
+          <div className="space-y-3">
+            {data.worldEngineEvidence.map((ev, i) => (
+              <div key={i} className="flex justify-between items-start gap-4">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-slate-300">{ev.label}</span>
+                  <span className="text-[10px] text-slate-500 leading-tight">{ev.explanation}</span>
+                </div>
+                <div className={`px-2 py-0.5 rounded font-mono text-xs font-bold ${
+                  ev.severity === 'HIGH' ? 'text-rose-400' : 'text-amber-400'
+                }`}>
+                  {ev.valueLabel}
+                </div>
               </div>
-              <div className={`px-2 py-0.5 rounded font-mono text-xs font-bold ${
-                ev.severity === 'HIGH' ? 'text-rose-400' : 'text-amber-400'
-              }`}>
-                {ev.valueLabel}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Fan Interaction Section */}
       <div className="p-6 space-y-6">

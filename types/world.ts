@@ -1,20 +1,27 @@
+import { EngineStatus, EvidenceStatus, MissingEvidenceReason } from "./engine";
+import { CoachEvidence } from "./coach";
+
 export type WorldEngineState = {
   matchId: string;
-  teamId?: string;
-  pressure: number;
-  fatigue: number;
-  volatility: number;
-  momentum: number;
-  mismatch: number;
-  rotationRisk?: number;
-  tempoControl?: number;
-  benchStability?: number;
-  starLoad?: number;
-  foulTroubleRisk?: number;
-  lineupTrust?: number;
-  coachPanicIndex?: number;
-  lateGameFragility?: number;
-  emotionalSwing?: number;
-  collapseRisk?: number;
-  payload?: Record<string, unknown>;
+  league: string;
+  sport: string;
+
+  engineStatus: EngineStatus;
+  evidenceStatus: EvidenceStatus;
+  missingEvidence: MissingEvidenceReason[];
+
+  pressure: number | null;
+  fatigue: number | null;
+  volatility: number | null;
+  momentum: number | null;
+  mismatch: number | null;
+
+  sportSpecific: Record<string, number | string | null>;
+
+  coachEvidence: CoachEvidence[];
+
+  noLeanReason?: string;
+
+  providerSnapshotId?: string;
+  generatedAt: string;
 };

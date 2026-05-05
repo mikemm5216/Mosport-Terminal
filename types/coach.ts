@@ -63,6 +63,15 @@ export type CoachReadDTO = {
   confidenceLabel: "LOW" | "MEDIUM" | "HIGH";
   debateIntensity: "QUIET" | "ACTIVE" | "HOT";
 
+  engineStatus: "READY" | "PARTIAL" | "INSUFFICIENT_DATA" | "SKELETON_DISABLED";
+  evidenceStatus: "VALIDATED" | "PARTIAL" | "MISSING";
+  missingEvidence?: string[];
+  noLeanReason?: string;
+  isProductionEngine: boolean;
+  engineVersion: string;
+  featureVersion: string;
+  translatorVersion: string;
+
   fanVoteSummary?: {
     agreePct: number;
     disagreePct: number;
