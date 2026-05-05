@@ -31,7 +31,7 @@ function EngineStatusPanel({ isMobile }: { isMobile: boolean }) {
       <SectionTitle
         eyebrow="MODEL CLAIMS AUDIT"
         title="ENGINE LAB"
-        subtitle="Historical performance claims are disabled until a reproducible backtest exists."
+        subtitle="Historical performance claims are disabled until a reproducible backtest reaches the claim thresholds."
       />
 
       <div style={{
@@ -57,16 +57,17 @@ function EngineStatusPanel({ isMobile }: { isMobile: boolean }) {
               • ESPN Scoreboard Adapter: <span style={{ color: '#34d399' }}>BASIC READY</span><br />
               • Sport-specific Feature Extraction: <span style={{ color: '#f97316' }}>PENDING / PARTIAL</span><br />
               • V14 Engine Scaffold: <span style={{ color: '#34d399' }}>READY</span><br />
+              • V15 Corpus Validation: <span style={{ color: '#f97316' }}>IN PROGRESS</span><br />
               • Production Activation: <span style={{ color: '#f43f5e' }}>LOCKED</span>
             </div>
           </div>
           <div style={{ padding: 20, background: 'rgba(15,23,42,0.4)', borderRadius: 4, border: '1px solid rgba(148,163,184,0.1)' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 800, color: '#64748b', letterSpacing: '0.2em', marginBottom: 8 }}>EVIDENCE LOG (SAMPLE)</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 800, color: '#64748b', letterSpacing: '0.2em', marginBottom: 8 }}>EVIDENCE LOG</div>
             <div style={{ fontFamily: 'var(--font-inter)', fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>
-              • Sample Backtest Games: 3<br />
-              • Evaluated Integrity: 100%<br />
-              • Input SHA256: 304E9EE6E...CAD53A<br />
-              • Performance: Awaiting 9,500 Game Corpus Run
+              • Sample Smoke Test: Available<br />
+              • Sample Size: Too small for performance claims<br />
+              • Input SHA256: Recorded in artifact<br />
+              • 9,500 Corpus: Pending validation and full backtest
             </div>
           </div>
         </div>
@@ -75,13 +76,13 @@ function EngineStatusPanel({ isMobile }: { isMobile: boolean }) {
   )
 }
 
-function NbaRealtimeAnalysis() {
+function NbaPlayoffSeriesTracker() {
   return (
     <section style={{ marginBottom: 72 }}>
       <SectionTitle
-        eyebrow="NBA PLAYOFF LIVE INTELLIGENCE"
-        title="BACKTEST PENDING"
-        subtitle="Real-time series reconstruction and playoff intelligence are active for follow-only mode."
+        eyebrow="NBA PLAYOFF SERIES TRACKER"
+        title="FOLLOW-ONLY SERIES RECONSTRUCTION"
+        subtitle="Series state is reconstructed for follow mode. This is not live prediction, not live advice, and not verified model performance."
       />
       <PlayoffBracketPage embedded={true} league={'NBA' as League} />
     </section>
@@ -100,7 +101,7 @@ export default function LabPage() {
             <LiveDot color="#22d3ee" size={6} />
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 900, letterSpacing: '0.32em', color: '#22d3ee' }}>SYSTEM LAB</span>
             <span style={{ color: '#1e293b', fontFamily: 'var(--font-mono)', fontSize: 9 }}>//</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 800, letterSpacing: '0.28em', color: '#64748b' }}>ENGINE AUDIT + LIVE PLAYOFF INTELLIGENCE</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 800, letterSpacing: '0.28em', color: '#64748b' }}>ENGINE AUDIT + SERIES TRACKING</span>
           </div>
           <h1 style={{ fontFamily: 'var(--font-inter), Inter, sans-serif', fontWeight: 900, fontSize: 'clamp(38px, 8vw, 72px)', color: '#f8fafc', letterSpacing: '-0.05em', lineHeight: 0.86, margin: 0, fontStyle: 'italic' }}>
             MOSPORT<br /><span style={{ color: '#22d3ee', fontStyle: 'normal' }}>LAB</span>
@@ -108,16 +109,16 @@ export default function LabPage() {
         </div>
 
         <EngineStatusPanel isMobile={isMobile} />
-        <NbaRealtimeAnalysis />
+        <NbaPlayoffSeriesTracker />
 
         <div style={{ padding: 24, background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 8 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#1e293b', letterSpacing: '0.2em', marginBottom: 12, fontWeight: 900 }}>
-            $ mosport-lab --audit-mode --nba-playoffs-live
+            $ mosport-lab --audit-mode --series-tracker
           </div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#334155', letterSpacing: '0.15em', lineHeight: 2, fontWeight: 800 }}>
-            {'>'} ENGINE STATUS: <span style={{ color: '#f43f5e' }}>AUDIT REQUIRED</span><br />
-            {'>'} NBA PLAYOFF ANALYSIS: <span style={{ color: '#22d3ee' }}>LIVE RECONSTRUCTION ACTIVE</span><br />
-            {'>'} BACKTEST PIPELINE: <span style={{ color: '#f97316' }}>NOT CONFIGURED</span><br />
+            {'>'} ENGINE STATUS: <span style={{ color: '#f97316' }}>SCAFFOLD READY</span><br />
+            {'>'} NBA PLAYOFF SERIES: <span style={{ color: '#22d3ee' }}>FOLLOW-ONLY RECONSTRUCTION</span><br />
+            {'>'} BACKTEST PIPELINE: <span style={{ color: '#f97316' }}>VALIDATION IN PROGRESS</span><br />
           </div>
         </div>
       </div>
