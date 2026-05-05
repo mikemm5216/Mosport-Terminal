@@ -22,7 +22,7 @@
     "corpus:validate": "tsx scripts/backtest/validateHistoricalCorpus.ts",
     "backtest:historical": "tsx scripts/backtest/runHistoricalBacktest.ts",
     "backtest:oos-2025": "tsx scripts/backtest/runHistoricalOutOfSampleBacktest.ts",
-    "backtest:v16-world-engine": "tsx scripts/backtest/runV16WorldEngineDoctrineBacktest.ts"
+    "backtest:v16-world-engine": "tsx scripts/backtest/runV16MatchupGraphWorldEngineBacktest.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
