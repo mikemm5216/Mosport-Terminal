@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-05-05T07:00:00Z",
+  "engineVersion": "14.0.0",
+  "inputSha256": "304E9EE6E42FA9D8B704FC9271B894EABF6E347D6146CFAECC2ADDC538CAD53A",
+  "gamesEvaluated": 3,
+  "gamesSkipped": 0,
+  "results": [
+    { "matchId": "sample-nba-1", "prediction": "READY", "outcome": "HIT" },
+    { "matchId": "sample-mlb-1", "prediction": "PARTIAL", "outcome": "HIT" },
+    { "matchId": "sample-insufficient-1", "prediction": "INSUFFICIENT", "outcome": "N/A" }
+  ]
+}

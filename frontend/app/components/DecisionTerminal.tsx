@@ -97,7 +97,7 @@ function TermAction({ icon, label, color, primary }: { icon: string; label: stri
 }
 
 function getDecisionConfidence(decision: V11Decision | null | undefined): number {
-  if (!decision) return 0.5
+  if (!decision) return 0.0
 
   const candidates = [
     decision.final_probability_home,
@@ -114,7 +114,7 @@ function getDecisionConfidence(decision: V11Decision | null | undefined): number
     return Math.max(0.35, Math.min(0.9, Math.abs(v - 0.5) * 2 + 0.35))
   }
 
-  return 0.5
+  return 0.0
 }
 
 interface Props {

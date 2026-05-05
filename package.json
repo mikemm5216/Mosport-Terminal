@@ -16,7 +16,9 @@
     "security:token-age": "tsx scripts/security/check-token-age.ts",
     "security:agent": "tsx -e \"import('./security/agent').then(m => console.log(m.runSecurityAgent()))\"",
     "check:secrets": "tsx scripts/check-no-env-secrets.ts",
-    "check:prisma": "tsx scripts/check-prisma-imports.ts"
+    "check:prisma": "tsx scripts/check-prisma-imports.ts",
+    "cleanup:engine-demo": "tsx scripts/cleanup/removeUnsupportedEngineData.ts",
+    "backtest:historical": "tsx scripts/backtest/runHistoricalBacktest.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

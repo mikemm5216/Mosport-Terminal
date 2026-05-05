@@ -1,33 +1,10 @@
 'use client'
 
 import { useWindowWidth } from '../lib/useWindowWidth'
-import { BioBar, LiveDot, RingGauge } from './ui'
+import { LiveDot } from './ui'
 import PlayoffBracketPage from './PlayoffBracketPage'
 import { PAGE_SHELL_STYLE, BREAKPOINTS } from '../lib/ui'
 import type { League } from '../data/mockData'
-
-const RING_METRICS = [
-  { label: 'EDGE CAPTURE', value: 0.684, color: '#22d3ee', sublabel: 'RATE' },
-  { label: 'SIGNAL ROI', value: 0.127, color: '#34d399', sublabel: 'RETURN' },
-  { label: 'UPSET DETECT', value: 0.712, color: '#a78bfa', sublabel: 'ACCURACY' },
-]
-
-const STAT_BARS = [
-  { label: 'SIGNAL PRECISION', value: 0.836, color: '#22d3ee' },
-  { label: 'FALSE POSITIVE RATE', value: 0.143, color: '#f43f5e' },
-  { label: 'AVG CONFIDENCE SCORE', value: 0.771, color: '#34d399' },
-  { label: 'HIGH-EV COVERAGE', value: 0.624, color: '#a78bfa' },
-  { label: 'MODEL CALIBRATION', value: 0.891, color: '#22d3ee' },
-  { label: 'LATE-LINE EDGE HOLD', value: 0.548, color: '#f97316' },
-]
-
-const LEAGUE_ROWS = [
-  { league: 'MLB', games: 2430, accuracy: 69.1, roi: 11.8, upsets: 70.3 },
-  { league: 'NBA', games: 1230, accuracy: 70.4, roi: 13.2, upsets: 71.8 },
-  { league: 'EPL', games: 380, accuracy: 71.8, roi: 14.6, upsets: 72.4 },
-  { league: 'UCL', games: 125, accuracy: 67.9, roi: 11.3, upsets: 69.8, note: 'QUARTERFINALS ONWARD' },
-  { league: 'NHL', games: 1312, accuracy: 68.5, roi: 12.1, upsets: 70.1 },
-]
 
 function SectionTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle?: string }) {
   return (
@@ -48,13 +25,13 @@ function SectionTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: st
   )
 }
 
-function PerformanceArchive({ isMobile }: { isMobile: boolean }) {
+function EngineStatusPanel({ isMobile }: { isMobile: boolean }) {
   return (
     <section style={{ marginBottom: 72 }}>
       <SectionTitle
-        eyebrow="MODEL RESULT ARCHIVE"
-        title="9,500 RECORDED EVENTS"
-        subtitle="This section must always be visible in Lab: historical Mosport signal performance across the 2025–2026 cycle."
+        eyebrow="MODEL CLAIMS AUDIT"
+        title="ENGINE LAB"
+        subtitle="Historical performance claims are disabled until a reproducible backtest exists."
       />
 
       <div style={{
@@ -63,80 +40,36 @@ function PerformanceArchive({ isMobile }: { isMobile: boolean }) {
         border: '1px solid rgba(34,211,238,0.15)',
         borderLeft: '4px solid #22d3ee',
         borderRadius: '0 8px 8px 0',
-        display: 'flex', alignItems: 'center', gap: isMobile ? 28 : 48, flexWrap: 'wrap',
+        display: 'flex', flexDirection: 'column', gap: 24,
         marginBottom: 44,
       }}>
-        <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: isMobile ? 44 : 64, fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1 }}>9,500</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.35em', color: '#475569', marginTop: 8 }}>EVENTS PROCESSED</div>
-        </div>
-        <div style={{ width: 1, height: 60, background: 'rgba(148,163,184,0.1)', display: isMobile ? 'none' : 'block' }} />
-        <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: isMobile ? 22 : 28, fontWeight: 900, color: '#34d399', letterSpacing: '-0.02em' }}>+12.7% EDGE HOLD</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.3em', color: '#475569', marginTop: 8 }}>AVERAGE SIGNAL ROI</div>
-        </div>
-        {!isMobile && (
-          <>
-            <div style={{ width: 1, height: 60, background: 'rgba(148,163,184,0.1)' }} />
-            <div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 900, color: '#f97316', letterSpacing: '-0.02em' }}>AGENCY CALIBRATED</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.3em', color: '#475569', marginTop: 8 }}>BACKTEST STABILITY</div>
-            </div>
-          </>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'center', gap: isMobile ? 28 : 56, flexWrap: 'wrap', marginBottom: 44 }}>
-        {RING_METRICS.map(metric => (
-          <div key={metric.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            <RingGauge value={metric.value} size={isMobile ? 144 : 190} thickness={12} color={metric.color} label={metric.label} sublabel={metric.sublabel} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <LiveDot color="#f97316" size={8} />
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 900, color: '#f8fafc', letterSpacing: '0.05em' }}>
+            WORLD ENGINE STATUS: <span style={{ color: '#f97316' }}>HARDENING / SCAFFOLD READY</span>
           </div>
-        ))}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '22px 44px', marginBottom: 44 }}>
-        {STAT_BARS.map(stat => (
-          <div key={stat.label}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.25em', color: '#475569' }}>{stat.label}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 900, color: stat.color }}>{(stat.value * 100).toFixed(1)}%</span>
-            </div>
-            <BioBar value={stat.value} color={stat.color} height={6} />
-          </div>
-        ))}
-      </div>
-
-      <div style={{ border: '1px solid rgba(148,163,184,0.08)', borderRadius: 8, overflow: 'hidden', background: 'rgba(15,23,42,0.2)' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '64px 1fr 1fr 1fr' : '80px 1fr 1fr 1fr 1fr',
-          padding: '12px 24px',
-          background: 'rgba(15,23,42,0.8)',
-          borderBottom: '1px solid rgba(148,163,184,0.1)',
-        }}>
-          {(isMobile ? ['LEAGUE', 'ACC', 'ROI', 'UPSETS'] : ['LEAGUE', 'GAMES', 'ACCURACY', 'ROI', 'UPSETS']).map(header => (
-            <span key={header} style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', color: '#334155' }}>{header}</span>
-          ))}
         </div>
-        {LEAGUE_ROWS.map((row, i) => (
-          <div key={row.league} style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '64px 1fr 1fr 1fr' : '80px 1fr 1fr 1fr 1fr',
-            padding: '18px 24px',
-            borderBottom: i < LEAGUE_ROWS.length - 1 ? '1px solid rgba(148,163,184,0.08)' : 'none',
-            background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
-            alignItems: 'center',
-          }}>
-            <div>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 900, color: '#22d3ee', letterSpacing: '0.15em' }}>{row.league}</span>
-              {row.note && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: '#f97316', letterSpacing: '0.15em', marginTop: 4, fontWeight: 800 }}>{row.note}</div>}
+
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24 }}>
+          <div style={{ padding: 20, background: 'rgba(15,23,42,0.4)', borderRadius: 4, border: '1px solid rgba(148,163,184,0.1)' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 800, color: '#64748b', letterSpacing: '0.2em', marginBottom: 8 }}>COMPONENT STATUS</div>
+            <div style={{ fontFamily: 'var(--font-inter)', fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>
+              • ESPN Scoreboard Adapter: <span style={{ color: '#34d399' }}>BASIC READY</span><br />
+              • Sport-specific Feature Extraction: <span style={{ color: '#f97316' }}>PENDING / PARTIAL</span><br />
+              • V14 Engine Scaffold: <span style={{ color: '#34d399' }}>READY</span><br />
+              • Production Activation: <span style={{ color: '#f43f5e' }}>LOCKED</span>
             </div>
-            {!isMobile && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 800, color: '#475569' }}>{row.games.toLocaleString()}</span>}
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 900, color: '#f8fafc' }}>{row.accuracy.toFixed(1)}%</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 900, color: '#34d399' }}>+{row.roi.toFixed(1)}%</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 900, color: '#a78bfa' }}>{row.upsets.toFixed(1)}%</span>
           </div>
-        ))}
+          <div style={{ padding: 20, background: 'rgba(15,23,42,0.4)', borderRadius: 4, border: '1px solid rgba(148,163,184,0.1)' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 800, color: '#64748b', letterSpacing: '0.2em', marginBottom: 8 }}>EVIDENCE LOG (SAMPLE)</div>
+            <div style={{ fontFamily: 'var(--font-inter)', fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>
+              • Sample Backtest Games: 3<br />
+              • Evaluated Integrity: 100%<br />
+              • Input SHA256: 304E9EE6E...CAD53A<br />
+              • Performance: Awaiting 9,500 Game Corpus Run
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   )
@@ -147,8 +80,8 @@ function NbaRealtimeAnalysis() {
     <section style={{ marginBottom: 72 }}>
       <SectionTitle
         eyebrow="NBA PLAYOFF LIVE INTELLIGENCE"
-        title="REAL-TIME SERIES ANALYSIS"
-        subtitle="This section must always be visible in Lab: NBA playoff series state, pending snapshot status, and live reconstructed completed-game analysis."
+        title="BACKTEST PENDING"
+        subtitle="Real-time series reconstruction and playoff intelligence are active for follow-only mode."
       />
       <PlayoffBracketPage embedded={true} league={'NBA' as League} />
     </section>
@@ -167,24 +100,24 @@ export default function LabPage() {
             <LiveDot color="#22d3ee" size={6} />
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 900, letterSpacing: '0.32em', color: '#22d3ee' }}>SYSTEM LAB</span>
             <span style={{ color: '#1e293b', fontFamily: 'var(--font-mono)', fontSize: 9 }}>//</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 800, letterSpacing: '0.28em', color: '#64748b' }}>RESULTS + LIVE PLAYOFF INTELLIGENCE</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 800, letterSpacing: '0.28em', color: '#64748b' }}>ENGINE AUDIT + LIVE PLAYOFF INTELLIGENCE</span>
           </div>
           <h1 style={{ fontFamily: 'var(--font-inter), Inter, sans-serif', fontWeight: 900, fontSize: 'clamp(38px, 8vw, 72px)', color: '#f8fafc', letterSpacing: '-0.05em', lineHeight: 0.86, margin: 0, fontStyle: 'italic' }}>
             MOSPORT<br /><span style={{ color: '#22d3ee', fontStyle: 'normal' }}>LAB</span>
           </h1>
         </div>
 
-        <PerformanceArchive isMobile={isMobile} />
+        <EngineStatusPanel isMobile={isMobile} />
         <NbaRealtimeAnalysis />
 
         <div style={{ padding: 24, background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 8 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#1e293b', letterSpacing: '0.2em', marginBottom: 12, fontWeight: 900 }}>
-            $ mosport-lab --results-9500 --nba-playoffs-live
+            $ mosport-lab --audit-mode --nba-playoffs-live
           </div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#334155', letterSpacing: '0.15em', lineHeight: 2, fontWeight: 800 }}>
-            {'>'} RESULT ARCHIVE: <span style={{ color: '#34d399' }}>9,500 EVENTS VISIBLE</span><br />
-            {'>'} NBA PLAYOFF ANALYSIS: <span style={{ color: '#22d3ee' }}>LIVE RECONSTRUCTION / SNAPSHOT SAFE</span><br />
-            {'>'} SIMULATION TOGGLE: <span style={{ color: '#f97316' }}>REMOVED FROM TOP BAR</span><br />
+            {'>'} ENGINE STATUS: <span style={{ color: '#f43f5e' }}>AUDIT REQUIRED</span><br />
+            {'>'} NBA PLAYOFF ANALYSIS: <span style={{ color: '#22d3ee' }}>LIVE RECONSTRUCTION ACTIVE</span><br />
+            {'>'} BACKTEST PIPELINE: <span style={{ color: '#f97316' }}>NOT CONFIGURED</span><br />
           </div>
         </div>
       </div>

@@ -1,38 +1,25 @@
+import { PregameFeatureSet } from "../../types/features";
 import { WorldEngineState } from "../../types/world";
+import { deriveNBAWorldState } from "./engines/deriveNBAWorldState";
+import { deriveMLBWorldState } from "./engines/deriveMLBWorldState";
+import { deriveNHLWorldState } from "./engines/deriveNHLWorldState";
+import { deriveNFLWorldState } from "./engines/deriveNFLWorldState";
+import { deriveEPLWorldState } from "./engines/deriveEPLWorldState";
+import { buildInsufficientDataWorldState } from "../engine/engineStatus";
 
-export function deriveWorldState(matchStats: any, signals: any[]): WorldEngineState {
-  // Logic to transform raw stats and signals into WorldEngineState
-  // This is a placeholder for the actual complex derivation logic
-  return {
-    matchId: matchStats.matchId,
-    pressure: calculatePressure(matchStats, signals),
-    fatigue: calculateFatigue(matchStats, signals),
-    volatility: calculateVolatility(matchStats, signals),
-    momentum: calculateMomentum(matchStats, signals),
-    mismatch: calculateMismatch(matchStats, signals),
-    payload: {
-      rotationRisk: Math.random() * 100,
-      coachPanicIndex: Math.random() * 100,
-    }
-  };
-}
-
-function calculatePressure(stats: any, signals: any[]): number {
-  return 45.5; // Placeholder
-}
-
-function calculateFatigue(stats: any, signals: any[]): number {
-  return 22.1; // Placeholder
-}
-
-function calculateVolatility(stats: any, signals: any[]): number {
-  return 12.8; // Placeholder
-}
-
-function calculateMomentum(stats: any, signals: any[]): number {
-  return 68.2; // Placeholder
-}
-
-function calculateMismatch(stats: any, signals: any[]): number {
-  return 34.0; // Placeholder
+export function deriveWorldState(features: PregameFeatureSet): WorldEngineState {
+  switch (features.league.toUpperCase()) {
+    case "NBA":
+      return deriveNBAWorldState(features);
+    case "MLB":
+      return deriveMLBWorldState(features);
+    case "NHL":
+      return deriveNHLWorldState(features);
+    case "NFL":
+      return deriveNFLWorldState(features);
+    case "EPL":
+      return deriveEPLWorldState(features);
+    default:
+      return buildInsufficientDataWorldState(features, ["UNSUPPORTED_SPORT"]);
+  }
 }

@@ -1,0 +1,22 @@
+{
+  "engineVersion": "14.0.0",
+  "featureVersion": "14.0.0",
+  "translatorVersion": "14.0.0",
+  "inputFile": "data/historical/sample.jsonl",
+  "inputSha256": "304e9ee6e42fa9d8b704fc9271b894eabf6e347d6146cfaecc2addc538cad53a",
+  "createdAt": "2026-05-05T07:25:59.733Z",
+  "gamesEvaluated": 1,
+  "gamesSkipped": 2,
+  "skipReasons": {
+    "MISSING_ROSTER": 1,
+    "MISSING_GOALIE_STATUS": 1
+  },
+  "byLeague": {
+    "MLB": {
+      "count": 1,
+      "hits": 1
+    }
+  },
+  "overallAccuracy": 1,
+  "hits": 1
+}

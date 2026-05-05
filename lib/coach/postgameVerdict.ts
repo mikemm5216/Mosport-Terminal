@@ -20,7 +20,10 @@ export async function generatePostgameVerdict(matchId: string) {
   
   // Logic to determine HIT/MISS/PARTIAL based on actual stats
   // This is a placeholder for the actual verdict engine
-  const result: "HIT" | "MISS" | "PARTIAL" = Math.random() > 0.5 ? "HIT" : "MISS";
+  // Deterministic evaluation based on winner
+  const predictedWinner = (coachRead.coachDecision === "EARLY_AGGRESSION" || coachRead.coachDecision === "PRESS_HIGH") ? "HOME" : "AWAY";
+  const actualWinner = (match.home_score || 0) > (match.away_score || 0) ? "HOME" : "AWAY";
+  const result: "HIT" | "MISS" | "PARTIAL" = predictedWinner === actualWinner ? "HIT" : "MISS";
 
   const verdict = {
     matchId,
