@@ -1,37 +1,41 @@
 import { PregameFeatureSet } from "../../../types/features";
 import { WorldEngineState } from "../../../types/world";
 import { buildInsufficientDataWorldState } from "../../engine/engineStatus";
+import { checkEvidenceRequirements } from "../../engine/evidenceRequirements";
 
 export function deriveNBAWorldState(features: PregameFeatureSet): WorldEngineState {
-  if (!features.nba) {
-    return buildInsufficientDataWorldState(features, ["MISSING_ROSTER"]);
+  const missing = checkEvidenceRequirements(features);
+  
+  if (missing.length > 0 && (missing.includes("MISSING_ROSTER") || missing.includes("MISSING_RECENT_FORM"))) {
+    return buildInsufficientDataWorldState(features, missing);
   }
 
   const { nba, teamContext } = features;
+  const isPartial = missing.length > 0;
 
   return {
     matchId: features.matchId,
     league: "NBA",
     sport: "BASKETBALL",
-    engineStatus: "READY",
-    evidenceStatus: "VALIDATED",
-    missingEvidence: [],
-    pressure: nba.pacePressure ?? 0.5,
-    fatigue: teamContext.home.travelFatigue ?? 0.5,
-    volatility: nba.rotationRisk ?? 0.5,
-    momentum: teamContext.home.recentFormScore ?? 0.5,
-    mismatch: nba.matchupMismatch ?? 0.5,
+    engineStatus: isPartial ? "PARTIAL" : "READY",
+    evidenceStatus: isPartial ? "PARTIAL" : "VALIDATED",
+    missingEvidence: missing,
+    pressure: nba?.pacePressure ?? null,
+    fatigue: teamContext.home.travelFatigue ?? null,
+    volatility: nba?.rotationRisk ?? null,
+    momentum: teamContext.home.recentFormScore ?? null,
+    mismatch: nba?.matchupMismatch ?? null,
     sportSpecific: {
-      benchStability: nba.benchStability ?? 0.5,
-      starLoad: nba.starLoad ?? 0.5,
-      foulTroubleRisk: nba.foulTroubleRisk ?? 0.5,
+      benchStability: nba?.benchStability ?? null,
+      starLoad: nba?.starLoad ?? null,
+      foulTroubleRisk: nba?.foulTroubleRisk ?? null,
     },
     coachEvidence: [
       {
         label: "Rotation Risk",
-        valueLabel: nba.rotationRisk && nba.rotationRisk > 0.7 ? "HIGH" : "NORMAL",
-        severity: nba.rotationRisk && nba.rotationRisk > 0.7 ? "HIGH" : "LOW",
-        explanation: "Analysis of rotation compression and bench unit stability.",
+        valueLabel: nba?.rotationRisk && nba.rotationRisk > 0.7 ? "HIGH" : (nba?.rotationRisk ? "NORMAL" : "UNKNOWN"),
+        severity: nba?.rotationRisk && nba.rotationRisk > 0.7 ? "HIGH" : "LOW",
+        explanation: nba?.rotationRisk ? "Analysis of rotation compression and bench unit stability." : "Rotation data unavailable.",
         source: "WORLD_ENGINE",
       }
     ],

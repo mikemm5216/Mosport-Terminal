@@ -9,6 +9,7 @@ export async function writeBacktestReport(results: any, inputFile: string, outpu
   const fullReport = {
     ...CURRENT_ENGINE_VERSION,
     inputFile,
+    inputSha256: results.inputSha256,
     createdAt: new Date().toISOString(),
     ...results,
   };
@@ -24,6 +25,7 @@ export async function writeBacktestReport(results: any, inputFile: string, outpu
 - **Feature Version:** ${fullReport.featureVersion}
 - **Translator Version:** ${fullReport.translatorVersion}
 - **Input File:** ${fullReport.inputFile}
+- **Input SHA256:** ${fullReport.inputSha256}
 - **Generated At:** ${fullReport.createdAt}
 
 ## Summary
@@ -32,12 +34,12 @@ export async function writeBacktestReport(results: any, inputFile: string, outpu
 - **Overall Accuracy:** ${(fullReport.overallAccuracy * 100).toFixed(2)}%
 
 ## By League
-${Object.entries(fullReport.byLeague).map(([league, data]: [string, any]) => 
+${Object.entries(fullReport.byLeague || {}).map(([league, data]: [string, any]) => 
   `- **${league}:** ${data.count} games, ${(data.hits / data.count * 100).toFixed(2)}% accuracy`
 ).join("\n")}
 
 ## Skip Reasons
-${Object.entries(fullReport.skipReasons).map(([reason, count]) => 
+${Object.entries(fullReport.skipReasons || {}).map(([reason, count]) => 
   `- **${reason}:** ${count}`
 ).join("\n")}
 `;
@@ -45,7 +47,5 @@ ${Object.entries(fullReport.skipReasons).map(([reason, count]) =>
   const mdPath = path.join(outputDir, `${reportId}.md`);
   fs.writeFileSync(mdPath, mdContent);
 
-  console.log(`Reports generated:
-  - ${jsonPath}
-  - ${mdPath}`);
+  return { jsonPath, mdPath };
 }

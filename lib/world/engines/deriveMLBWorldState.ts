@@ -3,36 +3,42 @@ import { WorldEngineState } from "../../../types/world";
 import { buildInsufficientDataWorldState } from "../../engine/engineStatus";
 
 export function deriveMLBWorldState(features: PregameFeatureSet): WorldEngineState {
-  if (!features.mlb) {
-    return buildInsufficientDataWorldState(features, ["MISSING_STARTING_PITCHER"]);
+  const missing: string[] = [];
+  const { mlb, teamContext } = features;
+
+  if (!mlb) missing.push("MISSING_STARTING_PITCHER");
+  if (teamContext.home.recentFormScore === undefined) missing.push("MISSING_RECENT_FORM");
+  
+  if (missing.length > 0) {
+    return buildInsufficientDataWorldState(features, missing as any);
   }
 
-  const { mlb, teamContext } = features;
+  const isPartial = !mlb?.starterAdvantage || !mlb?.bullpenFreshness || !mlb?.lineupQuality;
 
   return {
     matchId: features.matchId,
     league: "MLB",
     sport: "BASEBALL",
-    engineStatus: "READY",
-    evidenceStatus: "VALIDATED",
-    missingEvidence: [],
-    pressure: mlb.lateInningLeverageRisk ?? 0.5,
-    fatigue: mlb.bullpenFreshness ?? 0.5,
-    volatility: mlb.thirdTimeThroughOrderRisk ?? 0.5,
-    momentum: teamContext.home.recentFormScore ?? 0.5,
-    mismatch: mlb.starterAdvantage ?? 0.5,
+    engineStatus: isPartial ? "PARTIAL" : "READY",
+    evidenceStatus: isPartial ? "PARTIAL" : "VALIDATED",
+    missingEvidence: isPartial ? ["MISSING_ADVANCED_METRICS"] : [],
+    pressure: mlb?.lateInningLeverageRisk ?? null,
+    fatigue: mlb?.bullpenFreshness ?? null,
+    volatility: mlb?.thirdTimeThroughOrderRisk ?? null,
+    momentum: teamContext.home.recentFormScore ?? null,
+    mismatch: mlb?.starterAdvantage ?? null,
     sportSpecific: {
-      parkFactor: mlb.parkFactor ?? 0.5,
-      handednessSplit: mlb.handednessSplitAdvantage ?? 0.5,
-      lineupQuality: mlb.lineupQuality ?? 0.5,
-      defensiveStability: mlb.defensiveStability ?? 0.5,
+      parkFactor: mlb?.parkFactor ?? null,
+      handednessSplit: mlb?.handednessSplitAdvantage ?? null,
+      lineupQuality: mlb?.lineupQuality ?? null,
+      defensiveStability: mlb?.defensiveStability ?? null,
     },
     coachEvidence: [
       {
         label: "Starter Advantage",
-        valueLabel: mlb.starterAdvantage && mlb.starterAdvantage > 0.6 ? "STRONG" : "NEUTRAL",
+        valueLabel: mlb?.starterAdvantage && mlb.starterAdvantage > 0.6 ? "STRONG" : (mlb?.starterAdvantage ? "NEUTRAL" : "UNKNOWN"),
         severity: "MEDIUM",
-        explanation: "Evaluating starter vs opponent lineup and park factors.",
+        explanation: mlb?.starterAdvantage ? "Evaluating starter vs opponent lineup and park factors." : "Starter metrics unavailable.",
         source: "WORLD_ENGINE",
       }
     ],

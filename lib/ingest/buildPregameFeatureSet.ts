@@ -25,7 +25,7 @@ export function buildPregameFeatureSet(game: NormalizedProviderGame): PregameFea
     nfl: game.rawFeatures.nfl,
     epl: game.rawFeatures.epl,
     dataQuality: {
-      completenessScore: missing.length === 0 ? 1.0 : 0.5,
+      completenessScore: missing.length === 0 ? 1.0 : 0.1,
       missing,
       provider: "SYSTEM",
       updatedAt: new Date().toISOString(),

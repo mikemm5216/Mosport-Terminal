@@ -3,35 +3,41 @@ import { WorldEngineState } from "../../../types/world";
 import { buildInsufficientDataWorldState } from "../../engine/engineStatus";
 
 export function deriveNFLWorldState(features: PregameFeatureSet): WorldEngineState {
-  if (!features.nfl) {
-    return buildInsufficientDataWorldState(features, ["MISSING_QB_CONTEXT"]);
+  const missing: string[] = [];
+  const { nfl, teamContext } = features;
+
+  if (!nfl) missing.push("MISSING_QB_CONTEXT");
+  if (teamContext.home.recentFormScore === undefined) missing.push("MISSING_RECENT_FORM");
+  
+  if (missing.length > 0) {
+    return buildInsufficientDataWorldState(features, missing as any);
   }
 
-  const { nfl, teamContext } = features;
+  const isPartial = !nfl?.qbStability || !nfl?.gameScriptPressure;
 
   return {
     matchId: features.matchId,
     league: "NFL",
     sport: "FOOTBALL",
-    engineStatus: "READY",
-    evidenceStatus: "VALIDATED",
-    missingEvidence: [],
-    pressure: nfl.gameScriptPressure ?? 0.5,
-    fatigue: teamContext.home.travelFatigue ?? 0.5,
-    volatility: nfl.turnoverVolatility ?? 0.5,
-    momentum: teamContext.home.recentFormScore ?? 0.5,
-    mismatch: nfl.qbStability ?? 0.5,
+    engineStatus: isPartial ? "PARTIAL" : "READY",
+    evidenceStatus: isPartial ? "PARTIAL" : "VALIDATED",
+    missingEvidence: isPartial ? ["MISSING_ADVANCED_METRICS"] : [],
+    pressure: nfl?.gameScriptPressure ?? null,
+    fatigue: teamContext.home.travelFatigue ?? null,
+    volatility: nfl?.turnoverVolatility ?? null,
+    momentum: teamContext.home.recentFormScore ?? null,
+    mismatch: nfl?.qbStability ?? null,
     sportSpecific: {
-      passRushMismatch: nfl.passRushMismatch ?? 0.5,
-      offensiveLineHealth: nfl.offensiveLineHealth ?? 0.5,
-      redZoneEdge: nfl.redZoneEdge ?? 0.5,
+      passRushMismatch: nfl?.passRushMismatch ?? null,
+      offensiveLineHealth: nfl?.offensiveLineHealth ?? null,
+      redZoneEdge: nfl?.redZoneEdge ?? null,
     },
     coachEvidence: [
       {
         label: "QB Stability",
-        valueLabel: nfl.qbStability && nfl.qbStability > 0.7 ? "STABLE" : "RISKY",
+        valueLabel: nfl?.qbStability && nfl.qbStability > 0.7 ? "STABLE" : (nfl?.qbStability ? "RISKY" : "UNKNOWN"),
         severity: "MEDIUM",
-        explanation: "Evaluating quarterback health and offensive line protection.",
+        explanation: nfl?.qbStability ? "Evaluating quarterback health and offensive line protection." : "QB metrics unavailable.",
         source: "WORLD_ENGINE",
       }
     ],

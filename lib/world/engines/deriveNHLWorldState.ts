@@ -3,33 +3,39 @@ import { WorldEngineState } from "../../../types/world";
 import { buildInsufficientDataWorldState } from "../../engine/engineStatus";
 
 export function deriveNHLWorldState(features: PregameFeatureSet): WorldEngineState {
-  if (!features.nhl) {
-    return buildInsufficientDataWorldState(features, ["MISSING_GOALIE_STATUS"]);
+  const missing: string[] = [];
+  const { nhl, teamContext } = features;
+
+  if (!nhl) missing.push("MISSING_GOALIE_STATUS");
+  if (teamContext.home.recentFormScore === undefined) missing.push("MISSING_RECENT_FORM");
+  
+  if (missing.length > 0) {
+    return buildInsufficientDataWorldState(features, missing as any);
   }
 
-  const { nhl, teamContext } = features;
+  const isPartial = !nhl?.goalieAdvantage || !nhl?.shotQualityEdge;
 
   return {
     matchId: features.matchId,
     league: "NHL",
     sport: "HOCKEY",
-    engineStatus: "READY",
-    evidenceStatus: "VALIDATED",
-    missingEvidence: [],
-    pressure: nhl.shotQualityEdge ?? 0.5,
-    fatigue: nhl.backToBackFatigue ?? 0.5,
-    volatility: nhl.specialTeamsEdge ?? 0.5,
-    momentum: teamContext.home.recentFormScore ?? 0.5,
-    mismatch: nhl.goalieAdvantage ?? 0.5,
+    engineStatus: isPartial ? "PARTIAL" : "READY",
+    evidenceStatus: isPartial ? "PARTIAL" : "VALIDATED",
+    missingEvidence: isPartial ? ["MISSING_ADVANCED_METRICS"] : [],
+    pressure: nhl?.shotQualityEdge ?? null,
+    fatigue: nhl?.backToBackFatigue ?? null,
+    volatility: nhl?.specialTeamsEdge ?? null,
+    momentum: teamContext.home.recentFormScore ?? null,
+    mismatch: nhl?.goalieAdvantage ?? null,
     sportSpecific: {
-      defensivePairingStability: nhl.defensivePairingStability ?? 0.5,
+      defensivePairingStability: nhl?.defensivePairingStability ?? null,
     },
     coachEvidence: [
       {
         label: "Goalie Advantage",
-        valueLabel: nhl.goalieAdvantage && nhl.goalieAdvantage > 0.65 ? "ELITE" : "MODERATE",
+        valueLabel: nhl?.goalieAdvantage && nhl.goalieAdvantage > 0.65 ? "ELITE" : (nhl?.goalieAdvantage ? "MODERATE" : "UNKNOWN"),
         severity: "HIGH",
-        explanation: "Evaluating netminder form and defensive pairing support.",
+        explanation: nhl?.goalieAdvantage ? "Evaluating netminder form and defensive pairing support." : "Goalie metrics unavailable.",
         source: "WORLD_ENGINE",
       }
     ],

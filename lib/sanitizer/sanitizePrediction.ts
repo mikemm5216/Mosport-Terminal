@@ -29,7 +29,7 @@ function protectProbability(prob: number): number {
  * signalScore = 0.5*edge + 0.2*conf + 0.15*quality + 0.15*entropy + noise
  */
 function decoupleSignal(raw: RawPrediction): { score: number; label: string } {
-    const { edge, modelConfidence = 0.5, dataQuality = 0.8, marketEntropy = 0.5 } = raw;
+    const { edge, modelConfidence = 0.0, dataQuality = 0.0, marketEntropy = 0.0 } = raw;
 
     let score = (0.5 * edge) + (0.2 * modelConfidence) + (0.15 * dataQuality) + (0.15 * marketEntropy);
     score += (Math.random() * 0.06) - 0.03;

@@ -20,23 +20,23 @@ export async function computeMatchFeatures(matchId: string) {
     ]);
 
     // Fallbacks if snapshots are missing
-    const h = (homeState?.state_json as any) || { team_strength: 50, fatigue: 0.5, momentum: 0.5 };
-    const a = (awayState?.state_json as any) || { team_strength: 50, fatigue: 0.5, momentum: 0.5 };
+    const h = (homeState?.state_json as any) || { team_strength: 0, fatigue: null, momentum: null };
+    const a = (awayState?.state_json as any) || { team_strength: 0, fatigue: null, momentum: null };
 
     // 1. World Engine (Strength/Skill)
-    const homeWorld = h.team_strength || 50;
-    const awayWorld = a.team_strength || 50;
+    const homeWorld = h.team_strength || 0;
+    const awayWorld = a.team_strength || 0;
     const worldDiff = homeWorld - awayWorld;
 
     // 2. Physio Engine (Fatigue/Decay) - Normalized (Inverted fatigue)
-    const homePhysio = 1 - (h.fatigue || 0.5);
-    const awayPhysio = 1 - (a.fatigue || 0.5);
-    const physioDiff = homePhysio - awayPhysio;
+    const homePhysio = h.fatigue !== null ? 1 - h.fatigue : null;
+    const awayPhysio = a.fatigue !== null ? 1 - a.fatigue : null;
+    const physioDiff = (homePhysio !== null && awayPhysio !== null) ? homePhysio - awayPhysio : null;
 
     // 3. Psycho Engine (Momentum/Stakes)
-    const homePsycho = h.momentum || 0.5;
-    const awayPsycho = a.momentum || 0.5;
-    const psychoDiff = homePsycho - awayPsycho;
+    const homePsycho = h.momentum;
+    const awayPsycho = a.momentum;
+    const psychoDiff = (homePsycho !== null && awayPsycho !== null) ? homePsycho - awayPsycho : null;
 
     // Upsert MatchFeatures (Spartan v2.0)
     await (prisma as any).matchFeatures.upsert({

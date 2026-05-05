@@ -187,8 +187,8 @@ function GameCard({ m, onOpen, isMobile }: { m: Match; onOpen: (m: Match) => voi
 
       <div style={{ padding: isMobile ? '0 18px 18px' : '0 28px 18px', display: 'flex', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap', borderTop: '1px solid rgba(148,163,184,0.06)' }}>
         <div style={{ paddingTop: 14, display: 'flex', gap: 24, flexWrap: 'wrap', fontFamily: 'var(--font-mono)', fontSize: 9, color: '#475569', letterSpacing: '0.15em', fontWeight: 800 }}>
-          <span>WIN PROB <b style={{ color: t.hex }}>{((m.physio_adjusted ?? 0.5) * 100).toFixed(1)}%</b></span>
-          <span>DECISION SCORE <b style={{ color: '#64748b' }}>{Math.abs(m.wpa ?? 0).toFixed(2)}</b></span>
+          <span>WIN PROB <b style={{ color: t.hex }}>{m.physio_adjusted != null ? `${(m.physio_adjusted * 100).toFixed(1)}%` : 'N/A'}</b></span>
+          <span>DECISION SCORE <b style={{ color: '#64748b' }}>{m.wpa != null ? Math.abs(m.wpa).toFixed(2) : 'N/A'}</b></span>
         </div>
         <button onClick={(e) => { e.stopPropagation(); setEngaged(prev => !prev) }} style={{ marginTop: 10, minHeight: 34, padding: '0 12px', background: 'rgba(34,211,238,0.06)', border: '1px solid rgba(34,211,238,0.22)', borderRadius: 4, color: '#22d3ee', fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 900, letterSpacing: '0.14em', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           {votes} VOTES · {comments} COMMENTS

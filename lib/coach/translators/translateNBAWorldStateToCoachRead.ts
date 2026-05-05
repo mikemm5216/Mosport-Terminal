@@ -3,6 +3,8 @@ import { CoachReadDTO } from "../../../types/coach";
 import { CURRENT_ENGINE_VERSION } from "../../engine/engineAudit";
 
 export function translateNBAWorldStateToCoachRead(worldState: WorldEngineState): CoachReadDTO {
+  const isInsufficient = worldState.engineStatus === "INSUFFICIENT_DATA";
+
   return {
     matchId: worldState.matchId,
     league: "NBA",
@@ -14,19 +16,21 @@ export function translateNBAWorldStateToCoachRead(worldState: WorldEngineState):
     homeTeam: { id: "HOME", name: "Home Team", shortName: "HOME", league: "NBA" },
     awayTeam: { id: "AWAY", name: "Away Team", shortName: "AWAY", league: "NBA" },
     gameStatus: { status: "pregame", display: "PREGAME" },
-    coachQuestion: "Should the rotation be compressed early?",
-    coachDecision: "ROTATION_COMPRESSION",
-    coachRead: "Given the pace pressure and star load, we recommend a tighter rotation to maintain defensive stability.",
-    emotionalHook: "High stakes matchup requires maximum bench unit stability.",
-    whyItMatters: [
+    coachQuestion: isInsufficient ? "Data insufficient for full analysis." : "Should the rotation be compressed early?",
+    coachDecision: isInsufficient ? "CHALLENGE_CALL" : "ROTATION_COMPRESSION",
+    coachRead: isInsufficient 
+      ? "We do not have enough roster or form data to provide a reliable coaching read." 
+      : "Given the pace pressure and star load, we recommend a tighter rotation to maintain defensive stability.",
+    emotionalHook: isInsufficient ? "Waiting for verified evidence." : "High stakes matchup requires maximum bench unit stability.",
+    whyItMatters: isInsufficient ? [] : [
       "Pace pressure is high",
       "Star load management is critical in this stretch",
       "Bench unit stability could be the deciding factor"
     ],
     worldEngineEvidence: worldState.coachEvidence,
-    opposingView: "A wider rotation might preserve energy for the fourth quarter.",
-    fanPrompt: "Do you trust the bench unit in this matchup?",
-    confidenceLabel: "MEDIUM",
+    opposingView: isInsufficient ? "N/A" : "A wider rotation might preserve energy for the fourth quarter.",
+    fanPrompt: "Do you trust the data we have for this matchup?",
+    confidenceLabel: isInsufficient ? "LOW" : "MEDIUM",
     debateIntensity: "ACTIVE",
     engineStatus: worldState.engineStatus,
     evidenceStatus: worldState.evidenceStatus,
