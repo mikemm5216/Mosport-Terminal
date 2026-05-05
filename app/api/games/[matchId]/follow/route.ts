@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "../../../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { GameFollowDTO, CoachReadDTO } from "../../../../types/coach";
 
 export async function GET(
