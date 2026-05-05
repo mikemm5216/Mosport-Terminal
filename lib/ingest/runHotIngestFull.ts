@@ -1,23 +1,19 @@
 import { prisma } from "../prisma";
 import { deriveWorldState } from "../world/deriveWorldState";
 import { translateWorldStateToCoachRead } from "../coach/translateWorldStateToCoachRead";
-import { AnalysisPhase } from "../../types/gameStatus";
 
 /**
- * [SKELETON / ORCHESTRATOR] 
- * Hardened Full Ingest Runner (Structure Only)
+ * 🚨 [SKELETON ORCHESTRATOR] 🚨
+ * Keyboard Coach Pregame Engine - Hardened Ingest Pipeline Skeleton
  * 
- * NOTE: This is the architectural skeleton for the full ingest pipeline.
- * It coordinates entity upserts and enforces the pregame-only analysis lifecycle.
- * Real-world production would integrate multiple data providers (ESPN, etc.)
+ * IMPORTANT: This is NOT a production-ready full data provider integration.
+ * It serves as the architectural foundation (Orchestrator) for:
+ * 1. Coordinating multi-entity upserts (Team, Player, Match, Stats).
+ * 2. Enforcing the strict pregame-only analytical lifecycle.
+ * 3. Providing the schema-validated data structure for the Keyboard Coach Arena.
  * 
- * Flow:
- * 1. Fetch raw data from providers (Skeleton mode)
- * 2. Upsert Team / Player [P1-2]
- * 3. Upsert Match
- * 4. Upsert MatchStats
- * 5. Derive and Upsert TeamWorldState (PREGAME ONLY)
- * 6. Generate and Persist CoachRead (PREGAME ONLY)
+ * Real-world data ingestion (e.g., ESPN, Sportradar) should be plugged into 
+ * the 'getMatchesForDate' and 'roster' providers.
  */
 export async function runHotIngestFull(params: { reason: string, date: string }) {
   console.log(`[IngestOrchestrator] Starting run for ${params.date} (Reason: ${params.reason})`);

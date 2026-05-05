@@ -76,8 +76,18 @@ export default function CoachRoomPage() {
                 <CoachReadCard 
                   key={game.matchId} 
                   data={game} 
-                  onVote={(s) => console.log('Vote:', s)}
-                  onComment={() => console.log('Comment')}
+                  onVote={(stance) => {
+                    // TODO: Integrate with POST /api/games/[matchId]/vote
+                    // Requires Auth/Session (userId) to avoid 401
+                    console.log(`[Arena] Vote ${stance} cast for ${game.matchId}`);
+                    alert(`教練席紀錄：您對此決策投下了 ${stance}。 (需登入以正式計票)`);
+                  }}
+                  onComment={() => {
+                    // TODO: Integrate with POST /api/games/[matchId]/comment
+                    // Requires Auth/Session (userId) to avoid 401
+                    console.log(`[Arena] Opening debate for ${game.matchId}`);
+                    alert("教練辯論室即將開放... (需登入以參與討論)");
+                  }}
                 />
               ))}
             </div>
