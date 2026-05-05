@@ -83,12 +83,7 @@ function pendingSummary(league: LeagueCode, message: string): SimulationSummaryR
     mode: 'simulation',
     message,
     data: null,
-    meta: {
-      league,
-      simulationRuns: 0,
-      generatedAt: null,
-      validationMode: 'unvalidated',
-    },
+    meta: { league, simulationRuns: 0, generatedAt: null, validationMode: 'unvalidated' },
   }
 }
 
@@ -98,12 +93,7 @@ function errorSummary(league: LeagueCode, message: string): SimulationSummaryRes
     mode: 'simulation',
     message,
     data: null,
-    meta: {
-      league,
-      simulationRuns: 0,
-      generatedAt: null,
-      validationMode: 'unvalidated',
-    },
+    meta: { league, simulationRuns: 0, generatedAt: null, validationMode: 'unvalidated' },
   }
 }
 
@@ -124,11 +114,7 @@ async function getESPNNBAPlayoffEvents() {
   const today = new Date()
   const eventMap = new Map<string, any>()
   const tasks: Array<Promise<any[]>> = []
-
-  for (let offset = -45; offset <= 14; offset += 1) {
-    tasks.push(fetchScoreboardEventsForDate(addDays(today, offset)))
-  }
-
+  for (let offset = -45; offset <= 14; offset += 1) tasks.push(fetchScoreboardEventsForDate(addDays(today, offset)))
   const results = await Promise.all(tasks)
   for (const events of results) {
     for (const event of events) {
@@ -136,7 +122,6 @@ async function getESPNNBAPlayoffEvents() {
       eventMap.set(String(event.id), event)
     }
   }
-
   return Array.from(eventMap.values())
 }
 
@@ -169,13 +154,37 @@ function seedToSeries(seed: NbaPlayoffSeedSeries): ReconstructedSeries {
   return { ...seed, source: 'seed' }
 }
 
+function hasConferenceName(roundName: string) {
+  const lower = roundName.toLowerCase()
+  return lower.includes('western') || lower.includes('eastern') || lower.includes('conference') || lower.includes('nba finals')
+}
+
 function mergeSeedWithLiveSeries(liveSeries: ReconstructedSeries[]) {
   const merged = new Map<string, ReconstructedSeries>()
-  for (const seed of NBA_PLAYOFF_HISTORY_SEED_2026) {
-    merged.set(seriesKey(seed), seedToSeries(seed))
-  }
+  for (const seed of NBA_PLAYOFF_HISTORY_SEED_2026) merged.set(seriesKey(seed), seedToSeries(seed))
+
   for (const live of liveSeries) {
-    merged.set(seriesKey(live), { ...live, source: 'espn' })
+    const key = seriesKey(live)
+    const seed = merged.get(key)
+    if (!seed) {
+      merged.set(key, { ...live, source: 'espn' })
+      continue
+    }
+
+    // ESPN live payloads can omit seed/conference context for completed historical series.
+    // Preserve the seeded bracket topology, then overlay only the live score/status fields.
+    merged.set(key, {
+      ...seed,
+      winsA: live.winsA,
+      winsB: live.winsB,
+      summary: live.summary ?? seed.summary,
+      date: live.date || seed.date,
+      teamASeed: live.teamASeed ?? seed.teamASeed,
+      teamBSeed: live.teamBSeed ?? seed.teamBSeed,
+      roundName: hasConferenceName(live.roundName) ? live.roundName : seed.roundName,
+      roundNumber: live.roundNumber || seed.roundNumber,
+      source: 'espn',
+    })
   }
   return Array.from(merged.values())
 }
@@ -202,7 +211,6 @@ function reconstructSeries(events: any[]): ReconstructedSeries[] {
     const [left, right] = [awayAbbr, homeAbbr].sort()
     const key = `${roundNumber}_${roundName}_${left}_${right}`
     const date = String(event.date ?? comp.date ?? '')
-
     const winsAway = getSeriesWins(series, away)
     const winsHome = getSeriesWins(series, home)
 
@@ -223,7 +231,6 @@ function reconstructSeries(events: any[]): ReconstructedSeries[] {
       })
     }
   }
-
   return Array.from(seriesMap.values())
 }
 
@@ -287,12 +294,7 @@ function buildLiveSummaryFromSeries(seriesList: ReconstructedSeries[], liveSerie
         notes: `Seeded bracket baseline with ESPN live series overlay. Live ESPN overlays applied: ${liveSeriesCount}.`,
       },
     },
-    meta: {
-      league: 'NBA',
-      simulationRuns: liveSeriesCount > 0 ? liveSeriesCount : 1,
-      generatedAt: new Date().toISOString(),
-      validationMode: 'live_projection',
-    },
+    meta: { league: 'NBA', simulationRuns: liveSeriesCount > 0 ? liveSeriesCount : 1, generatedAt: new Date().toISOString(), validationMode: 'live_projection' },
   }
 }
 
@@ -311,12 +313,7 @@ function snapshotSummary(snapshot: any, league: LeagueCode): SimulationSummaryRe
         notes: snapshot.dataStatus === 'DEGRADED' ? 'Data streams degraded. Interim projection active.' : 'Agency calibrated snapshot.',
       },
     },
-    meta: {
-      league,
-      simulationRuns: 10000,
-      generatedAt: snapshot.generatedAt.toISOString(),
-      validationMode: snapshot.dataStatus === 'DEGRADED' ? 'unvalidated' : 'live_projection',
-    },
+    meta: { league, simulationRuns: 10000, generatedAt: snapshot.generatedAt.toISOString(), validationMode: snapshot.dataStatus === 'DEGRADED' ? 'unvalidated' : 'live_projection' },
   }
 }
 
@@ -326,9 +323,7 @@ export async function GET(req: Request) {
 
   let snapshot: any = null
   try {
-    snapshot = await (prisma as any).leagueProjectionSnapshot.findUnique({
-      where: { snapshotId: `latest_${league.toLowerCase()}` },
-    })
+    snapshot = await (prisma as any).leagueProjectionSnapshot.findUnique({ where: { snapshotId: `latest_${league.toLowerCase()}` } })
   } catch (err) {
     console.error('[playoff-summary] Database error:', err)
   }
@@ -371,9 +366,6 @@ export async function GET(req: Request) {
     return NextResponse.json(pendingSummary('NBA', 'Playoff series sync pending (no ESPN series data found)'), { status: 200 })
   }
 
-  if (!snapshot) {
-    return NextResponse.json(errorSummary(league, `No projection snapshot found for ${league}`), { status: 404 })
-  }
-
+  if (!snapshot) return NextResponse.json(errorSummary(league, `No projection snapshot found for ${league}`), { status: 404 })
   return NextResponse.json(snapshotSummary(snapshot, league))
 }

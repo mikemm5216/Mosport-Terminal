@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import type { League } from '../data/mockData'
 import { leagueTheme } from './ui'
@@ -12,6 +13,28 @@ import { PAGE_SHELL_STYLE, BREAKPOINTS } from '../lib/ui'
 
 type BracketMatchup = PlayoffSimulationSummary['bracket']['rounds'][number]['matchups'][number]
 type ConferenceSide = 'West' | 'East' | 'Finals'
+
+const BRACKET_BASE_WIDTH = 1280
+const BRACKET_BASE_HEIGHT = 600
+const PENDING_BRACKET_BASE_HEIGHT = 520
+
+function getBracketScale(viewportWidth: number, embedded?: boolean) {
+  const horizontalChrome = embedded ? 32 : 112
+  const available = Math.max(360, viewportWidth - horizontalChrome)
+  const rawScale = available / BRACKET_BASE_WIDTH
+  return Math.max(0.56, Math.min(1, rawScale))
+}
+
+function ScaledBracketFrame({ viewportWidth, embedded, height, children }: { viewportWidth: number; embedded?: boolean; height: number; children: ReactNode }) {
+  const scale = getBracketScale(viewportWidth, embedded)
+  return (
+    <div style={{ width: '100%', height: Math.ceil(height * scale), overflow: 'hidden', position: 'relative' }}>
+      <div style={{ width: BRACKET_BASE_WIDTH, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
 
 export function useSummary(league: string) {
   const [summary, setSummary] = useState<SimulationSummaryResponse | null>(null)
@@ -143,20 +166,22 @@ function EmptySlot({ league, label }: { league: League; label: string }) {
   )
 }
 
-function PendingButterflyBracket({ league, message }: { league: League; message: string }) {
+function PendingButterflyBracket({ league, message, viewportWidth, embedded }: { league: League; message: string; viewportWidth: number; embedded?: boolean }) {
   const labels = ['R1', 'R1', 'R1', 'R1']
   return (
-    <div style={{ position: 'relative', minHeight: 520, padding: '28px 24px', border: `1px solid ${leagueTheme(league).hex}22`, borderRadius: 10, background: 'radial-gradient(circle at center, rgba(34,211,238,0.08), rgba(2,6,23,0) 45%)', overflow: 'hidden' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.9fr 220px 0.9fr 1fr 1.2fr', gap: 16, alignItems: 'center', height: '100%' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{labels.map((label, i) => <EmptySlot key={`pl1-${i}`} league={league} label={label} />)}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}><EmptySlot league={league} label="R2" /><EmptySlot league={league} label="R2" /></div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}><EmptySlot league={league} label="CONF" /></div>
-        <div style={{ textAlign: 'center', fontFamily: 'var(--font-inter)', color: '#94a3b8' }}>{message}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}><EmptySlot league={league} label="CONF" /></div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}><EmptySlot league={league} label="R2" /><EmptySlot league={league} label="R2" /></div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{labels.map((label, i) => <EmptySlot key={`pr1-${i}`} league={league} label={label} />)}</div>
+    <ScaledBracketFrame viewportWidth={viewportWidth} embedded={embedded} height={PENDING_BRACKET_BASE_HEIGHT}>
+      <div style={{ position: 'relative', width: BRACKET_BASE_WIDTH, minHeight: PENDING_BRACKET_BASE_HEIGHT, padding: '28px 24px', border: `1px solid ${leagueTheme(league).hex}22`, borderRadius: 10, background: 'radial-gradient(circle at center, rgba(34,211,238,0.08), rgba(2,6,23,0) 45%)', overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.9fr 220px 0.9fr 1fr 1.2fr', gap: 16, alignItems: 'center', height: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{labels.map((label, i) => <EmptySlot key={`pl1-${i}`} league={league} label={label} />)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}><EmptySlot league={league} label="R2" /><EmptySlot league={league} label="R2" /></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}><EmptySlot league={league} label="CONF" /></div>
+          <div style={{ textAlign: 'center', fontFamily: 'var(--font-inter)', color: '#94a3b8' }}>{message}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}><EmptySlot league={league} label="CONF" /></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}><EmptySlot league={league} label="R2" /><EmptySlot league={league} label="R2" /></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{labels.map((label, i) => <EmptySlot key={`pr1-${i}`} league={league} label={label} />)}</div>
+        </div>
       </div>
-    </div>
+    </ScaledBracketFrame>
   )
 }
 
@@ -230,7 +255,7 @@ function SlotColumn({ matchups, league, round, side, label, compact = true }: { 
   )
 }
 
-function ButterflyBracket({ data, league }: { data: PlayoffSimulationSummary; league: League }) {
+function ButterflyBracket({ data, league, viewportWidth, embedded }: { data: PlayoffSimulationSummary; league: League; viewportWidth: number; embedded?: boolean }) {
   const t = leagueTheme(league)
   const all = data.bracket.rounds.flatMap(round => round.matchups)
   const westR1 = all.filter(m => getConference(m) === 'West' && getRound(m) === 1)
@@ -242,22 +267,24 @@ function ButterflyBracket({ data, league }: { data: PlayoffSimulationSummary; le
   const finals = all.find(m => getRound(m) === 4) ?? all.find(m => getConference(m) === 'Finals')
 
   return (
-    <div style={{ position: 'relative', minHeight: 600, padding: '28px 24px', border: `1px solid ${t.hex}18`, borderRadius: 10, background: 'radial-gradient(circle at center, rgba(34,211,238,0.08), rgba(2,6,23,0) 45%)', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', left: '50%', top: 70, bottom: 40, width: 1, background: `linear-gradient(180deg, transparent, ${t.hex}77, transparent)` }} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1.08fr 0.9fr 230px 0.9fr 1.08fr 1.35fr', gap: 16, alignItems: 'center', height: '100%' }}>
-        <SlotColumn matchups={westR1} league={league} round={1} side="West" label="R1" compact />
-        <SlotColumn matchups={westR2} league={league} round={2} side="West" label="R2" compact />
-        <SlotColumn matchups={westR3} league={league} round={3} side="West" label="WCF" compact={false} />
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, minHeight: 500 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#fbbf24', letterSpacing: '0.42em', fontWeight: 900 }}>FINALS</div>
-          {finals ? <SeriesCard matchup={finals} league={league} /> : <EmptySlot league={league} label="FINALS" />}
-          <ChampionCard summary={{ status: 'ok', mode: 'simulation', data, meta: { league: league as any, simulationRuns: 0, generatedAt: null, validationMode: 'unvalidated' } }} league={league} loading={false} />
+    <ScaledBracketFrame viewportWidth={viewportWidth} embedded={embedded} height={BRACKET_BASE_HEIGHT}>
+      <div style={{ position: 'relative', width: BRACKET_BASE_WIDTH, minHeight: BRACKET_BASE_HEIGHT, padding: '28px 24px', border: `1px solid ${t.hex}18`, borderRadius: 10, background: 'radial-gradient(circle at center, rgba(34,211,238,0.08), rgba(2,6,23,0) 45%)', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', left: '50%', top: 70, bottom: 40, width: 1, background: `linear-gradient(180deg, transparent, ${t.hex}77, transparent)` }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1.08fr 0.9fr 230px 0.9fr 1.08fr 1.35fr', gap: 16, alignItems: 'center', height: '100%' }}>
+          <SlotColumn matchups={westR1} league={league} round={1} side="West" label="R1" compact />
+          <SlotColumn matchups={westR2} league={league} round={2} side="West" label="R2" compact />
+          <SlotColumn matchups={westR3} league={league} round={3} side="West" label="WCF" compact={false} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, minHeight: 500 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#fbbf24', letterSpacing: '0.42em', fontWeight: 900 }}>FINALS</div>
+            {finals ? <SeriesCard matchup={finals} league={league} /> : <EmptySlot league={league} label="FINALS" />}
+            <ChampionCard summary={{ status: 'ok', mode: 'simulation', data, meta: { league: league as any, simulationRuns: 0, generatedAt: null, validationMode: 'unvalidated' } }} league={league} loading={false} />
+          </div>
+          <SlotColumn matchups={eastR3} league={league} round={3} side="East" label="ECF" compact={false} />
+          <SlotColumn matchups={eastR2} league={league} round={2} side="East" label="R2" compact />
+          <SlotColumn matchups={eastR1} league={league} round={1} side="East" label="R1" compact />
         </div>
-        <SlotColumn matchups={eastR3} league={league} round={3} side="East" label="ECF" compact={false} />
-        <SlotColumn matchups={eastR2} league={league} round={2} side="East" label="R2" compact />
-        <SlotColumn matchups={eastR1} league={league} round={1} side="East" label="R1" compact />
       </div>
-    </div>
+    </ScaledBracketFrame>
   )
 }
 
@@ -370,7 +397,7 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
           </div>
         )}
 
-        {summaryOk ? <ButterflyBracket data={summaryOk.data} league={selectedLeague} /> : <PendingButterflyBracket league={selectedLeague} message={pendingMessage} />}
+        {summaryOk ? <ButterflyBracket data={summaryOk.data} league={selectedLeague} viewportWidth={width} embedded={embedded} /> : <PendingButterflyBracket league={selectedLeague} message={pendingMessage} viewportWidth={width} embedded={embedded} />}
 
         <LiveSeriesStrip league={selectedLeague} seriesMap={liveSeriesMap} />
 
