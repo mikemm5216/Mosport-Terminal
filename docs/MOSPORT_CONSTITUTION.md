@@ -1,6 +1,6 @@
 # Mosport Constitution
 
-Version: v1.1
+Version: v1.2
 Status: Binding Product Constitution
 Base Repo: `mikemm5216/Mosport-Terminal`
 
@@ -8,6 +8,7 @@ This document is the highest-level product and engineering constitution for Mosp
 
 Related binding product documents:
 
+- `docs/MOSPORT_WORLD_ENGINE_DOCTRINE.md`
 - `docs/V12_USER_DATA_LAYER.md`
 - `docs/KEYBOARD_COACH_LEVEL_SYSTEM.md`
 
@@ -50,9 +51,49 @@ Postgame:
 Final Result → Postgame Verdict → Keyboard Coach Reputation
 ```
 
+World Engine analysis must follow `docs/MOSPORT_WORLD_ENGINE_DOCTRINE.md`.
+
 ---
 
-## 3. Pregame-Only Rule
+## 3. Universal World Engine Rule
+
+Any Mosport analysis of any game must follow the Mosport World Engine Doctrine.
+
+Required analysis flow:
+
+```txt
+Player Living State
++ Team Living State
++ Environment State
++ Matchup Collision
++ Event Chain Potential
+→ World Line Simulation
+→ Mosport Read
+→ Keyboard Coach Translation
+```
+
+No agent, model, script, product surface, or assistant response may invent an alternate game-analysis logic.
+
+International games, playoff games, finals, championship games, cup/knockout games, elimination games, and neutral-site games are special worlds. They must not be analyzed with ordinary regular-season logic.
+
+Forbidden:
+
+- ad-hoc one-off reasoning
+- result-first explanation
+- generic team rolling average as the final answer
+- raw feature dumping
+- pretending baseline features are the full World Engine
+- unsupported invented narratives
+- analyzing special worlds with ordinary regular-season logic
+
+Chinese:
+
+> 以後 Mosport 跑任何一場比賽，都只能用世界引擎憲法邏輯。
+> 不准臨時自創邏輯，不准先有答案再補故事，不准把 team rolling average 包裝成 Mosport 結論。
+
+---
+
+## 4. Pregame-Only Rule
 
 Mosport only generates analysis before the game starts.
 
@@ -98,7 +139,7 @@ Forbidden live CTA examples:
 
 ---
 
-## 4. Analysis Phases
+## 5. Analysis Phases
 
 All analysis must use this phase model:
 
@@ -167,7 +208,7 @@ Forbidden:
 
 ---
 
-## 5. Quantitative Data Rule
+## 6. Quantitative Data Rule
 
 Mosport does not reject quantitative data.
 
@@ -219,14 +260,22 @@ Chinese:
 
 ---
 
-## 6. World Engine Rule
+## 7. World Engine Rule
 
 The World Engine is the core interpretation layer.
 
 The World Engine does not merely display statistics. It translates validated sports facts into coach-useful game-state meaning.
 
-Core world-state dimensions:
+The binding World Engine logic is defined in `docs/MOSPORT_WORLD_ENGINE_DOCTRINE.md`.
 
+Core world-state dimensions may include:
+
+- playerLivingState
+- teamLivingState
+- environmentState
+- matchupCollision
+- eventChainPotential
+- worldLineSimulation
 - pressure
 - fatigue
 - volatility
@@ -260,7 +309,7 @@ Examples:
 
 ---
 
-## 7. Coach Read Rule
+## 8. Coach Read Rule
 
 A Coach Read is not a betting prediction.
 
@@ -293,7 +342,7 @@ Coach Read examples:
 
 ---
 
-## 8. Fan Interaction Rule
+## 9. Fan Interaction Rule
 
 Fan vote and comment are core product features, not secondary UI.
 
@@ -323,7 +372,7 @@ Fan interaction creates the Keyboard Coach community loop.
 
 ---
 
-## 9. Fan Judgment Data Layer Rule
+## 10. Fan Judgment Data Layer Rule
 
 Mosport's B2C product is not only a traffic funnel.
 
@@ -374,7 +423,7 @@ Implementation must follow `docs/V12_USER_DATA_LAYER.md`.
 
 ---
 
-## 10. Keyboard Coach Level System Rule
+## 11. Keyboard Coach Level System Rule
 
 Mosport must give fans a visible identity system that turns judgment into status.
 
@@ -435,7 +484,7 @@ Implementation must follow `docs/KEYBOARD_COACH_LEVEL_SYSTEM.md`.
 
 ---
 
-## 11. Data Safety Rule
+## 12. Data Safety Rule
 
 Real player names may only be shown if player-team validation passes.
 
@@ -489,7 +538,7 @@ Hockey:
 
 ---
 
-## 12. Live Status Rule
+## 13. Live Status Rule
 
 Live status is allowed only for follow mode, not for live analysis.
 
@@ -505,7 +554,7 @@ Live status exists to help fans follow the game and compare reality against the 
 
 ---
 
-## 13. UI Language Rule
+## 14. UI Language Rule
 
 Default product copy must feel like sports media, coaching debate, and fan argument.
 
@@ -536,7 +585,7 @@ Replace or avoid these terms in the public UI:
 
 ---
 
-## 14. Public Homepage Rule
+## 15. Public Homepage Rule
 
 The public homepage `/` must not be an ingest-worker health page, admin page, or operational dashboard.
 
@@ -558,7 +607,7 @@ Admin/worker status belongs under admin routes or API health routes, not the pub
 
 ---
 
-## 15. Terminal Mode Rule
+## 16. Terminal Mode Rule
 
 Terminal Mode may exist for advanced users.
 
@@ -570,7 +619,7 @@ The default public experience is Keyboard Coach.
 
 ---
 
-## 16. Data Challenge Rule
+## 17. Data Challenge Rule
 
 Data Challenge is a core trust feature.
 
@@ -589,7 +638,7 @@ DataChallengeReport must be treated as a first-class feedback loop and as a user
 
 ---
 
-## 17. Postgame Verdict Rule
+## 18. Postgame Verdict Rule
 
 Postgame verdicts must evaluate only the locked pregame Coach Read.
 
@@ -614,7 +663,7 @@ Postgame verdicts also feed:
 
 ---
 
-## 18. Hard Acceptance Criteria
+## 19. Hard Acceptance Criteria
 
 ### Product
 
@@ -623,6 +672,15 @@ Postgame verdicts also feed:
 - Every pregame game card contains a coach question.
 - Vote and comment CTAs are visually prominent.
 - Coach Level identity is visible in relevant profile/comment/ranking surfaces.
+
+### World Engine
+
+- Any game analysis follows `docs/MOSPORT_WORLD_ENGINE_DOCTRINE.md`.
+- No public Mosport Read uses ad-hoc reasoning.
+- No public Mosport Read uses rolling team average as final logic.
+- International / playoff / championship / final / elimination games use special-world logic.
+- Miracle and collapse are treated as repeated-event chains.
+- Environment is part of world-line simulation.
 
 ### Pregame Only
 
@@ -664,7 +722,7 @@ Postgame verdicts also feed:
 
 ---
 
-## 19. Final North Star
+## 20. Final North Star
 
 Mosport is not here to tell people what to bet.
 
@@ -682,7 +740,7 @@ Final product line:
 
 ---
 
-## 20. Model Claim Trust Rule
+## 21. Model Claim Trust Rule
 
 Any claim about model performance, accuracy, game count, backtest size, ROI, edge, upset detection, calibration, or historical result count is forbidden unless backed by a reproducible artifact.
 
