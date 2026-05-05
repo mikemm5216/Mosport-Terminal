@@ -1,0 +1,20 @@
+export type WorldEngineState = {
+  matchId: string;
+  teamId?: string;
+  pressure: number;
+  fatigue: number;
+  volatility: number;
+  momentum: number;
+  mismatch: number;
+  rotationRisk?: number;
+  tempoControl?: number;
+  benchStability?: number;
+  starLoad?: number;
+  foulTroubleRisk?: number;
+  lineupTrust?: number;
+  coachPanicIndex?: number;
+  lateGameFragility?: number;
+  emotionalSwing?: number;
+  collapseRisk?: number;
+  payload?: Record<string, unknown>;
+};

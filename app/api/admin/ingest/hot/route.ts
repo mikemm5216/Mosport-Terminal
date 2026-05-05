@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { runHotIngestFull } from "../../../../../lib/ingest/runHotIngestFull";
 import { runHotIngestMinimal } from "../../../../../lib/ingest/runHotIngestMinimal";
 
 export const dynamic = "force-dynamic";
@@ -57,10 +58,19 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await runHotIngestMinimal({
-      reason: "github_actions_hot_ingest",
-      date: new Date().toISOString().slice(0, 10)
-    });
+    let result;
+    try {
+      result = await runHotIngestFull({
+        reason: "github_actions_hot_ingest",
+        date: new Date().toISOString().slice(0, 10)
+      });
+    } catch (fullError) {
+      console.warn(`[${routeVersion}] full run failed, falling back to minimal`, fullError);
+      result = await runHotIngestMinimal({
+        reason: "github_actions_hot_ingest_fallback",
+        date: new Date().toISOString().slice(0, 10)
+      });
+    }
 
     return NextResponse.json({
       ok: result.ok,
