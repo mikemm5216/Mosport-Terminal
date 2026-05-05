@@ -11,6 +11,8 @@ on:
       - lib/world/**
       - lib/coach/**
       - types/**
+      - docs/MOSPORT_CONSTITUTION.md
+      - docs/MOSPORT_WORLD_ENGINE_DOCTRINE.md
       - package.json
       - package-lock.json
       - .github/workflows/v15-full-9500-backtest.yml
