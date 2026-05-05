@@ -1,4 +1,4 @@
-name: V15 Full 9500 Backtest
+name: V15 Real 2020-2024 Train + 2025 OOS Backtest
 
 on:
   workflow_dispatch:
@@ -6,7 +6,6 @@ on:
     branches:
       - main
     paths:
-      - data/historical/mosport_9500.jsonl
       - scripts/backtest/**
       - lib/features/**
       - lib/world/**
@@ -17,7 +16,7 @@ on:
       - .github/workflows/v15-full-9500-backtest.yml
 
 jobs:
-  full-9500-backtest:
+  real-oos-backtest:
     runs-on: ubuntu-latest
 
     steps:
@@ -36,13 +35,30 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      - name: Verify 9500 corpus exists
+      - name: Generate real 2020-2024 training corpus and 2025 test corpus
         run: |
-          test -f data/historical/mosport_9500.jsonl
-          lines=$(wc -l < data/historical/mosport_9500.jsonl)
-          echo "mosport_9500.jsonl line count: $lines"
-          if [ "$lines" -lt 9500 ]; then
-            echo "ERROR: mosport_9500.jsonl has fewer than 9500 records. Refusing to label this as a 9500-game corpus."
+          npm run corpus:generate-real-train-test -- \
+            --train-start-year=2020 \
+            --train-end-year=2024 \
+            --test-year=2025 \
+            --min-train-records=9500 \
+            --train-output=data/historical/mosport_2020_2024_train.jsonl \
+            --test-output=data/historical/mosport_2025_test.jsonl
+
+      - name: Verify real corpus files exist
+        run: |
+          test -f data/historical/mosport_2020_2024_train.jsonl
+          test -f data/historical/mosport_2025_test.jsonl
+          train_lines=$(wc -l < data/historical/mosport_2020_2024_train.jsonl)
+          test_lines=$(wc -l < data/historical/mosport_2025_test.jsonl)
+          echo "mosport_2020_2024_train.jsonl line count: $train_lines"
+          echo "mosport_2025_test.jsonl line count: $test_lines"
+          if [ "$train_lines" -lt 9500 ]; then
+            echo "ERROR: 2020-2024 real training corpus has fewer than the expected 9500 completed games. Refusing to run a fake or incomplete 9500-game backtest."
+            exit 1
+          fi
+          if [ "$test_lines" -lt 1 ]; then
+            echo "ERROR: 2025 test corpus is empty."
             exit 1
           fi
 
@@ -52,16 +68,26 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Validate 9500 corpus
-        run: npm run corpus:validate -- --input=data/historical/mosport_9500.jsonl --output=data/backtest-artifacts
+      - name: Validate 2020-2024 training corpus
+        run: npm run corpus:validate -- --input=data/historical/mosport_2020_2024_train.jsonl --output=data/backtest-artifacts
 
-      - name: Run 9500 historical backtest
-        run: npm run backtest:historical -- --input=data/historical/mosport_9500.jsonl --output=data/backtest-artifacts
+      - name: Validate 2025 test corpus
+        run: npm run corpus:validate -- --input=data/historical/mosport_2025_test.jsonl --output=data/backtest-artifacts
 
-      - name: Upload 9500 backtest artifacts
+      - name: Run 2025 out-of-sample prediction backtest
+        run: |
+          npm run backtest:oos-2025 -- \
+            --train=data/historical/mosport_2020_2024_train.jsonl \
+            --test=data/historical/mosport_2025_test.jsonl \
+            --output=data/backtest-artifacts
+
+      - name: Upload real 2025 OOS backtest artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: v15-full-9500-backtest-artifacts
-          path: data/backtest-artifacts
+          name: v15-real-2025-oos-backtest-artifacts
+          path: |
+            data/backtest-artifacts
+            data/historical/mosport_2020_2024_train.jsonl
+            data/historical/mosport_2025_test.jsonl
           if-no-files-found: warn
