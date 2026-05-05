@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { CoachReadDTO } from "@/types/coach";
+import { prisma } from "../../../../../lib/prisma";
+import { CoachReadDTO } from "../../../../../types/coach";
 
 export async function GET(
   req: Request,
