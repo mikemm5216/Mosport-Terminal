@@ -1,0 +1,67 @@
+name: V15 Full 9500 Backtest
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - data/historical/mosport_9500.jsonl
+      - scripts/backtest/**
+      - lib/features/**
+      - lib/world/**
+      - lib/coach/**
+      - types/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/v15-full-9500-backtest.yml
+
+jobs:
+  full-9500-backtest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Verify 9500 corpus exists
+        run: |
+          test -f data/historical/mosport_9500.jsonl
+          lines=$(wc -l < data/historical/mosport_9500.jsonl)
+          echo "mosport_9500.jsonl line count: $lines"
+          if [ "$lines" -lt 9500 ]; then
+            echo "ERROR: mosport_9500.jsonl has fewer than 9500 records. Refusing to label this as a 9500-game corpus."
+            exit 1
+          fi
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Validate 9500 corpus
+        run: npm run corpus:validate -- --input=data/historical/mosport_9500.jsonl --output=data/backtest-artifacts
+
+      - name: Run 9500 historical backtest
+        run: npm run backtest:historical -- --input=data/historical/mosport_9500.jsonl --output=data/backtest-artifacts
+
+      - name: Upload 9500 backtest artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v15-full-9500-backtest-artifacts
+          path: data/backtest-artifacts
+          if-no-files-found: warn
