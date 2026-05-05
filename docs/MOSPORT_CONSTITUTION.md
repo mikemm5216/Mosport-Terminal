@@ -15,23 +15,29 @@ Related binding product documents:
 
 ## 1. Core Identity
 
-Mosport is not a sportsbook, betting product, live wagering tool, quant trading terminal, investment-advisory product, or generic sports score app.
+Mosport is not a sportsbook, betting product, live wagering tool, quant trading terminal, or generic sports score app.
 
 Mosport is a **pregame Keyboard Coach platform**.
 
 Mosport lets fans act like coaches before the game starts: read the matchup, debate the coaching decision, vote, comment, and then come back after the game to see who was right.
 
+Core product sentence:
+
+> Pregame coaching debates for sports fans.
+
 Chinese positioning:
 
 > Mosport 是讓球迷在賽前上場當教練的 AI 鍵盤教練平台。
 
-Final product line:
+Brand line:
 
 > 賽前當教練，賽中看打臉，賽後論輸贏。
 
 ---
 
 ## 2. Product Formula
+
+Mosport follows this product flow:
 
 ```txt
 Pregame:
@@ -48,7 +54,7 @@ Final Result → Postgame Verdict → Keyboard Coach Reputation
 
 ## 3. Pregame-Only Rule
 
-Mosport only generates public-facing Coach Reads before the game starts.
+Mosport only generates analysis before the game starts.
 
 Once a game starts, all public-facing Coach Reads must be locked.
 
@@ -61,7 +67,7 @@ During live games, Mosport must not generate or update:
 - live betting-style recommendations
 - in-play decision advice
 - market-movement-based prompts
-- wagering or chase-style suggestions
+- any wagering or chase-style suggestion
 
 Live games are **follow-only**.
 
@@ -76,7 +82,13 @@ Allowed during live games:
 - user's pregame vote
 - postgame verdict pending state
 
-Forbidden live CTAs:
+Live CTA examples:
+
+- View Pregame Read
+- Comment
+- Follow Postgame Verdict
+
+Forbidden live CTA examples:
 
 - Re-analyze
 - Live Prediction
@@ -87,6 +99,8 @@ Forbidden live CTAs:
 ---
 
 ## 4. Analysis Phases
+
+All analysis must use this phase model:
 
 ```ts
 export type AnalysisPhase =
@@ -108,6 +122,8 @@ Allowed:
 
 ### PREGAME_LOCKED
 
+Triggered before start time, at start time, or by explicit locking policy.
+
 Required behavior:
 
 - Coach Read is locked
@@ -115,6 +131,8 @@ Required behavior:
 - generatedAt and lockedAt must be visible or traceable
 
 ### LIVE_FOLLOW_ONLY
+
+Triggered when the game is live.
 
 Allowed:
 
@@ -134,6 +152,8 @@ Forbidden:
 
 ### POSTGAME_VERDICT
 
+Triggered when the game is final/completed.
+
 Allowed:
 
 - compare final result against locked pregame Coach Read
@@ -149,7 +169,9 @@ Forbidden:
 
 ## 5. Quantitative Data Rule
 
-Mosport does not reject quantitative data. Coaches need evidence.
+Mosport does not reject quantitative data.
+
+Coaches need evidence. Data matters.
 
 But raw quantitative data is not the public product. Quantitative data must be converted into world-engine interpretation and then into coach-readable judgment.
 
@@ -179,6 +201,13 @@ Default UI should headline:
 - Opposing Coach View
 - Fan Vote
 - Comment / Debate
+
+Quantitative and structured data may exist in:
+
+- World Engine Evidence
+- Coach Evidence
+- Advanced Context
+- Terminal Mode
 
 Principle:
 
@@ -220,6 +249,15 @@ World Engine output must answer:
 
 > What is the most meaningful coaching question before this game?
 
+Examples:
+
+- Should the coach compress the rotation?
+- Should the coach attack a specific mismatch?
+- Should the team slow the tempo?
+- Should the coach protect a foul-trouble risk?
+- Should the team play small?
+- Should the team double the opposing star?
+
 ---
 
 ## 7. Coach Read Rule
@@ -246,6 +284,13 @@ Every Coach Read should include:
 - fan prompt
 - vote summary when available
 
+Coach Read examples:
+
+- Should LAL compress the rotation early?
+- Should BOS double Brunson from the left elbow?
+- Should NYY go to the bullpen earlier than usual?
+- Should Arsenal press high in the first 20 minutes?
+
 ---
 
 ## 8. Fan Interaction Rule
@@ -256,10 +301,17 @@ Every pregame Coach Read card must make voting and commenting visually prominent
 
 Required vote options:
 
-- Agree / 同意
-- Disagree / 不同意
-- I have another call / 我有別招
-- Watch only / 先看戲
+- Agree
+- Disagree
+- I have another call
+- Watch only
+
+Chinese:
+
+- 同意
+- 不同意
+- 我有別招
+- 先看戲
 
 Fan interaction should write to:
 
@@ -279,7 +331,7 @@ It is the foundation for a proprietary user data layer built from fan judgment.
 
 Every login, vote, comment, alternative coach call, disagreement with Mosport Coach Read, data challenge, postgame verdict view, correct call, and wrong call may become structured product intelligence.
 
-Mosport must treat this as a strategic data layer, not incidental engagement tracking.
+Mosport must treat this as a strategic data layer, not as incidental engagement tracking.
 
 This layer should help Mosport understand:
 
@@ -401,6 +453,40 @@ Forbidden examples:
 - HOU showing D. Mitchell
 - any real-name player appearing on the wrong displayed team
 
+Neutral placeholders:
+
+Basketball:
+
+- Primary Scorer
+- Key Starter
+- Rotation Guard
+- Defensive Anchor
+- Bench Creator
+- Rim Protector
+
+Baseball:
+
+- Starting Pitcher
+- Bullpen Arm
+- Power Bat
+- Contact Hitter
+- Defensive Specialist
+
+Soccer:
+
+- Midfield Creator
+- Striker
+- Wide Threat
+- Defensive Anchor
+- Keeper
+
+Hockey:
+
+- Top Line Forward
+- Blue Line Anchor
+- Power Play Unit
+- Netminder
+
 ---
 
 ## 12. Live Status Rule
@@ -468,9 +554,23 @@ Required homepage concepts:
 - Top Keyboard Coaches
 - Coach Level Identity
 
+Admin/worker status belongs under admin routes or API health routes, not the public homepage.
+
 ---
 
-## 15. Data Challenge Rule
+## 15. Terminal Mode Rule
+
+Terminal Mode may exist for advanced users.
+
+Terminal Mode may expose deeper world-engine numbers, raw context, model metadata, provider health, and debugging information.
+
+But Terminal Mode must not become the default public experience.
+
+The default public experience is Keyboard Coach.
+
+---
+
+## 16. Data Challenge Rule
 
 Data Challenge is a core trust feature.
 
@@ -489,7 +589,7 @@ DataChallengeReport must be treated as a first-class feedback loop and as a user
 
 ---
 
-## 16. Postgame Verdict Rule
+## 17. Postgame Verdict Rule
 
 Postgame verdicts must evaluate only the locked pregame Coach Read.
 
@@ -501,6 +601,10 @@ Verdict types:
 
 Postgame verdicts must not rewrite history.
 
+Required framing:
+
+> This Coach Read was locked before the game. Postgame only verifies it; it does not change the answer.
+
 Postgame verdicts also feed:
 
 - Coach Score
@@ -510,7 +614,7 @@ Postgame verdicts also feed:
 
 ---
 
-## 17. Hard Acceptance Criteria
+## 18. Hard Acceptance Criteria
 
 ### Product
 
@@ -560,7 +664,7 @@ Postgame verdicts also feed:
 
 ---
 
-## 18. Final North Star
+## 19. Final North Star
 
 Mosport is not here to tell people what to bet.
 

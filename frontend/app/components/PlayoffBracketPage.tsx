@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useWindowWidth } from '../lib/useWindowWidth'
 import type { League } from '../data/mockData'
 import { leagueTheme } from './ui'
@@ -11,6 +12,29 @@ import { getSeriesStateFromCompletedGames } from '../lib/seriesState'
 import { PAGE_SHELL_STYLE, BREAKPOINTS } from '../lib/ui'
 
 type BracketMatchup = PlayoffSimulationSummary['bracket']['rounds'][number]['matchups'][number]
+type ConferenceSide = 'West' | 'East' | 'Finals'
+
+const BRACKET_BASE_WIDTH = 1280
+const BRACKET_BASE_HEIGHT = 600
+const PENDING_BRACKET_BASE_HEIGHT = 520
+
+function getBracketScale(viewportWidth: number, embedded?: boolean) {
+  const horizontalChrome = embedded ? 32 : 112
+  const available = Math.max(360, viewportWidth - horizontalChrome)
+  const rawScale = available / BRACKET_BASE_WIDTH
+  return Math.max(0.56, Math.min(1, rawScale))
+}
+
+function ScaledBracketFrame({ viewportWidth, embedded, height, children }: { viewportWidth: number; embedded?: boolean; height: number; children: ReactNode }) {
+  const scale = getBracketScale(viewportWidth, embedded)
+  return (
+    <div style={{ width: '100%', height: Math.ceil(height * scale), overflow: 'hidden', position: 'relative' }}>
+      <div style={{ width: BRACKET_BASE_WIDTH, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
 
 export function useSummary(league: string) {
   const [summary, setSummary] = useState<SimulationSummaryResponse | null>(null)
@@ -33,12 +57,7 @@ export function useSummary(league: string) {
             mode: 'simulation',
             message: 'Unable to load playoff projection summary',
             data: null,
-            meta: {
-              league: league as any,
-              simulationRuns: 0,
-              generatedAt: null,
-              validationMode: 'unvalidated',
-            },
+            meta: { league: league as any, simulationRuns: 0, generatedAt: null, validationMode: 'unvalidated' },
           })
         }
       })
@@ -100,18 +119,23 @@ function LiveSeriesStrip({ league, seriesMap }: { league: League; seriesMap: Ret
   )
 }
 
+function isCompleted(matchup: BracketMatchup) {
+  return (matchup.winsA ?? 0) >= 4 || (matchup.winsB ?? 0) >= 4
+}
+
 function SeriesCard({ matchup, league, compact = false }: { matchup: BracketMatchup; league: League; compact?: boolean }) {
   const t = leagueTheme(league)
   const winsA = matchup.winsA
   const winsB = matchup.winsB
   const hasWins = typeof winsA === 'number' && typeof winsB === 'number'
+  const completed = isCompleted(matchup)
   return (
-    <div style={{ minHeight: compact ? 58 : 70, padding: compact ? '9px 12px' : '11px 14px', background: 'linear-gradient(180deg, rgba(15,23,42,0.74), rgba(2,6,23,0.82))', border: `1px solid ${matchup.seriesScore || hasWins ? t.hex + '55' : 'rgba(148,163,184,0.13)'}`, borderLeft: `3px solid ${t.hex}`, borderRadius: 6, boxShadow: matchup.seriesScore || hasWins ? `0 0 18px ${t.hex}20` : 'none' }}>
+    <div style={{ minHeight: compact ? 58 : 74, padding: compact ? '9px 12px' : '12px 14px', background: 'linear-gradient(180deg, rgba(15,23,42,0.74), rgba(2,6,23,0.82))', border: `1px solid ${completed ? '#34d39966' : t.hex + '55'}`, borderLeft: `3px solid ${completed ? '#34d399' : t.hex}`, borderRadius: 6, boxShadow: `0 0 18px ${(completed ? '#34d399' : t.hex)}20` }}>
       {[matchup.teamA, matchup.teamB].map((team, idx) => {
         const isProjected = team.shortName === matchup.projectedWinner.shortName
         const wins = idx === 0 ? winsA : winsB
         return (
-          <div key={team.shortName} style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between', opacity: isProjected ? 1 : 0.58, marginBottom: 4 }}>
+          <div key={`${team.shortName}-${idx}`} style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between', opacity: isProjected ? 1 : 0.58, marginBottom: 4 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
               <TeamLogo teamAbbr={team.shortName} league={league} size={compact ? 16 : 20} accentColor={isProjected ? t.hex : '#475569'} displayName={team.displayName} />
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: compact ? 9 : 10, fontWeight: 900, color: isProjected ? '#f8fafc' : '#64748b', overflow: 'hidden', textOverflow: 'ellipsis' }}>{team.shortName}</span>
@@ -124,50 +148,40 @@ function SeriesCard({ matchup, league, compact = false }: { matchup: BracketMatc
         )
       })}
       <div style={{ marginTop: 5, display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 7, color: '#64748b', letterSpacing: '0.12em', fontWeight: 800 }}>
-        <span>{matchup.seriesScore ? `SERIES ${matchup.seriesScore}` : hasWins ? `SERIES ${winsA}-${winsB}` : 'PROJECTION'}</span>
-        <span style={{ color: t.hex }}>{(matchup.winProbability * 100).toFixed(1)}%</span>
+        <span>{completed ? `FINAL ${matchup.seriesScore ?? `${winsA}-${winsB}`}` : matchup.seriesScore && matchup.seriesScore !== 'TBD' ? `SERIES ${matchup.seriesScore}` : 'MOSPORT PROJECTION'}</span>
+        <span style={{ color: completed ? '#34d399' : t.hex }}>{completed ? 'LOCKED' : `${(matchup.winProbability * 100).toFixed(1)}%`}</span>
       </div>
     </div>
   )
 }
 
-function PendingSeriesCard({ league, label }: { league: League; label: string }) {
+function EmptySlot({ league, label }: { league: League; label: string }) {
   const t = leagueTheme(league)
   return (
-    <div style={{ minHeight: 58, padding: '10px 12px', background: 'linear-gradient(180deg, rgba(15,23,42,0.58), rgba(2,6,23,0.72))', border: '1px dashed rgba(148,163,184,0.16)', borderLeft: `3px solid ${t.hex}`, borderRadius: 6 }}>
+    <div style={{ minHeight: 58, padding: '10px 12px', background: 'linear-gradient(180deg, rgba(15,23,42,0.45), rgba(2,6,23,0.62))', border: '1px dashed rgba(148,163,184,0.16)', borderLeft: `3px solid ${t.hex}`, borderRadius: 6 }}>
       <div style={{ height: 9, width: '55%', background: 'rgba(148,163,184,0.12)', borderRadius: 999, marginBottom: 10 }} />
       <div style={{ height: 9, width: '42%', background: 'rgba(148,163,184,0.08)', borderRadius: 999, marginBottom: 9 }} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 7, color: t.hex, letterSpacing: '0.12em', fontWeight: 900 }}>
-        <span>{label}</span><span>SYNC</span>
-      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 7, color: t.hex, letterSpacing: '0.12em', fontWeight: 900 }}><span>{label}</span><span>WAIT</span></div>
     </div>
   )
 }
 
-function PendingButterflyBracket({ league, message }: { league: League; message: string }) {
-  const t = leagueTheme(league)
-  const left = ['R1', 'R1', 'R1', 'R1']
-  const right = ['R1', 'R1', 'R1', 'R1']
+function PendingButterflyBracket({ league, message, viewportWidth, embedded }: { league: League; message: string; viewportWidth: number; embedded?: boolean }) {
+  const labels = ['R1', 'R1', 'R1', 'R1']
   return (
-    <div style={{ position: 'relative', minHeight: 520, padding: '28px 24px', border: `1px solid ${t.hex}22`, borderRadius: 10, background: 'radial-gradient(circle at center, rgba(34,211,238,0.08), rgba(2,6,23,0) 45%)', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', left: '50%', top: 70, bottom: 40, width: 1, background: `linear-gradient(180deg, transparent, ${t.hex}77, transparent)` }} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.9fr 220px 0.9fr 1fr 1.2fr', gap: 16, alignItems: 'center', height: '100%' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{left.map((label, i) => <PendingSeriesCard key={`pl1-${i}`} league={league} label={label} />)}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}>{left.slice(0, 2).map((_, i) => <PendingSeriesCard key={`pl2-${i}`} league={league} label="R2" />)}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}><PendingSeriesCard league={league} label="CONF" /></div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#fbbf24', letterSpacing: '0.42em', fontWeight: 900 }}>FINALS</div>
-          <div style={{ padding: 22, background: 'rgba(251,191,36,0.05)', border: '2px dashed rgba(251,191,36,0.55)', borderRadius: 8, boxShadow: '0 0 30px rgba(251,191,36,0.12)', textAlign: 'center', minWidth: 190 }}>
-            <div style={{ fontFamily: 'var(--font-inter)', fontWeight: 900, color: '#fff', fontSize: 18, marginBottom: 8 }}>SYNC PENDING</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#fbbf24', letterSpacing: '0.2em' }}>PROJECTION RECALCULATING</div>
-            <div style={{ marginTop: 14, fontFamily: 'var(--font-inter)', fontSize: 12, lineHeight: 1.5, color: '#94a3b8' }}>{message}</div>
-          </div>
+    <ScaledBracketFrame viewportWidth={viewportWidth} embedded={embedded} height={PENDING_BRACKET_BASE_HEIGHT}>
+      <div style={{ position: 'relative', width: BRACKET_BASE_WIDTH, minHeight: PENDING_BRACKET_BASE_HEIGHT, padding: '28px 24px', border: `1px solid ${leagueTheme(league).hex}22`, borderRadius: 10, background: 'radial-gradient(circle at center, rgba(34,211,238,0.08), rgba(2,6,23,0) 45%)', overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.9fr 220px 0.9fr 1fr 1.2fr', gap: 16, alignItems: 'center', height: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{labels.map((label, i) => <EmptySlot key={`pl1-${i}`} league={league} label={label} />)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}><EmptySlot league={league} label="R2" /><EmptySlot league={league} label="R2" /></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}><EmptySlot league={league} label="CONF" /></div>
+          <div style={{ textAlign: 'center', fontFamily: 'var(--font-inter)', color: '#94a3b8' }}>{message}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}><EmptySlot league={league} label="CONF" /></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}><EmptySlot league={league} label="R2" /><EmptySlot league={league} label="R2" /></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{labels.map((label, i) => <EmptySlot key={`pr1-${i}`} league={league} label={label} />)}</div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}><PendingSeriesCard league={league} label="CONF" /></div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}>{right.slice(0, 2).map((_, i) => <PendingSeriesCard key={`pr2-${i}`} league={league} label="R2" />)}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{right.map((label, i) => <PendingSeriesCard key={`pr1-${i}`} league={league} label={label} />)}</div>
       </div>
-    </div>
+    </ScaledBracketFrame>
   )
 }
 
@@ -186,32 +200,91 @@ function ChampionCard({ summary, league, loading }: { summary: SimulationOkSumma
   )
 }
 
-function ButterflyBracket({ data, league }: { data: PlayoffSimulationSummary; league: League }) {
+function getConference(matchup: BracketMatchup): ConferenceSide {
+  const c = String(matchup.conference ?? '').toLowerCase()
+  if (c.includes('west')) return 'West'
+  if (c.includes('east')) return 'East'
+  return 'Finals'
+}
+
+function getRound(matchup: BracketMatchup): number {
+  return Number(matchup.round ?? 1) || 1
+}
+
+function seedSet(matchup: BracketMatchup) {
+  return new Set([matchup.teamA.seed, matchup.teamB.seed].filter((seed): seed is number => typeof seed === 'number'))
+}
+
+function firstRoundSlot(matchup: BracketMatchup) {
+  const seeds = seedSet(matchup)
+  if (seeds.has(1) || seeds.has(8)) return 0
+  if (seeds.has(4) || seeds.has(5)) return 1
+  if (seeds.has(3) || seeds.has(6)) return 2
+  if (seeds.has(2) || seeds.has(7)) return 3
+  return 99
+}
+
+function secondRoundSlot(matchup: BracketMatchup) {
+  const seeds = seedSet(matchup)
+  if (seeds.has(1) || seeds.has(4) || seeds.has(5) || seeds.has(8)) return 0
+  if (seeds.has(2) || seeds.has(3) || seeds.has(6) || seeds.has(7)) return 1
+  return 99
+}
+
+function sortBracketPath(matchups: BracketMatchup[], round: number) {
+  return [...matchups].sort((a, b) => {
+    const slotA = round === 1 ? firstRoundSlot(a) : round === 2 ? secondRoundSlot(a) : 0
+    const slotB = round === 1 ? firstRoundSlot(b) : round === 2 ? secondRoundSlot(b) : 0
+    return slotA - slotB
+  })
+}
+
+function SlotColumn({ matchups, league, round, side, label, compact = true }: { matchups: BracketMatchup[]; league: League; round: 1 | 2 | 3; side: ConferenceSide; label: string; compact?: boolean }) {
+  const sorted = sortBracketPath(matchups, round)
+  const rows = round === 1 ? [1, 3, 5, 7] : round === 2 ? [2, 6] : [4]
+  const slots = round === 1 ? 4 : round === 2 ? 2 : 1
+  const items = Array.from({ length: slots }, (_, i) => sorted[i] ?? null)
+  return (
+    <div style={{ display: 'grid', gridTemplateRows: 'repeat(7, minmax(58px, auto))', rowGap: 9, alignItems: 'center', minHeight: 500 }}>
+      {items.map((matchup, i) => (
+        <div key={`${side}-${label}-${i}`} style={{ gridRow: rows[i] }}>
+          {matchup ? <SeriesCard matchup={matchup} league={league} compact={compact} /> : <EmptySlot league={league} label={label} />}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ButterflyBracket({ data, league, viewportWidth, embedded }: { data: PlayoffSimulationSummary; league: League; viewportWidth: number; embedded?: boolean }) {
   const t = leagueTheme(league)
-  const rounds = data.bracket.rounds
-  const split = <T,>(items: T[]): [T[], T[]] => [items.slice(0, Math.ceil(items.length / 2)), items.slice(Math.ceil(items.length / 2))]
-  const [r1Left, r1Right] = split(rounds[0]?.matchups ?? [])
-  const [r2Left, r2Right] = split(rounds[1]?.matchups ?? [])
-  const [r3Left, r3Right] = split(rounds[2]?.matchups ?? [])
-  const finals = rounds[3]?.matchups?.[0]
+  const all = data.bracket.rounds.flatMap(round => round.matchups)
+  const westR1 = all.filter(m => getConference(m) === 'West' && getRound(m) === 1)
+  const westR2 = all.filter(m => getConference(m) === 'West' && getRound(m) === 2)
+  const westR3 = all.filter(m => getConference(m) === 'West' && getRound(m) === 3)
+  const eastR1 = all.filter(m => getConference(m) === 'East' && getRound(m) === 1)
+  const eastR2 = all.filter(m => getConference(m) === 'East' && getRound(m) === 2)
+  const eastR3 = all.filter(m => getConference(m) === 'East' && getRound(m) === 3)
+  const finals = all.find(m => getRound(m) === 4) ?? all.find(m => getConference(m) === 'Finals')
 
   return (
-    <div style={{ position: 'relative', minHeight: 520, padding: '28px 24px', border: `1px solid ${t.hex}18`, borderRadius: 10, background: 'radial-gradient(circle at center, rgba(34,211,238,0.08), rgba(2,6,23,0) 45%)', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', left: '50%', top: 70, bottom: 40, width: 1, background: `linear-gradient(180deg, transparent, ${t.hex}77, transparent)` }} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 0.9fr 220px 0.9fr 1fr 1.2fr', gap: 16, alignItems: 'center', height: '100%' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{r1Left.map((m, i) => <SeriesCard key={`l-r1-${i}`} matchup={m} league={league} compact />)}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}>{r2Left.map((m, i) => <SeriesCard key={`l-r2-${i}`} matchup={m} league={league} compact />)}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}>{r3Left.map((m, i) => <SeriesCard key={`l-r3-${i}`} matchup={m} league={league} />)}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#fbbf24', letterSpacing: '0.42em', fontWeight: 900 }}>FINALS</div>
-          {finals ? <SeriesCard matchup={finals} league={league} /> : null}
-          <ChampionCard summary={{ status: 'ok', mode: 'simulation', data, meta: { league: league as any, simulationRuns: 0, generatedAt: null, validationMode: 'unvalidated' } }} league={league} loading={false} />
+    <ScaledBracketFrame viewportWidth={viewportWidth} embedded={embedded} height={BRACKET_BASE_HEIGHT}>
+      <div style={{ position: 'relative', width: BRACKET_BASE_WIDTH, minHeight: BRACKET_BASE_HEIGHT, padding: '28px 24px', border: `1px solid ${t.hex}18`, borderRadius: 10, background: 'radial-gradient(circle at center, rgba(34,211,238,0.08), rgba(2,6,23,0) 45%)', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', left: '50%', top: 70, bottom: 40, width: 1, background: `linear-gradient(180deg, transparent, ${t.hex}77, transparent)` }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1.08fr 0.9fr 230px 0.9fr 1.08fr 1.35fr', gap: 16, alignItems: 'center', height: '100%' }}>
+          <SlotColumn matchups={westR1} league={league} round={1} side="West" label="R1" compact />
+          <SlotColumn matchups={westR2} league={league} round={2} side="West" label="R2" compact />
+          <SlotColumn matchups={westR3} league={league} round={3} side="West" label="WCF" compact={false} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, minHeight: 500 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#fbbf24', letterSpacing: '0.42em', fontWeight: 900 }}>FINALS</div>
+            {finals ? <SeriesCard matchup={finals} league={league} /> : <EmptySlot league={league} label="FINALS" />}
+            <ChampionCard summary={{ status: 'ok', mode: 'simulation', data, meta: { league: league as any, simulationRuns: 0, generatedAt: null, validationMode: 'unvalidated' } }} league={league} loading={false} />
+          </div>
+          <SlotColumn matchups={eastR3} league={league} round={3} side="East" label="ECF" compact={false} />
+          <SlotColumn matchups={eastR2} league={league} round={2} side="East" label="R2" compact />
+          <SlotColumn matchups={eastR1} league={league} round={1} side="East" label="R1" compact />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 96 }}>{r3Right.map((m, i) => <SeriesCard key={`r-r3-${i}`} matchup={m} league={league} />)}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 42 }}>{r2Right.map((m, i) => <SeriesCard key={`r-r2-${i}`} matchup={m} league={league} compact />)}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{r1Right.map((m, i) => <SeriesCard key={`r-r1-${i}`} matchup={m} league={league} compact />)}</div>
       </div>
-    </div>
+    </ScaledBracketFrame>
   )
 }
 
@@ -265,7 +338,7 @@ function ValidationSummaryCard({ summary, loading }: { summary: SimulationOkSumm
     <div style={{ flex: 1, padding: '16px 20px', background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 4 }}>
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 7, color: '#475569', letterSpacing: '0.2em', marginBottom: 10 }}>VALIDATION</div>
       {loading || !validation ? <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#334155' }}>—</div> : (
-        <div style={{ fontFamily: 'var(--font-inter)', fontWeight: 800, fontSize: 11, color: '#34d399' }}>{validation.mode === 'live_projection' ? 'LIVE ESPN RECONSTRUCTION' : `${(Number(validation.overallAccuracy) * 100).toFixed(1)}% ACCURACY`}</div>
+        <div style={{ fontFamily: 'var(--font-inter)', fontWeight: 800, fontSize: 11, color: '#34d399' }}>{validation.mode === 'live_projection' ? 'SEEDED BASELINE + LIVE OVERLAY' : `${(Number(validation.overallAccuracy) * 100).toFixed(1)}% ACCURACY`}</div>
       )}
     </div>
   )
@@ -317,14 +390,14 @@ export default function PlayoffBracketPage({ embedded = false, league = 'NBA' }:
                 </div>
                 <DataFreshnessBadge freshness={dataFreshness} />
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: hasLiveSeriesData ? t.hex : '#64748b', letterSpacing: '0.15em', fontWeight: 900 }}>
-                  SYNC: {hasLiveSeriesData ? 'LIVE_RECONSTRUCTION' : summaryPending ? 'PENDING' : summaryError ? 'ERROR' : 'SNAPSHOT'}
+                  SYNC: {hasLiveSeriesData ? 'SEEDED_LIVE_OVERLAY' : summaryPending ? 'PENDING' : summaryError ? 'ERROR' : 'SNAPSHOT'}
                 </span>
               </div>
             </div>
           </div>
         )}
 
-        {summaryOk ? <ButterflyBracket data={summaryOk.data} league={selectedLeague} /> : <PendingButterflyBracket league={selectedLeague} message={pendingMessage} />}
+        {summaryOk ? <ButterflyBracket data={summaryOk.data} league={selectedLeague} viewportWidth={width} embedded={embedded} /> : <PendingButterflyBracket league={selectedLeague} message={pendingMessage} viewportWidth={width} embedded={embedded} />}
 
         <LiveSeriesStrip league={selectedLeague} seriesMap={liveSeriesMap} />
 
