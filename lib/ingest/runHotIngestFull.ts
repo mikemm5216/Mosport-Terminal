@@ -85,7 +85,9 @@ export async function runHotIngestFull(params: { reason: string, date: string })
           home_team_name: rawMatch.homeTeamName,
           away_team_name: rawMatch.awayTeamName,
           match_date: new Date(rawMatch.matchDate),
-          status: rawMatch.status
+          status: rawMatch.status,
+          home_score: rawMatch.homeScore,
+          away_score: rawMatch.awayScore
         },
         include: {
           stats: true,
@@ -214,6 +216,8 @@ async function getMatchesForDate(date: string) {
       awayTeamName: "Golden State Warriors",
       matchDate: `${date}T22:00:00Z`,
       status: "scheduled",
+      homeScore: 0,
+      awayScore: 0,
       stats: { paintPoints: 44, fastBreakPoints: 12 },
       roster: [
         { externalId: "p-ad-1", name: "Anthony Davis", teamSide: "home", position: "C" },
