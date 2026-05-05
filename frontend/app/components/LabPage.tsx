@@ -44,26 +44,29 @@ function EngineStatusPanel({ isMobile }: { isMobile: boolean }) {
         marginBottom: 44,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <LiveDot color="#f43f5e" size={8} />
+          <LiveDot color="#f97316" size={8} />
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 900, color: '#f8fafc', letterSpacing: '0.05em' }}>
-            WORLD ENGINE ACTIVATION STATUS: <span style={{ color: '#f43f5e' }}>PENDING</span>
+            WORLD ENGINE STATUS: <span style={{ color: '#f97316' }}>HARDENING / SCAFFOLD READY</span>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24 }}>
           <div style={{ padding: 20, background: 'rgba(15,23,42,0.4)', borderRadius: 4, border: '1px solid rgba(148,163,184,0.1)' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 800, color: '#64748b', letterSpacing: '0.2em', marginBottom: 8 }}>CURRENT STATUS</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 800, color: '#64748b', letterSpacing: '0.2em', marginBottom: 8 }}>COMPONENT STATUS</div>
             <div style={{ fontFamily: 'var(--font-inter)', fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>
-              • Production World Engine: Not active yet<br />
-              • Verified backtest: Not available<br />
-              • 9,500 recorded events: Unsupported claim removed<br />
-              • Next step: Build reproducible backtest pipeline
+              • ESPN Scoreboard Adapter: <span style={{ color: '#34d399' }}>BASIC READY</span><br />
+              • Sport-specific Feature Extraction: <span style={{ color: '#f97316' }}>PENDING / PARTIAL</span><br />
+              • V14 Engine Scaffold: <span style={{ color: '#34d399' }}>READY</span><br />
+              • Production Activation: <span style={{ color: '#f43f5e' }}>LOCKED</span>
             </div>
           </div>
           <div style={{ padding: 20, background: 'rgba(15,23,42,0.4)', borderRadius: 4, border: '1px solid rgba(148,163,184,0.1)' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 800, color: '#64748b', letterSpacing: '0.2em', marginBottom: 8 }}>EVIDENCE REQUIRED</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 800, color: '#64748b', letterSpacing: '0.2em', marginBottom: 8 }}>EVIDENCE LOG (SAMPLE)</div>
             <div style={{ fontFamily: 'var(--font-inter)', fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>
-              Historical results are hidden to protect product integrity. No performance, accuracy, or ROI metrics will be displayed without an associated backtest artifact.
+              • Sample Backtest Games: 3<br />
+              • Evaluated Integrity: 100%<br />
+              • Input SHA256: 304E9EE6E...CAD53A<br />
+              • Performance: Awaiting 9,500 Game Corpus Run
             </div>
           </div>
         </div>

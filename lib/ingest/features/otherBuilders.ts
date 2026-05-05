@@ -1,35 +1,43 @@
-import { NormalizedProviderGame } from "../../types/provider";
-import { NHLFeatures, NFLFeatures, EPLFeatures } from "../../../types/features";
+import { NormalizedProviderGame } from "../../providers/providerTypes";
+import { NHLPregameFeatures, NFLPregameFeatures, EPLPregameFeatures } from "../../../types/features";
 
-export function buildNHLFeatures(game: NormalizedProviderGame): NHLFeatures {
+export function buildNHLFeatures(game: NormalizedProviderGame): NHLPregameFeatures {
   return {
+    featureStatus: "MISSING",
+    missingEvidence: ["goalieAdvantage", "specialTeams", "fatigue"],
+    sourceFieldsUsed: [],
     goalieAdvantage: null,
-    specialTeamsMismatch: null,
-    physicalityIndex: null,
+    specialTeamsEdge: null,
+    backToBackFatigue: null,
     shotQualityEdge: null,
-    puckPossessionTrend: null,
-    fatigueFactor: null,
+    defensivePairingStability: null,
   };
 }
 
-export function buildNFLFeatures(game: NormalizedProviderGame): NFLFeatures {
+export function buildNFLFeatures(game: NormalizedProviderGame): NFLPregameFeatures {
   return {
+    featureStatus: "MISSING",
+    missingEvidence: ["qbStability", "offensiveLine", "passRush"],
+    sourceFieldsUsed: [],
     qbStability: null,
-    offensiveLineGrade: null,
-    passRushAdvantage: null,
-    redZoneEfficiency: null,
-    gameScriptBias: null,
-    weatherImpact: null,
+    offensiveLineHealth: null,
+    passRushMismatch: null,
+    redZoneEdge: null,
+    gameScriptPressure: null,
+    turnoverVolatility: null,
   };
 }
 
-export function buildEPLFeatures(game: NormalizedProviderGame): EPLFeatures {
+export function buildEPLFeatures(game: NormalizedProviderGame): EPLPregameFeatures {
   return {
+    featureStatus: "MISSING",
+    missingEvidence: ["fixtureCongestion", "midfieldControl", "setPieceRisk"],
+    sourceFieldsUsed: [],
     fixtureCongestion: null,
     midfieldControl: null,
-    setPieceDominance: null,
+    setPieceRisk: null,
     pressResistance: null,
-    expectedGoalsTrend: null,
-    defensiveHighLineRisk: null,
+    strikerForm: null,
+    defensiveLineRisk: null,
   };
 }

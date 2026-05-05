@@ -134,10 +134,13 @@ export async function runHotIngestFull(params: { reason: string, date: string, p
 
         // 7. Generate Coach Read & Persist
         const coachRead = getCoachRead(worldState);
+        const sportFeatures = features.nba || features.mlb || features.nhl || features.nfl || features.epl;
+        const finalStatus = sportFeatures?.featureStatus || "MISSING";
+
         await prisma.matchPrediction.upsert({
           where: { id: `${normalized.matchId}_cr` },
           update: {
-            label: "COACH_READ",
+            label: finalStatus === "READY" ? "COACH_READ" : (finalStatus === "PARTIAL" ? "COACH_READ_PARTIAL" : "COACH_READ_INSUFFICIENT"),
             action: coachRead.coachDecision,
             explanation: coachRead.coachRead,
             payload: coachRead as any
@@ -145,7 +148,7 @@ export async function runHotIngestFull(params: { reason: string, date: string, p
           create: {
             id: `${normalized.matchId}_cr`,
             matchId: normalized.matchId,
-            label: "COACH_READ",
+            label: finalStatus === "READY" ? "COACH_READ" : (finalStatus === "PARTIAL" ? "COACH_READ_PARTIAL" : "COACH_READ_INSUFFICIENT"),
             action: coachRead.coachDecision,
             explanation: coachRead.coachRead,
             payload: coachRead as any

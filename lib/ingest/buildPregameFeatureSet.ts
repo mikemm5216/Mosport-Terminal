@@ -18,6 +18,9 @@ export function buildPregameFeatureSet(game: NormalizedProviderGame): PregameFea
   const teamContext = game.rawFeatures?.teamContext;
   if (!teamContext) missing.push("teamContext");
   
+  const sportFeatures = nba || mlb || nhl || nfl || epl;
+  const isReady = sportFeatures?.featureStatus === "READY";
+  
   return {
     matchId: game.matchId,
     league: game.league,
@@ -38,7 +41,7 @@ export function buildPregameFeatureSet(game: NormalizedProviderGame): PregameFea
     nfl,
     epl,
     dataQuality: {
-      completenessScore: missing.length === 0 ? 1.0 : 0.1,
+      completenessScore: isReady ? 1.0 : (sportFeatures?.featureStatus === "PARTIAL" ? 0.5 : 0.1),
       missing,
       provider: "SYSTEM",
       updatedAt: new Date().toISOString(),

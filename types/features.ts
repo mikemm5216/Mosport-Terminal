@@ -38,7 +38,15 @@ export type TeamPregameContext = {
   rosterStability?: number;
 };
 
-export type NBAPregameFeatures = {
+export type FeatureStatus = "READY" | "PARTIAL" | "MISSING";
+
+export type BaseSportFeatures = {
+  featureStatus: FeatureStatus;
+  missingEvidence: string[];
+  sourceFieldsUsed: string[];
+};
+
+export type NBAPregameFeatures = BaseSportFeatures & {
   pacePressure?: number;
   rotationRisk?: number;
   foulTroubleRisk?: number;
@@ -47,7 +55,7 @@ export type NBAPregameFeatures = {
   starLoad?: number;
 };
 
-export type MLBPregameFeatures = {
+export type MLBPregameFeatures = BaseSportFeatures & {
   starterAdvantage?: number;
   bullpenFreshness?: number;
   handednessSplitAdvantage?: number;
@@ -58,7 +66,7 @@ export type MLBPregameFeatures = {
   defensiveStability?: number;
 };
 
-export type NHLPregameFeatures = {
+export type NHLPregameFeatures = BaseSportFeatures & {
   goalieAdvantage?: number;
   backToBackFatigue?: number;
   specialTeamsEdge?: number;
@@ -66,7 +74,7 @@ export type NHLPregameFeatures = {
   defensivePairingStability?: number;
 };
 
-export type NFLPregameFeatures = {
+export type NFLPregameFeatures = BaseSportFeatures & {
   qbStability?: number;
   passRushMismatch?: number;
   offensiveLineHealth?: number;
@@ -75,7 +83,7 @@ export type NFLPregameFeatures = {
   turnoverVolatility?: number;
 };
 
-export type EPLPregameFeatures = {
+export type EPLPregameFeatures = BaseSportFeatures & {
   pressResistance?: number;
   midfieldControl?: number;
   setPieceRisk?: number;

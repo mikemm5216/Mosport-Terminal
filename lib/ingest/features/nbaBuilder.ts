@@ -1,19 +1,19 @@
-import { NormalizedProviderGame } from "../../types/provider";
-import { NBAFeatures } from "../../../types/features";
+import { NormalizedProviderGame } from "../../providers/providerTypes";
+import { NBAPregameFeatures } from "../../../types/features";
 
-export function buildNBAFeatures(game: NormalizedProviderGame): NBAFeatures {
-  // Derive baseline features from ESPN scoreboard data
-  // Even if incomplete, we avoid total pass-through
-  
-  const homeCompetitor = game.raw?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "home");
-  const awayCompetitor = game.raw?.competitions?.[0]?.competitors?.find((c: any) => c.homeAway === "away");
+export function buildNBAFeatures(game: NormalizedProviderGame): NBAPregameFeatures {
+  const missingEvidence: string[] = [];
+  const sourceFieldsUsed: string[] = ["raw.competitions[0].competitors"];
 
-  // Example: Basic rest days calculation (if we had previous game dates, but here we just stub)
-  // In production, this would query the DB for the team's last match date
-  
+  // NBA implementation is currently a skeleton
+  missingEvidence.push("pacePressure", "rotationRisk", "benchStability", "starLoad", "foulTroubleRisk", "matchupMismatch");
+
   return {
-    pacePressure: null, // Requires tracking data
-    rotationRisk: null, // Requires injury reports
+    featureStatus: "PARTIAL",
+    missingEvidence,
+    sourceFieldsUsed,
+    pacePressure: null,
+    rotationRisk: null,
     benchStability: null,
     starLoad: null,
     foulTroubleRisk: null,
