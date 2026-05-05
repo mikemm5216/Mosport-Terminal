@@ -5,8 +5,8 @@ import '../styles/globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Mosport | Ingest Worker',
-  description: 'Data ingestion and analytical snapshot worker service.',
+  title: 'Mosport | Keyboard Coach Arena',
+  description: 'Pregame coach analysis, fan debates, and tactical decision intelligence.',
 }
 
 export default function RootLayout({
