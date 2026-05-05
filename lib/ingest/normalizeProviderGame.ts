@@ -8,6 +8,6 @@ export function normalizeProviderGame(raw: any): NormalizedProviderGame {
     startTime: raw.startTime,
     homeTeamId: raw.homeTeamId,
     awayTeamId: raw.awayTeamId,
-    rawFeatures: raw.features || {},
+    rawFeatures: raw.rawFeatures || raw.features || {},
   };
 }

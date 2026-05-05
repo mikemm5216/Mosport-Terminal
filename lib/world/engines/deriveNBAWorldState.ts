@@ -20,6 +20,8 @@ export function deriveNBAWorldState(features: PregameFeatureSet): WorldEngineSta
     engineStatus: isPartial ? "PARTIAL" : "READY",
     evidenceStatus: isPartial ? "PARTIAL" : "VALIDATED",
     missingEvidence: missing,
+    homeTeam: { id: features.homeTeamId, name: features.homeTeamName },
+    awayTeam: { id: features.awayTeamId, name: features.awayTeamName },
     pressure: nba?.pacePressure ?? null,
     fatigue: teamContext.home.travelFatigue ?? null,
     volatility: nba?.rotationRisk ?? null,
@@ -33,9 +35,9 @@ export function deriveNBAWorldState(features: PregameFeatureSet): WorldEngineSta
     coachEvidence: [
       {
         label: "Rotation Risk",
-        valueLabel: nba?.rotationRisk && nba.rotationRisk > 0.7 ? "HIGH" : (nba?.rotationRisk ? "NORMAL" : "UNKNOWN"),
-        severity: nba?.rotationRisk && nba.rotationRisk > 0.7 ? "HIGH" : "LOW",
-        explanation: nba?.rotationRisk ? "Analysis of rotation compression and bench unit stability." : "Rotation data unavailable.",
+        valueLabel: nba?.rotationRisk != null && nba.rotationRisk > 0.7 ? "HIGH" : (nba?.rotationRisk != null ? "NORMAL" : "UNKNOWN"),
+        severity: nba?.rotationRisk != null && nba.rotationRisk > 0.7 ? "HIGH" : "LOW",
+        explanation: nba?.rotationRisk != null ? "Analysis of rotation compression and bench unit stability." : "Rotation data unavailable.",
         source: "WORLD_ENGINE",
       }
     ],

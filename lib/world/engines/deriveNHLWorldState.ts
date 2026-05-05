@@ -22,6 +22,8 @@ export function deriveNHLWorldState(features: PregameFeatureSet): WorldEngineSta
     engineStatus: isPartial ? "PARTIAL" : "READY",
     evidenceStatus: isPartial ? "PARTIAL" : "VALIDATED",
     missingEvidence: isPartial ? ["MISSING_ADVANCED_METRICS"] : [],
+homeTeam: { id: features.homeTeamId, name: features.homeTeamName },
+awayTeam: { id: features.awayTeamId, name: features.awayTeamName },
     pressure: nhl?.shotQualityEdge ?? null,
     fatigue: nhl?.backToBackFatigue ?? null,
     volatility: nhl?.specialTeamsEdge ?? null,
@@ -42,3 +44,4 @@ export function deriveNHLWorldState(features: PregameFeatureSet): WorldEngineSta
     generatedAt: new Date().toISOString(),
   };
 }
+

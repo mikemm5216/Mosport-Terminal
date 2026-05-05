@@ -13,8 +13,8 @@ export function translateNFLWorldStateToCoachRead(worldState: WorldEngineState):
     generatedAt: worldState.generatedAt,
     generatedBeforeStart: true,
     isPregameOnly: true,
-    homeTeam: { id: "HOME", name: "Home Team", shortName: "HOME", league: "NFL" },
-    awayTeam: { id: "AWAY", name: "Away Team", shortName: "AWAY", league: "NFL" },
+    homeTeam: { id: worldState.homeTeam.id, name: worldState.homeTeam.name, shortName: worldState.homeTeam.shortName || worldState.homeTeam.id, league: "NFL" },
+    awayTeam: { id: worldState.awayTeam.id, name: worldState.awayTeam.name, shortName: worldState.awayTeam.shortName || worldState.awayTeam.id, league: "NFL" },
     gameStatus: { status: "pregame", display: "PREGAME" },
     coachQuestion: isInsufficient ? "Data insufficient for QB analysis." : "Should the game script be more aggressive early?",
     coachDecision: isInsufficient ? "EARLY_AGGRESSION" : "EARLY_AGGRESSION",
@@ -39,3 +39,4 @@ export function translateNFLWorldStateToCoachRead(worldState: WorldEngineState):
     ...CURRENT_ENGINE_VERSION,
   };
 }
+

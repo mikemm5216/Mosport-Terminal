@@ -13,8 +13,8 @@ export function translateNHLWorldStateToCoachRead(worldState: WorldEngineState):
     generatedAt: worldState.generatedAt,
     generatedBeforeStart: true,
     isPregameOnly: true,
-    homeTeam: { id: "HOME", name: "Home Team", shortName: "HOME", league: "NHL" },
-    awayTeam: { id: "AWAY", name: "Away Team", shortName: "AWAY", league: "NHL" },
+    homeTeam: { id: worldState.homeTeam.id, name: worldState.homeTeam.name, shortName: worldState.homeTeam.shortName || worldState.homeTeam.id, league: "NHL" },
+    awayTeam: { id: worldState.awayTeam.id, name: worldState.awayTeam.name, shortName: worldState.awayTeam.shortName || worldState.awayTeam.id, league: "NHL" },
     gameStatus: { status: "pregame", display: "PREGAME" },
     coachQuestion: isInsufficient ? "Data insufficient for goalie analysis." : "Should we prioritize special teams practice?",
     coachDecision: isInsufficient ? "EARLY_AGGRESSION" : "EARLY_AGGRESSION",
@@ -39,3 +39,4 @@ export function translateNHLWorldStateToCoachRead(worldState: WorldEngineState):
     ...CURRENT_ENGINE_VERSION,
   };
 }
+

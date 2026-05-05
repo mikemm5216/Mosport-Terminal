@@ -22,6 +22,8 @@ export function deriveNFLWorldState(features: PregameFeatureSet): WorldEngineSta
     engineStatus: isPartial ? "PARTIAL" : "READY",
     evidenceStatus: isPartial ? "PARTIAL" : "VALIDATED",
     missingEvidence: isPartial ? ["MISSING_ADVANCED_METRICS"] : [],
+homeTeam: { id: features.homeTeamId, name: features.homeTeamName },
+awayTeam: { id: features.awayTeamId, name: features.awayTeamName },
     pressure: nfl?.gameScriptPressure ?? null,
     fatigue: teamContext.home.travelFatigue ?? null,
     volatility: nfl?.turnoverVolatility ?? null,
@@ -44,3 +46,4 @@ export function deriveNFLWorldState(features: PregameFeatureSet): WorldEngineSta
     generatedAt: new Date().toISOString(),
   };
 }
+

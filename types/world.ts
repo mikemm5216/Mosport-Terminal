@@ -10,6 +10,9 @@ export type WorldEngineState = {
   evidenceStatus: EvidenceStatus;
   missingEvidence: MissingEvidenceReason[];
 
+  homeTeam: { id: string; name: string; shortName?: string };
+  awayTeam: { id: string; name: string; shortName?: string };
+
   pressure: number | null;
   fatigue: number | null;
   volatility: number | null;

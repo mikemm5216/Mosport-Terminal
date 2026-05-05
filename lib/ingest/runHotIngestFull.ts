@@ -113,21 +113,21 @@ export async function runHotIngestFull(params: { reason: string, date: string, p
         await prisma.teamWorldState.upsert({
           where: { id: `${match.match_id}_ws` },
           update: {
-            pressure: worldState.pressure || 0,
-            fatigue: worldState.fatigue || 0,
-            volatility: worldState.volatility || 0,
-            momentum: worldState.momentum || 0,
-            mismatch: worldState.mismatch || 0,
+            pressure: worldState.pressure,
+            fatigue: worldState.fatigue,
+            volatility: worldState.volatility,
+            momentum: worldState.momentum,
+            mismatch: worldState.mismatch,
             payload: worldState as any
           },
           create: {
             id: `${match.match_id}_ws`,
             teamId: homeTeam.team_id,
-            pressure: worldState.pressure || 0,
-            fatigue: worldState.fatigue || 0,
-            volatility: worldState.volatility || 0,
-            momentum: worldState.momentum || 0,
-            mismatch: worldState.mismatch || 0,
+            pressure: worldState.pressure,
+            fatigue: worldState.fatigue,
+            volatility: worldState.volatility,
+            momentum: worldState.momentum,
+            mismatch: worldState.mismatch,
             payload: worldState as any
           }
         });

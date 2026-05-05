@@ -13,8 +13,8 @@ export function translateEPLWorldStateToCoachRead(worldState: WorldEngineState):
     generatedAt: worldState.generatedAt,
     generatedBeforeStart: true,
     isPregameOnly: true,
-    homeTeam: { id: "HOME", name: "Home Team", shortName: "HOME", league: "EPL" },
-    awayTeam: { id: "AWAY", name: "Away Team", shortName: "AWAY", league: "EPL" },
+    homeTeam: { id: worldState.homeTeam.id, name: worldState.homeTeam.name, shortName: worldState.homeTeam.shortName || worldState.homeTeam.id, league: "EPL" },
+    awayTeam: { id: worldState.awayTeam.id, name: worldState.awayTeam.name, shortName: worldState.awayTeam.shortName || worldState.awayTeam.id, league: "EPL" },
     gameStatus: { status: "pregame", display: "PREGAME" },
     coachQuestion: isInsufficient ? "Data insufficient for tactical analysis." : "Should the team press high from the start?",
     coachDecision: isInsufficient ? "PRESS_HIGH" : "PRESS_HIGH",
@@ -39,3 +39,4 @@ export function translateEPLWorldStateToCoachRead(worldState: WorldEngineState):
     ...CURRENT_ENGINE_VERSION,
   };
 }
+

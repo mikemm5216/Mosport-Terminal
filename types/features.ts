@@ -5,6 +5,8 @@ export type PregameFeatureSet = {
 
   homeTeamId: string;
   awayTeamId: string;
+  homeTeamName: string;
+  awayTeamName: string;
 
   startTime: string;
   status: "scheduled" | "pregame";

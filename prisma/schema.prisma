@@ -308,11 +308,11 @@ model StrategyBacktestResult {
 model TeamWorldState {
   id         String   @id @default(cuid())
   teamId     String
-  pressure   Float    @default(0)
-  fatigue    Float    @default(0)
-  volatility Float    @default(0)
-  momentum   Float    @default(0)
-  mismatch   Float    @default(0)
+  pressure   Float?
+  fatigue    Float?
+  volatility Float?
+  momentum   Float?
+  mismatch   Float?
   payload    Json?
   createdAt  DateTime @default(now())
 

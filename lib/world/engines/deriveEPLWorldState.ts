@@ -22,6 +22,8 @@ export function deriveEPLWorldState(features: PregameFeatureSet): WorldEngineSta
     engineStatus: isPartial ? "PARTIAL" : "READY",
     evidenceStatus: isPartial ? "PARTIAL" : "VALIDATED",
     missingEvidence: isPartial ? ["MISSING_ADVANCED_METRICS"] : [],
+homeTeam: { id: features.homeTeamId, name: features.homeTeamName },
+awayTeam: { id: features.awayTeamId, name: features.awayTeamName },
     pressure: epl?.pressResistance ?? null,
     fatigue: epl?.fixtureCongestion ?? null,
     volatility: epl?.defensiveLineRisk ?? null,
@@ -43,3 +45,4 @@ export function deriveEPLWorldState(features: PregameFeatureSet): WorldEngineSta
     generatedAt: new Date().toISOString(),
   };
 }
+
